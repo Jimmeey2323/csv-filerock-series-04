@@ -1,5 +1,5 @@
 
-import { formatDateString, getMonthYearFromDate } from './csvParser';
+import { formatDateString, getMonthYearFromDate, cleanFirstVisitValue } from './csvParser';
 
 // Define types for our data structures
 interface NewRecord {
@@ -55,6 +55,13 @@ interface SaleRecord {
   'Home location': string;
 }
 
+interface ClientDetail {
+  email: string;
+  name: string;
+  date: string;
+  value?: number;
+}
+
 export interface ProcessedTeacherData {
   teacherName: string;
   location: string;
@@ -77,6 +84,12 @@ export interface ProcessedTeacherData {
   influencerConversionRate: number;
   referralConversionRate: number;
   trialToMembershipConversion: number;
+  // Added for detailed analysis
+  newClientDetails: ClientDetail[];
+  retainedClientDetails: ClientDetail[];
+  convertedClientDetails: ClientDetail[];
+  revenueByWeek?: { week: string; revenue: number }[];
+  clientsBySource?: { source: string; count: number }[];
 }
 
 // For progress tracking
@@ -106,6 +119,7 @@ export const processData = (
       const cleanedNewData = newData.map(record => ({
         ...record,
         'First visit at': formatDateString(record['First visit at'] || ''),
+        'First visit': cleanFirstVisitValue(record['First visit'] || ''),
       }));
       
       const cleanedBookingsData = bookingsData.map(record => ({
@@ -114,6 +128,7 @@ export const processData = (
         'Sale Value': typeof record['Sale Value'] === 'string' 
           ? parseFloat(record['Sale Value']) || 0 
           : record['Sale Value'] || 0,
+        'Class Name': cleanFirstVisitValue(record['Class Name'] || ''),
       }));
       
       const cleanedSalesData = salesData ? salesData.map(record => ({
@@ -122,6 +137,7 @@ export const processData = (
         'Sale Value': typeof record['Sale Value'] === 'string' 
           ? parseFloat(record['Sale Value']) || 0 
           : record['Sale Value'] || 0,
+        'Class Name': cleanFirstVisitValue(record['Class Name'] || ''),
       })) : [];
       
       updateProgress({ progress: 20, currentStep: "Matching records and extracting teacher data..." });
@@ -206,6 +222,14 @@ export const processData = (
                   // Get email addresses of these new clients
                   const newClientEmails = teacherNewClients.map(record => record['Email']);
                   
+                  // Create detailed client lists for deeper analysis
+                  const newClientDetails = teacherNewClients.map(client => ({
+                    email: client['Email'],
+                    name: `${client['First name']} ${client['Last name']}`,
+                    date: client['First visit at'],
+                    membershipType: client['Membership used']
+                  }));
+                  
                   // Find return visits in bookings data
                   const returnVisits = cleanedBookingsData.filter(booking => 
                     newClientEmails.includes(booking['Customer Email']) &&
@@ -219,6 +243,18 @@ export const processData = (
                   // Count unique emails with return visits
                   const returnClientEmails = [...new Set(returnVisits.map(visit => visit['Customer Email']))];
                   const retainedClientsCount = returnClientEmails.length;
+                  
+                  // Create detailed retained client list
+                  const retainedClientDetails = returnClientEmails.map(email => {
+                    const clientVisits = returnVisits.filter(visit => visit['Customer Email'] === email);
+                    const clientInfo = teacherNewClients.find(client => client['Email'] === email);
+                    return {
+                      email,
+                      name: clientInfo ? `${clientInfo['First name']} ${clientInfo['Last name']}` : 'Unknown',
+                      date: clientVisits[0]['Class Date'],
+                      visitCount: clientVisits.length
+                    };
+                  });
                   
                   // Calculate retention rate
                   const retentionRate = newClientsCount > 0 
@@ -238,6 +274,22 @@ export const processData = (
                   // Count unique converted clients
                   const convertedClientEmails = [...new Set(convertedClients.map(sale => sale['Customer Email']))];
                   const convertedClientsCount = convertedClientEmails.length;
+                  
+                  // Create detailed converted client list
+                  const convertedClientDetails = convertedClientEmails.map(email => {
+                    const clientSales = convertedClients.filter(sale => sale['Customer Email'] === email);
+                    const totalValue = clientSales.reduce((sum, sale) => 
+                      sum + (typeof sale['Sale Value'] === 'number' ? sale['Sale Value'] : parseFloat(sale['Sale Value'] || '0')), 0
+                    );
+                    const clientInfo = teacherNewClients.find(client => client['Email'] === email);
+                    return {
+                      email,
+                      name: clientInfo ? `${clientInfo['First name']} ${clientInfo['Last name']}` : 'Unknown',
+                      date: clientSales[0]['Sale Date'],
+                      value: totalValue,
+                      membershipType: clientSales[0]['Membership used']
+                    };
+                  });
                   
                   // Calculate conversion rate
                   const conversionRate = newClientsCount > 0 
@@ -312,6 +364,36 @@ export const processData = (
                     ? (trialConvertedCount / trials) * 100 
                     : 0;
                   
+                  // Create weekly revenue data for charts
+                  const revenueByWeek = convertedClients.reduce((acc, sale) => {
+                    const date = new Date(sale['Sale Date']);
+                    const weekStart = new Date(date);
+                    weekStart.setDate(date.getDate() - date.getDay());
+                    const weekKey = weekStart.toISOString().split('T')[0];
+                    
+                    const existing = acc.find(item => item.week === weekKey);
+                    const saleValue = typeof sale['Sale Value'] === 'number' 
+                      ? sale['Sale Value'] 
+                      : parseFloat(sale['Sale Value'] || '0');
+                      
+                    if (existing) {
+                      existing.revenue += saleValue;
+                    } else {
+                      acc.push({ week: weekKey, revenue: saleValue });
+                    }
+                    
+                    return acc;
+                  }, [] as { week: string; revenue: number }[]);
+                  
+                  // Create client source data for charts
+                  const clientsBySource = [
+                    { source: 'Trials', count: trials },
+                    { source: 'Referrals', count: referrals },
+                    { source: 'Hosted', count: hosted },
+                    { source: 'Influencer', count: influencerSignups },
+                    { source: 'Others', count: others }
+                  ];
+                  
                   // Add to processed data
                   processedData.push({
                     teacherName: teacher,
@@ -334,7 +416,12 @@ export const processData = (
                     firstTimeBuyerRate,
                     influencerConversionRate,
                     referralConversionRate,
-                    trialToMembershipConversion
+                    trialToMembershipConversion,
+                    newClientDetails,
+                    retainedClientDetails,
+                    convertedClientDetails,
+                    revenueByWeek,
+                    clientsBySource
                   });
                 });
               });

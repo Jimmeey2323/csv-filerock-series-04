@@ -80,6 +80,14 @@ export const formatDateString = (dateStr: string): string => {
   }
 };
 
+export const cleanFirstVisitValue = (visitValue: string): string => {
+  // Remove "Class - " prefix if present
+  if (visitValue && typeof visitValue === 'string') {
+    return visitValue.replace(/^Class\s*-\s*/i, '').trim();
+  }
+  return visitValue;
+};
+
 export const getMonthYearFromDate = (dateStr: string): string => {
   try {
     const date = new Date(formatDateString(dateStr));
