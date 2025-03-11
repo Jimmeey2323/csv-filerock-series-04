@@ -105,17 +105,17 @@ const Index = () => {
     let filtered = [...processedData];
     
     // Filter by location
-    if (filters.location) {
+    if (filters.location && filters.location !== 'all-locations') {
       filtered = filtered.filter(item => item.location === filters.location);
     }
     
     // Filter by teacher
-    if (filters.teacher) {
+    if (filters.teacher && filters.teacher !== 'all-teachers') {
       filtered = filtered.filter(item => item.teacherName === filters.teacher);
     }
     
     // Filter by period
-    if (filters.period) {
+    if (filters.period && filters.period !== 'all-periods') {
       filtered = filtered.filter(item => item.period === filters.period);
     }
     

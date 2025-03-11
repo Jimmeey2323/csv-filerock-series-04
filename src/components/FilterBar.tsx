@@ -78,7 +78,7 @@ const FilterBar: React.FC<FilterBarProps> = ({
               </div>
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">All Locations</SelectItem>
+              <SelectItem value="all-locations">All Locations</SelectItem>
               {locations.map((location) => (
                 <SelectItem key={location} value={location}>
                   {location}
@@ -98,7 +98,7 @@ const FilterBar: React.FC<FilterBarProps> = ({
               </div>
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">All Teachers</SelectItem>
+              <SelectItem value="all-teachers">All Teachers</SelectItem>
               {teachers.map((teacher) => (
                 <SelectItem key={teacher} value={teacher}>
                   {teacher}
@@ -118,7 +118,7 @@ const FilterBar: React.FC<FilterBarProps> = ({
               </div>
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">All Periods</SelectItem>
+              <SelectItem value="all-periods">All Periods</SelectItem>
               {periods.map((period) => (
                 <SelectItem key={period} value={period}>
                   {period}
