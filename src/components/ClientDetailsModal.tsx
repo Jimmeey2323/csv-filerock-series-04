@@ -18,7 +18,8 @@ import {
 } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Download } from 'lucide-react';
+import { Download, Mail, User, Calendar, Hash, DollarSign, Tag } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
 
 interface ClientDetail {
   email: string;
@@ -100,42 +101,180 @@ const ClientDetailsModal: React.FC<ClientDetailsModalProps> = ({
     document.body.removeChild(link);
   };
 
+  // Get summary stats for the modal
+  const getSummaryStats = () => {
+    if (type === 'converted') {
+      const totalValue = clients.reduce((sum, client) => sum + (client.value || 0), 0);
+      const avgValue = totalValue / clients.length;
+      
+      // Get membership type distribution
+      const membershipTypes = clients.reduce((acc, client) => {
+        const type = client.membershipType || 'Unknown';
+        acc[type] = (acc[type] || 0) + 1;
+        return acc;
+      }, {} as Record<string, number>);
+      
+      const topMembership = Object.entries(membershipTypes)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 1)[0];
+        
+      return (
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
+          <div className="bg-secondary/30 rounded-md p-3">
+            <p className="text-xs text-muted-foreground mb-1 flex items-center">
+              <DollarSign className="h-3 w-3 mr-1" />
+              Total Revenue
+            </p>
+            <p className="font-medium">{formatCurrency(totalValue)}</p>
+          </div>
+          <div className="bg-secondary/30 rounded-md p-3">
+            <p className="text-xs text-muted-foreground mb-1 flex items-center">
+              <DollarSign className="h-3 w-3 mr-1" />
+              Avg. Revenue per Client
+            </p>
+            <p className="font-medium">{formatCurrency(avgValue)}</p>
+          </div>
+          {topMembership && (
+            <div className="bg-secondary/30 rounded-md p-3">
+              <p className="text-xs text-muted-foreground mb-1 flex items-center">
+                <Tag className="h-3 w-3 mr-1" />
+                Top Membership
+              </p>
+              <p className="font-medium truncate" title={topMembership[0]}>
+                {topMembership[0].substring(0, 20)}{topMembership[0].length > 20 ? '...' : ''} ({topMembership[1]})
+              </p>
+            </div>
+          )}
+        </div>
+      );
+    }
+    
+    if (type === 'retained') {
+      const totalVisits = clients.reduce((sum, client) => sum + (client.visitCount || 0), 0);
+      const avgVisits = totalVisits / clients.length;
+      const maxVisits = Math.max(...clients.map(client => client.visitCount || 0));
+      
+      return (
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
+          <div className="bg-secondary/30 rounded-md p-3">
+            <p className="text-xs text-muted-foreground mb-1 flex items-center">
+              <Hash className="h-3 w-3 mr-1" />
+              Total Visits
+            </p>
+            <p className="font-medium">{totalVisits}</p>
+          </div>
+          <div className="bg-secondary/30 rounded-md p-3">
+            <p className="text-xs text-muted-foreground mb-1 flex items-center">
+              <Hash className="h-3 w-3 mr-1" />
+              Avg. Visits per Client
+            </p>
+            <p className="font-medium">{avgVisits.toFixed(1)}</p>
+          </div>
+          <div className="bg-secondary/30 rounded-md p-3">
+            <p className="text-xs text-muted-foreground mb-1 flex items-center">
+              <Hash className="h-3 w-3 mr-1" />
+              Max Visits
+            </p>
+            <p className="font-medium">{maxVisits}</p>
+          </div>
+        </div>
+      );
+    }
+    
+    return null;
+  };
+
+  const getStatusBadge = () => {
+    if (type === 'new') return <Badge className="bg-blue-500">New</Badge>;
+    if (type === 'retained') return <Badge className="bg-green-500">Retained</Badge>;
+    if (type === 'converted') return <Badge className="bg-purple-500">Converted</Badge>;
+    return null;
+  };
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-3xl max-h-[80vh] flex flex-col">
         <DialogHeader>
-          <DialogTitle>{title}</DialogTitle>
+          <div className="flex items-center justify-between">
+            <DialogTitle className="flex items-center gap-2">
+              {title} {getStatusBadge()}
+            </DialogTitle>
+          </div>
           <DialogDescription>{description}</DialogDescription>
         </DialogHeader>
+        
+        {getSummaryStats()}
         
         <ScrollArea className="flex-1 max-h-[50vh] border rounded-md">
           <Table>
             <TableHeader className="sticky top-0 bg-secondary/80 backdrop-blur-sm">
               <TableRow>
-                <TableHead className="w-1/4">Name</TableHead>
-                <TableHead className="w-1/4">Email</TableHead>
-                <TableHead className="w-1/5">{type === 'new' ? 'First Visit' : type === 'retained' ? 'Return Visit' : 'Purchase'} Date</TableHead>
-                {type === 'retained' && <TableHead className="w-1/6 text-right">Visits</TableHead>}
+                <TableHead className="w-1/4">
+                  <div className="flex items-center space-x-1">
+                    <User className="h-3.5 w-3.5" />
+                    <span>Name</span>
+                  </div>
+                </TableHead>
+                <TableHead className="w-1/4">
+                  <div className="flex items-center space-x-1">
+                    <Mail className="h-3.5 w-3.5" />
+                    <span>Email</span>
+                  </div>
+                </TableHead>
+                <TableHead className="w-1/5">
+                  <div className="flex items-center space-x-1">
+                    <Calendar className="h-3.5 w-3.5" />
+                    <span>{type === 'new' ? 'First Visit' : type === 'retained' ? 'Return Visit' : 'Purchase'} Date</span>
+                  </div>
+                </TableHead>
+                {type === 'retained' && (
+                  <TableHead className="w-1/6 text-right">
+                    <div className="flex items-center space-x-1 justify-end">
+                      <Hash className="h-3.5 w-3.5" />
+                      <span>Visits</span>
+                    </div>
+                  </TableHead>
+                )}
                 {type === 'converted' && (
                   <>
-                    <TableHead className="w-1/6 text-right">Value</TableHead>
-                    <TableHead className="w-1/5">Membership</TableHead>
+                    <TableHead className="w-1/6 text-right">
+                      <div className="flex items-center space-x-1 justify-end">
+                        <DollarSign className="h-3.5 w-3.5" />
+                        <span>Value</span>
+                      </div>
+                    </TableHead>
+                    <TableHead className="w-1/5">
+                      <div className="flex items-center space-x-1">
+                        <Tag className="h-3.5 w-3.5" />
+                        <span>Membership</span>
+                      </div>
+                    </TableHead>
                   </>
                 )}
               </TableRow>
             </TableHeader>
             <TableBody>
               {clients.map((client, index) => (
-                <TableRow key={index}>
+                <TableRow key={index} className="hover:bg-secondary/30">
                   <TableCell className="font-medium">{client.name}</TableCell>
-                  <TableCell>{client.email}</TableCell>
+                  <TableCell className="font-mono text-xs">{client.email}</TableCell>
                   <TableCell>{formatDate(client.date)}</TableCell>
-                  {type === 'retained' && <TableCell className="text-right">{client.visitCount || '-'}</TableCell>}
+                  {type === 'retained' && (
+                    <TableCell className="text-right">
+                      <Badge variant="outline" className="bg-green-50 border-green-200 text-green-700">
+                        {client.visitCount || '-'}
+                      </Badge>
+                    </TableCell>
+                  )}
                   {type === 'converted' && (
                     <>
-                      <TableCell className="text-right">{formatCurrency(client.value)}</TableCell>
+                      <TableCell className="text-right font-medium">
+                        {formatCurrency(client.value)}
+                      </TableCell>
                       <TableCell className="truncate max-w-[150px]" title={client.membershipType}>
-                        {client.membershipType || '-'}
+                        <Badge variant="outline" className="bg-purple-50 border-purple-200 text-purple-700 font-normal">
+                          {client.membershipType ? (client.membershipType.length > 15 ? client.membershipType.substring(0, 15) + '...' : client.membershipType) : '-'}
+                        </Badge>
                       </TableCell>
                     </>
                   )}
@@ -149,7 +288,7 @@ const ClientDetailsModal: React.FC<ClientDetailsModalProps> = ({
           <div className="text-sm text-muted-foreground">
             {clients.length} {clients.length === 1 ? 'client' : 'clients'}
           </div>
-          <Button onClick={downloadCSV} className="flex items-center gap-2">
+          <Button onClick={downloadCSV} className="flex items-center gap-2 bg-primary hover:bg-primary/90">
             <Download className="h-4 w-4" />
             Download CSV
           </Button>

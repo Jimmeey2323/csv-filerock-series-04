@@ -21,7 +21,7 @@ import {
   TabsTrigger,
 } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Info, TrendingUp, Users, DollarSign, BarChart2, PieChart } from 'lucide-react';
+import { Info, TrendingUp, Users, DollarSign, BarChart2, PieChart, Calendar, ArrowUp, ArrowDown, Percent, UserCheck, UserPlus } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import ClientDetailsModal from './ClientDetailsModal';
 import RevenueChart from './charts/RevenueChart';
@@ -113,58 +113,62 @@ const ResultsTable: React.FC<ResultsTableProps> = ({
     
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6 animate-fade-in">
-        <Card className="card-hover">
+        <Card className="card-hover bg-white/60 backdrop-blur-sm">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Total New Clients
+            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center space-x-2">
+              <UserPlus className="h-4 w-4" />
+              <span>Total New Clients</span>
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="flex items-end justify-between">
               <div className="text-2xl font-bold">{totalNewClients}</div>
-              <Users className="h-5 w-5 text-muted-foreground" />
+              <Users className="h-5 w-5 text-primary" />
             </div>
           </CardContent>
         </Card>
         
-        <Card className="card-hover">
+        <Card className="card-hover bg-white/60 backdrop-blur-sm">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Retention Rate
+            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center space-x-2">
+              <UserCheck className="h-4 w-4" />
+              <span>Retention Rate</span>
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="flex items-end justify-between">
               <div className="text-2xl font-bold">{formatPercentage(avgRetentionRate)}</div>
-              <TrendingUp className="h-5 w-5 text-muted-foreground" />
+              <TrendingUp className={`h-5 w-5 ${avgRetentionRate > 50 ? 'text-green-500' : 'text-amber-500'}`} />
             </div>
           </CardContent>
         </Card>
         
-        <Card className="card-hover">
+        <Card className="card-hover bg-white/60 backdrop-blur-sm">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Conversion Rate
+            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center space-x-2">
+              <Percent className="h-4 w-4" />
+              <span>Conversion Rate</span>
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="flex items-end justify-between">
               <div className="text-2xl font-bold">{formatPercentage(avgConversionRate)}</div>
-              <TrendingUp className="h-5 w-5 text-muted-foreground" />
+              <TrendingUp className={`h-5 w-5 ${avgConversionRate > 30 ? 'text-green-500' : 'text-amber-500'}`} />
             </div>
           </CardContent>
         </Card>
         
-        <Card className="card-hover">
+        <Card className="card-hover bg-white/60 backdrop-blur-sm">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Total Revenue
+            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center space-x-2">
+              <DollarSign className="h-4 w-4" />
+              <span>Total Revenue</span>
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="flex items-end justify-between">
               <div className="text-2xl font-bold">{formatCurrency(totalRevenue)}</div>
-              <DollarSign className="h-5 w-5 text-muted-foreground" />
+              <BarChart2 className="h-5 w-5 text-primary" />
             </div>
           </CardContent>
         </Card>
@@ -172,9 +176,130 @@ const ResultsTable: React.FC<ResultsTableProps> = ({
     );
   };
 
+  // Calculate performance trends
+  const getPerformanceTrends = (teacherData: TeacherMetrics[]) => {
+    if (teacherData.length < 2) return null;
+    
+    // Sort by period (assuming periods are in format 'MMM YY')
+    const sortedData = [...teacherData].sort((a, b) => {
+      const dateA = new Date(a.period.split(' ')[0] + ' 20' + a.period.split(' ')[1]);
+      const dateB = new Date(b.period.split(' ')[0] + ' 20' + b.period.split(' ')[1]);
+      return dateA.getTime() - dateB.getTime();
+    });
+    
+    // Get most recent and previous period
+    const current = sortedData[sortedData.length - 1];
+    const previous = sortedData[sortedData.length - 2];
+    
+    // Calculate changes
+    const clientChange = current.newClients - previous.newClients;
+    const clientPercentChange = previous.newClients > 0 
+      ? (clientChange / previous.newClients) * 100 
+      : 0;
+    
+    const retentionChange = current.retentionRate - previous.retentionRate;
+    const conversionChange = current.conversionRate - previous.conversionRate;
+    const revenueChange = current.totalRevenue - previous.totalRevenue;
+    const revenuePercentChange = previous.totalRevenue > 0 
+      ? (revenueChange / previous.totalRevenue) * 100 
+      : 0;
+    
+    return (
+      <div className="mb-6">
+        <h3 className="text-lg font-medium mb-3 flex items-center">
+          <Calendar className="h-5 w-5 mr-2" />
+          Performance Trends (vs Previous Period)
+        </h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <Card className="bg-white/40 backdrop-blur-sm">
+            <CardContent className="pt-6">
+              <div className="flex justify-between items-start">
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">New Clients</p>
+                  <div className="flex items-baseline space-x-2 mt-1">
+                    <p className="text-2xl font-bold">{clientChange > 0 ? '+' : ''}{clientChange}</p>
+                    <p className={`text-sm ${clientChange >= 0 ? 'text-green-500' : 'text-red-500'} flex items-center`}>
+                      {clientChange >= 0 ? <ArrowUp className="h-3 w-3 mr-1" /> : <ArrowDown className="h-3 w-3 mr-1" />}
+                      {Math.abs(clientPercentChange).toFixed(1)}%
+                    </p>
+                  </div>
+                </div>
+                <Badge variant={clientChange >= 0 ? "success" : "destructive"} className="mt-1">
+                  {clientChange >= 0 ? 'Increase' : 'Decrease'}
+                </Badge>
+              </div>
+            </CardContent>
+          </Card>
+          
+          <Card className="bg-white/40 backdrop-blur-sm">
+            <CardContent className="pt-6">
+              <div className="flex justify-between items-start">
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Retention Rate</p>
+                  <div className="flex items-baseline space-x-2 mt-1">
+                    <p className="text-2xl font-bold">{retentionChange > 0 ? '+' : ''}{retentionChange.toFixed(1)}%</p>
+                    <p className={`text-sm ${retentionChange >= 0 ? 'text-green-500' : 'text-red-500'} flex items-center`}>
+                      {retentionChange >= 0 ? <ArrowUp className="h-3 w-3 mr-1" /> : <ArrowDown className="h-3 w-3 mr-1" />}
+                      pts
+                    </p>
+                  </div>
+                </div>
+                <Badge variant={retentionChange >= 0 ? "success" : "destructive"} className="mt-1">
+                  {retentionChange >= 0 ? 'Improved' : 'Declined'}
+                </Badge>
+              </div>
+            </CardContent>
+          </Card>
+          
+          <Card className="bg-white/40 backdrop-blur-sm">
+            <CardContent className="pt-6">
+              <div className="flex justify-between items-start">
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Conversion Rate</p>
+                  <div className="flex items-baseline space-x-2 mt-1">
+                    <p className="text-2xl font-bold">{conversionChange > 0 ? '+' : ''}{conversionChange.toFixed(1)}%</p>
+                    <p className={`text-sm ${conversionChange >= 0 ? 'text-green-500' : 'text-red-500'} flex items-center`}>
+                      {conversionChange >= 0 ? <ArrowUp className="h-3 w-3 mr-1" /> : <ArrowDown className="h-3 w-3 mr-1" />}
+                      pts
+                    </p>
+                  </div>
+                </div>
+                <Badge variant={conversionChange >= 0 ? "success" : "destructive"} className="mt-1">
+                  {conversionChange >= 0 ? 'Improved' : 'Declined'}
+                </Badge>
+              </div>
+            </CardContent>
+          </Card>
+          
+          <Card className="bg-white/40 backdrop-blur-sm">
+            <CardContent className="pt-6">
+              <div className="flex justify-between items-start">
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Revenue</p>
+                  <div className="flex items-baseline space-x-2 mt-1">
+                    <p className="text-2xl font-bold">{revenueChange > 0 ? '+' : ''}{formatCurrency(revenueChange)}</p>
+                    <p className={`text-sm ${revenueChange >= 0 ? 'text-green-500' : 'text-red-500'} flex items-center`}>
+                      {revenueChange >= 0 ? <ArrowUp className="h-3 w-3 mr-1" /> : <ArrowDown className="h-3 w-3 mr-1" />}
+                      {Math.abs(revenuePercentChange).toFixed(1)}%
+                    </p>
+                  </div>
+                </div>
+                <Badge variant={revenueChange >= 0 ? "success" : "destructive"} className="mt-1">
+                  {revenueChange >= 0 ? 'Increase' : 'Decrease'}
+                </Badge>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  };
+
   return (
-    <div className="w-full animate-slide-up">
+    <div className="w-full animate-slide-up space-y-6">
       {getSummaryMetrics(filteredData)}
+      
+      {filteredData.length > 1 && getPerformanceTrends(filteredData)}
       
       {/* Analytics Charts */}
       {activeTeacher && (
@@ -297,24 +422,40 @@ const ResultsTable: React.FC<ResultsTableProps> = ({
                           </Badge>
                         </TableCell>
                         <TableCell 
-                          className="text-center cursor-pointer hover:text-primary hover:underline"
+                          className="text-center cursor-pointer hover:text-primary hover:underline transition-colors"
                           onClick={() => openModal(row, 'new')}
                         >
-                          {row.newClients}
+                          <div className="flex justify-center items-center">
+                            <span className="hover:bg-blue-50 px-2 py-1 rounded">{row.newClients}</span>
+                          </div>
                         </TableCell>
                         <TableCell 
-                          className="text-center cursor-pointer hover:text-primary hover:underline"
+                          className="text-center cursor-pointer hover:text-primary hover:underline transition-colors"
                           onClick={() => openModal(row, 'retained')}
                         >
-                          {formatPercentage(row.retentionRate)}
+                          <div className="flex justify-center items-center">
+                            <span className={`hover:bg-blue-50 px-2 py-1 rounded ${
+                              row.retentionRate > 50 ? 'text-green-600' : row.retentionRate > 30 ? 'text-amber-600' : 'text-red-600'
+                            }`}>
+                              {formatPercentage(row.retentionRate)}
+                            </span>
+                          </div>
                         </TableCell>
                         <TableCell 
-                          className="text-center cursor-pointer hover:text-primary hover:underline"
+                          className="text-center cursor-pointer hover:text-primary hover:underline transition-colors"
                           onClick={() => openModal(row, 'converted')}
                         >
-                          {formatPercentage(row.conversionRate)}
+                          <div className="flex justify-center items-center">
+                            <span className={`hover:bg-blue-50 px-2 py-1 rounded ${
+                              row.conversionRate > 40 ? 'text-green-600' : row.conversionRate > 20 ? 'text-amber-600' : 'text-red-600'
+                            }`}>
+                              {formatPercentage(row.conversionRate)}
+                            </span>
+                          </div>
                         </TableCell>
-                        <TableCell className="text-center">{formatCurrency(row.totalRevenue)}</TableCell>
+                        <TableCell className="text-center">
+                          <span className="font-medium">{formatCurrency(row.totalRevenue)}</span>
+                        </TableCell>
                       </TableRow>
                     ))
                   )}
