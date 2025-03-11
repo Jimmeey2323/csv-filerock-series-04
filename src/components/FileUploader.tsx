@@ -3,7 +3,7 @@ import React, { useState, useRef, useCallback } from 'react';
 import { Upload, X, File, FilePlus } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import { toast } from '@/components/ui/sonner';
+import { toast } from 'sonner';
 
 interface FileUploaderProps {
   onFilesAdded: (files: File[]) => void;
