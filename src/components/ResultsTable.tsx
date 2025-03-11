@@ -21,11 +21,13 @@ import {
   TabsTrigger,
 } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Info, TrendingUp, Users, DollarSign, BarChart2, PieChart, Calendar, ArrowUp, ArrowDown, Percent, UserCheck, UserPlus } from 'lucide-react';
+import { Info, TrendingUp, Users, DollarSign, BarChart2, PieChart, Calendar, ArrowUp, ArrowDown, Percent, UserCheck, UserPlus, Target, BarChart } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import ClientDetailsModal from './ClientDetailsModal';
 import RevenueChart from './charts/RevenueChart';
 import ClientSourceChart from './charts/ClientSourceChart';
+import PerformanceMetricCard from './cards/PerformanceMetricCard';
+import ConversionRatesChart from './charts/ConversionRatesChart';
 
 interface TeacherMetrics {
   teacherName: string;
@@ -113,65 +115,35 @@ const ResultsTable: React.FC<ResultsTableProps> = ({
     
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6 animate-fade-in">
-        <Card className="card-hover bg-white/60 backdrop-blur-sm">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center space-x-2">
-              <UserPlus className="h-4 w-4" />
-              <span>Total New Clients</span>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-end justify-between">
-              <div className="text-2xl font-bold">{totalNewClients}</div>
-              <Users className="h-5 w-5 text-primary" />
-            </div>
-          </CardContent>
-        </Card>
+        <PerformanceMetricCard 
+          title="Total New Clients"
+          value={totalNewClients.toString()}
+          icon={<UserPlus className="h-5 w-5 text-primary" />}
+          tooltip="Count of unique emails where Membership used does not contain friends|family|staff"
+        />
         
-        <Card className="card-hover bg-white/60 backdrop-blur-sm">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center space-x-2">
-              <UserCheck className="h-4 w-4" />
-              <span>Retention Rate</span>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-end justify-between">
-              <div className="text-2xl font-bold">{formatPercentage(avgRetentionRate)}</div>
-              <TrendingUp className={`h-5 w-5 ${avgRetentionRate > 50 ? 'text-green-500' : 'text-amber-500'}`} />
-            </div>
-          </CardContent>
-        </Card>
+        <PerformanceMetricCard 
+          title="Retention Rate"
+          value={formatPercentage(avgRetentionRate)}
+          icon={<UserCheck className="h-5 w-5" />}
+          status={avgRetentionRate > 50 ? 'positive' : avgRetentionRate > 30 ? 'neutral' : 'negative'}
+          tooltip="(Retained Clients / New Clients) × 100. Retained clients are those who returned after first visit."
+        />
         
-        <Card className="card-hover bg-white/60 backdrop-blur-sm">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center space-x-2">
-              <Percent className="h-4 w-4" />
-              <span>Conversion Rate</span>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-end justify-between">
-              <div className="text-2xl font-bold">{formatPercentage(avgConversionRate)}</div>
-              <TrendingUp className={`h-5 w-5 ${avgConversionRate > 30 ? 'text-green-500' : 'text-amber-500'}`} />
-            </div>
-          </CardContent>
-        </Card>
+        <PerformanceMetricCard 
+          title="Conversion Rate"
+          value={formatPercentage(avgConversionRate)}
+          icon={<Target className="h-5 w-5" />}
+          status={avgConversionRate > 30 ? 'positive' : avgConversionRate > 20 ? 'neutral' : 'negative'}
+          tooltip="(Converted Clients / New Clients) × 100. Converted clients are those who purchased after first visit."
+        />
         
-        <Card className="card-hover bg-white/60 backdrop-blur-sm">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center space-x-2">
-              <DollarSign className="h-4 w-4" />
-              <span>Total Revenue</span>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-end justify-between">
-              <div className="text-2xl font-bold">{formatCurrency(totalRevenue)}</div>
-              <BarChart2 className="h-5 w-5 text-primary" />
-            </div>
-          </CardContent>
-        </Card>
+        <PerformanceMetricCard 
+          title="Total Revenue"
+          value={formatCurrency(totalRevenue)}
+          icon={<BarChart className="h-5 w-5 text-primary" />}
+          tooltip="Sum of sales values from converted clients"
+        />
       </div>
     );
   };
@@ -295,6 +267,24 @@ const ResultsTable: React.FC<ResultsTableProps> = ({
     );
   };
 
+  const getTeacherConversionRates = (teacherData: TeacherMetrics[]) => {
+    if (teacherData.length === 0) return null;
+
+    const conversionRatesData = teacherData.map(teacher => ({
+      name: teacher.teacherName,
+      retention: teacher.retentionRate,
+      conversion: teacher.conversionRate,
+      trial: teacher.trialToMembershipConversion,
+      referral: teacher.referralConversionRate,
+      influencer: teacher.influencerConversionRate
+    }));
+
+    // Sort by conversion rate (highest first)
+    conversionRatesData.sort((a, b) => b.conversion - a.conversion);
+
+    return <ConversionRatesChart data={conversionRatesData.slice(0, 5)} />;
+  };
+
   return (
     <div className="w-full animate-slide-up space-y-6">
       {getSummaryMetrics(filteredData)}
@@ -303,13 +293,24 @@ const ResultsTable: React.FC<ResultsTableProps> = ({
       
       {/* Analytics Charts */}
       {activeTeacher && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-          <RevenueChart 
-            data={activeTeacher.revenueByWeek || []} 
-          />
-          <ClientSourceChart 
-            data={activeTeacher.clientsBySource || []} 
-          />
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+          <div className="lg:col-span-2">
+            <RevenueChart 
+              data={activeTeacher.revenueByWeek || []} 
+            />
+          </div>
+          <div>
+            <ClientSourceChart 
+              data={activeTeacher.clientsBySource || []} 
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Conversion Rates Comparison */}
+      {filteredData.length > 1 && (
+        <div className="mb-6">
+          {getTeacherConversionRates(filteredData)}
         </div>
       )}
       
