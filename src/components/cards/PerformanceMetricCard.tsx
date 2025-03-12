@@ -7,17 +7,24 @@ import { Info } from 'lucide-react';
 interface PerformanceMetricCardProps {
   title: string;
   value: string;
+  secondaryValue?: string;
   icon: React.ReactNode;
   status?: 'positive' | 'neutral' | 'negative';
   tooltip?: string;
+  trend?: {
+    value: number;
+    label?: string;
+  };
 }
 
 const PerformanceMetricCard: React.FC<PerformanceMetricCardProps> = ({
   title,
   value,
+  secondaryValue,
   icon,
   status,
-  tooltip
+  tooltip,
+  trend
 }) => {
   const getStatusColor = () => {
     if (!status) return '';
@@ -48,7 +55,18 @@ const PerformanceMetricCard: React.FC<PerformanceMetricCardProps> = ({
             </div>
             <div className={`text-2xl font-bold mt-1 ${getStatusColor()}`}>
               {value}
+              {secondaryValue && (
+                <span className="ml-2 text-sm font-normal text-muted-foreground">
+                  ({secondaryValue})
+                </span>
+              )}
             </div>
+            {trend && (
+              <div className={`text-xs mt-1 ${trend.value >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                {trend.value >= 0 ? '↑' : '↓'} {Math.abs(trend.value).toFixed(1)}%
+                {trend.label && <span className="ml-1 text-muted-foreground">{trend.label}</span>}
+              </div>
+            )}
           </div>
           <div className={`${status ? getStatusColor() : ''}`}>
             {icon}

@@ -20,6 +20,7 @@ const Index = () => {
   const [periods, setPeriods] = useState<string[]>([]);
   const [filteredData, setFilteredData] = useState<ProcessedTeacherData[]>([]);
   const [resultsVisible, setResultsVisible] = useState(false);
+  const [viewMode, setViewMode] = useState<'table' | 'cards' | 'detailed'>('table');
 
   // Update progress
   const updateProgress = useCallback((progressData: ProcessingProgress) => {
@@ -130,6 +131,11 @@ const Index = () => {
     setFilteredData(filtered);
   }, [processedData]);
 
+  // Handle view mode change
+  const handleViewModeChange = (mode: 'table' | 'cards' | 'detailed') => {
+    setViewMode(mode);
+  };
+
   // Apply fade-in animation on mount
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -191,15 +197,6 @@ const Index = () => {
                   Process new files
                 </button>
               </div>
-              
-              {teachers.length > 0 && locations.length > 0 && periods.length > 0 && (
-                <FilterBar
-                  teachers={teachers}
-                  locations={locations}
-                  periods={periods}
-                  onFilterChange={handleFilterChange}
-                />
-              )}
               
               <ResultsTable
                 data={filteredData}
