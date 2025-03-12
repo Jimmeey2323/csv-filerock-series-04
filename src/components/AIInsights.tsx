@@ -145,6 +145,20 @@ const AIInsights: React.FC<AIInsightsProps> = ({ data, isFiltered }) => {
       type: 'trend'
     });
     
+    if (totalRevenue > 0) {
+      newInsights.push({
+        message: `Total revenue across all teachers: ₹${totalRevenue.toLocaleString(undefined, {maximumFractionDigits: 0})}.`,
+        type: 'success'
+      });
+    }
+    
+    if (totalConvertedClients > 0) {
+      newInsights.push({
+        message: `Converted ${totalConvertedClients} clients with an overall conversion rate of ${overallConversionRate.toFixed(1)}%.`,
+        type: 'info'
+      });
+    }
+    
     // Add more insights as needed based on the data
     setInsights(newInsights);
   };

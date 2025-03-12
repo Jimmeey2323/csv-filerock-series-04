@@ -166,8 +166,15 @@ const Index = () => {
       <header className="border-b bg-white/80 backdrop-blur-sm sticky top-0 z-50">
         <div className="container flex justify-between items-center py-3">
           <Logo size="md" />
-          <div className="text-xs text-muted-foreground">
-            Analytics Dashboard
+          <div className="flex items-center gap-4">
+            <img 
+              src="https://i.imgur.com/9mOm7gP.png" 
+              alt="Studio Logo" 
+              className="h-8 w-auto object-contain rounded-md"
+            />
+            <div className="text-xs text-muted-foreground">
+              Analytics Dashboard
+            </div>
           </div>
         </div>
       </header>
@@ -238,8 +245,8 @@ const Index = () => {
               data={filteredData}
               locations={locations}
               isLoading={false}
-              viewMode={viewMode}
-              dataMode={dataMode}
+              activeViewMode={viewMode}
+              activeDataMode={dataMode}
             />
           </div>
         )}
@@ -255,8 +262,15 @@ const Index = () => {
       <footer className="border-t bg-white/80 backdrop-blur-sm py-4 mt-8">
         <div className="container flex flex-col md:flex-row justify-between items-center">
           <Logo size="sm" />
-          <div className="text-xs text-muted-foreground mt-2 md:mt-0">
-            StudioStats Analytics Dashboard • {new Date().getFullYear()}
+          <div className="flex items-center gap-3">
+            <img 
+              src="https://i.imgur.com/9mOm7gP.png" 
+              alt="Studio Logo" 
+              className="h-6 w-auto object-contain"
+            />
+            <div className="text-xs text-muted-foreground">
+              StudioStats Analytics Dashboard • {new Date().getFullYear()}
+            </div>
           </div>
         </div>
       </footer>

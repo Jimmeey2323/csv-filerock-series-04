@@ -120,6 +120,10 @@ export const processData = (
     
     // Step 1: Clean and normalize data
     setTimeout(() => {
+      console.log("Original new data sample:", newData.slice(0, 2));
+      console.log("Original bookings data sample:", bookingsData.slice(0, 2));
+      console.log("Original sales data sample:", salesData ? salesData.slice(0, 2) : "No sales data");
+      
       // Format dates consistently
       const cleanedNewData = newData.map(record => ({
         ...record,
@@ -131,7 +135,7 @@ export const processData = (
         ...record,
         'Class Date': formatDateString(record['Class Date'] || ''),
         'Sale Value': typeof record['Sale Value'] === 'string' 
-          ? parseFloat(record['Sale Value']) || 0 
+          ? parseFloat(record['Sale Value'].replace(/[^0-9.-]+/g, '')) || 0 
           : record['Sale Value'] || 0,
         'Class Name': cleanFirstVisitValue(record['Class Name'] || ''),
       }));
@@ -140,28 +144,42 @@ export const processData = (
         ...record,
         'Sale Date': formatDateString(record['Sale Date'] || ''),
         'Sale Value': typeof record['Sale Value'] === 'string' 
-          ? parseFloat(record['Sale Value']) || 0 
+          ? parseFloat(record['Sale Value'].replace(/[^0-9.-]+/g, '')) || 0 
           : record['Sale Value'] || 0,
         'Class Name': cleanFirstVisitValue(record['Class Name'] || ''),
       })) : [];
+      
+      console.log("Cleaned new data sample:", cleanedNewData.slice(0, 2));
+      console.log("Cleaned bookings data sample:", cleanedBookingsData.slice(0, 2));
+      console.log("Cleaned sales data sample:", cleanedSalesData.slice(0, 2));
       
       updateProgress({ progress: 20, currentStep: "Matching records and extracting teacher data..." });
       
       // Step 2: Match New records with Bookings to get teacher names
       setTimeout(() => {
         const enrichedNewData = cleanedNewData.map(newRecord => {
-          const matchingBooking = cleanedBookingsData.find(booking => 
-            booking['Class Date'] === newRecord['First visit at'] &&
-            booking['Class Name'] === newRecord['First visit'] &&
-            booking['Location'] === newRecord['First visit location'] &&
-            booking['Customer Email'] === newRecord['Email']
-          );
+          console.log(`Looking for booking match for: ${newRecord['Email']} - ${newRecord['First visit']} - ${newRecord['First visit at']} - ${newRecord['First visit location']}`);
+          
+          const matchingBooking = cleanedBookingsData.find(booking => {
+            const emailMatch = booking['Customer Email'] === newRecord['Email'];
+            const nameMatch = booking['Class Name'] === newRecord['First visit'];
+            const dateMatch = booking['Class Date'] === newRecord['First visit at'];
+            const locationMatch = booking['Location'] === newRecord['First visit location'];
+            
+            if (emailMatch && nameMatch && dateMatch && locationMatch) {
+              console.log(`Found matching booking for ${newRecord['Email']}, teacher: ${booking['Teacher']}`);
+              return true;
+            }
+            return false;
+          });
           
           return {
             ...newRecord,
             'Teacher': matchingBooking ? matchingBooking['Teacher'] : 'Unknown'
           };
         });
+        
+        console.log("Enriched new data with teacher names:", enrichedNewData.slice(0, 2));
         
         updateProgress({ progress: 40, currentStep: "Calculating metrics by location, teacher, and period..." });
         
@@ -180,6 +198,10 @@ export const processData = (
             getMonthYearFromDate(record['First visit at'])
           );
           const periods = [...new Set(allPeriods)];
+          
+          console.log("Found locations:", locations);
+          console.log("Found teachers:", teachers);
+          console.log("Found periods:", periods);
           
           updateProgress({ progress: 60, currentStep: "Calculating client acquisition metrics..." });
           
@@ -200,6 +222,8 @@ export const processData = (
                   );
                   
                   if (teacherNewClients.length === 0) return; // Skip if no data
+                  
+                  console.log(`Processing ${teacher} at ${location} for period ${period}. Found ${teacherNewClients.length} new clients`);
                   
                   // Calculate client acquisition metrics
                   const newClientsCount = teacherNewClients.length;
@@ -226,6 +250,7 @@ export const processData = (
                   
                   // Get email addresses of these new clients
                   const newClientEmails = teacherNewClients.map(record => record['Email']);
+                  console.log(`New client emails for ${teacher}:`, newClientEmails);
                   
                   // Create detailed client lists for deeper analysis
                   const newClientDetails = teacherNewClients.map(client => ({
@@ -266,15 +291,42 @@ export const processData = (
                     ? (retainedClientsCount / newClientsCount) * 100 
                     : 0;
                   
+                  console.log(`Retention: ${retainedClientsCount}/${newClientsCount} (${retentionRate.toFixed(1)}%)`);
+                  
                   // Find converted clients (purchased after first visit)
-                  const convertedClients = cleanedSalesData.filter(sale => 
-                    newClientEmails.includes(sale['Customer Email']) &&
-                    sale['Teacher'] === teacher &&
-                    sale['Sale Date'] > teacherNewClients[0]['First visit at'] &&
-                    (!sale['Category'] || sale['Category'] !== 'product') &&
-                    (!sale['Item'] || !matchesPattern(sale['Item'] || '', "2 for 1")) &&
-                    (typeof sale['Sale Value'] === 'number' ? sale['Sale Value'] : parseFloat(sale['Sale Value'] || '0')) > 0
-                  );
+                  // Fixed logic: Match sales records with new clients
+                  let convertedClients: SaleRecord[] = [];
+                  if (cleanedSalesData && cleanedSalesData.length > 0) {
+                    console.log("Checking for converted clients in sales data...");
+                    convertedClients = cleanedSalesData.filter(sale => {
+                      // Get the matching new client record
+                      const matchingClient = teacherNewClients.find(client => client['Email'] === sale['Customer Email']);
+                      
+                      if (!matchingClient) return false;
+                      
+                      // Check conditions:
+                      // 1. Sale date > First visit date
+                      const saleDateAfterVisit = sale['Sale Date'] > matchingClient['First visit at'];
+                      
+                      // 2. Category != 'product'
+                      const notProductCategory = !sale['Category'] || sale['Category'] !== 'product';
+                      
+                      // 3. Item doesn't contain '2 for 1'
+                      const not2For1 = !sale['Item'] || !matchesPattern(sale['Item'] || '', "2 for 1");
+                      
+                      // 4. Sale Value > 0
+                      const hasSaleValue = (typeof sale['Sale Value'] === 'number' ? 
+                        sale['Sale Value'] : parseFloat(sale['Sale Value'] || '0')) > 0;
+                      
+                      const isConverted = saleDateAfterVisit && notProductCategory && not2For1 && hasSaleValue;
+                      
+                      if (isConverted) {
+                        console.log(`Found converted client: ${matchingClient['Email']} with sale value: ${sale['Sale Value']}`);
+                      }
+                      
+                      return isConverted;
+                    });
+                  }
                   
                   // Count unique converted clients
                   const convertedClientEmails = [...new Set(convertedClients.map(sale => sale['Customer Email']))];
@@ -301,10 +353,14 @@ export const processData = (
                     ? (convertedClientsCount / newClientsCount) * 100 
                     : 0;
                   
+                  console.log(`Conversion: ${convertedClientsCount}/${newClientsCount} (${conversionRate.toFixed(1)}%)`);
+                  
                   // Calculate revenue metrics
                   const totalRevenue = convertedClients.reduce((sum, sale) => 
                     sum + (typeof sale['Sale Value'] === 'number' ? sale['Sale Value'] : parseFloat(sale['Sale Value'] || '0')), 0
                   );
+                  
+                  console.log(`Total revenue: ${totalRevenue}`);
                   
                   const averageRevenuePerClient = convertedClientsCount > 0 
                     ? totalRevenue / convertedClientsCount 

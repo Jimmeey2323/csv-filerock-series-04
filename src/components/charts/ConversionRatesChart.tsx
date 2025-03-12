@@ -48,6 +48,8 @@ const ConversionRatesChart: React.FC<ConversionRatesChartProps> = ({ data }) => 
     );
   }
 
+  console.log("Conversion rates chart data:", formattedData);
+
   return (
     <Card className="w-full animate-fade-in bg-white/60 backdrop-blur-sm transition-all duration-300 hover:shadow-md">
       <CardHeader className="pb-2">

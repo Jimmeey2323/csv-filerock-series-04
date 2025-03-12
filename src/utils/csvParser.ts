@@ -83,7 +83,9 @@ export const formatDateString = (dateStr: string): string => {
 export const cleanFirstVisitValue = (visitValue: string): string => {
   // Remove "Class - " prefix if present
   if (visitValue && typeof visitValue === 'string') {
-    return visitValue.replace(/^Class\s*-\s*/i, '').trim();
+    const cleanedValue = visitValue.replace(/^Class\s*-\s*/i, '').trim();
+    console.log(`Cleaned first visit value from "${visitValue}" to "${cleanedValue}"`);
+    return cleanedValue;
   }
   return visitValue || '';
 };

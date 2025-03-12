@@ -30,6 +30,8 @@ const RevenueChart: React.FC<RevenueChartProps> = ({ data }) => {
   // Sort data by date
   const sortedData = [...formattedData].sort((a, b) => new Date(a.week).getTime() - new Date(b.week).getTime());
 
+  console.log("Revenue chart data:", sortedData);
+
   return (
     <Card className="w-full h-[350px] animate-fade-in">
       <CardHeader className="pb-2">
