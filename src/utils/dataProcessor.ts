@@ -1,5 +1,5 @@
 
-import { formatDateString, getMonthYearFromDate, cleanFirstVisitValue, matchesPattern } from './csvParser';
+import { formatDateString, getMonthYearFromDate, cleanFirstVisitValue, matchesPattern, isDateAfter, parseDate } from './csvParser';
 
 // Define types for our data structures
 interface NewRecord {
@@ -38,24 +38,34 @@ interface BookingRecord {
 }
 
 interface SaleRecord {
-  'Sale Date': string;
-  'Class Name': string;
-  'Class Date': string;
-  'Location': string;
-  'Teacher': string;
-  'Customer Email': string;
-  'Payment Method': string;
-  'Membership used': string;
-  'Sale Value': string | number;
-  'Sales tax': string | number;
-  'Cancelled': string;
-  'Late Cancelled': string;
-  'No Show': string;
-  'Sold by': string;
-  'Refunded': string;
-  'Home location': string;
+  // Old fields (bookings structure)
+  'Sale Date'?: string;
+  'Class Name'?: string;
+  'Class Date'?: string;
+  'Location'?: string;
+  'Teacher'?: string;
+  'Customer Email'?: string;
+  'Payment Method'?: string;
+  'Membership used'?: string;
+  'Sale Value'?: string | number;
+  'Sales tax'?: string | number;
+  'Cancelled'?: string;
+  'Late Cancelled'?: string;
+  'No Show'?: string;
+  'Sold by'?: string;
+  'Refunded'?: string;
+  'Home location'?: string;
+  
+  // New fields (sales structure)
   'Category'?: string;
   'Item'?: string;
+  'Date'?: string;
+  'Tax'?: string | number;
+  'Payment status'?: string;
+  'Paying Customer Email'?: string;
+  'Paying Customer name'?: string;
+  'Customer name'?: string;
+  'Note'?: string;
 }
 
 interface ClientDetail {
@@ -134,21 +144,49 @@ export const processData = (
       const cleanedBookingsData = bookingsData.map(record => ({
         ...record,
         'Class Date': formatDateString(record['Class Date'] || ''),
+        'Sale Date': formatDateString(record['Sale Date'] || ''),
         'Sale Value': typeof record['Sale Value'] === 'string' 
           ? parseFloat(record['Sale Value'].replace(/[^0-9.-]+/g, '')) || 0 
           : record['Sale Value'] || 0,
         'Class Name': cleanFirstVisitValue(record['Class Name'] || ''),
       }));
       
-      const cleanedSalesData = salesData ? salesData.map(record => ({
-        ...record,
-        'Sale Date': formatDateString(record['Sale Date'] || ''),
-        'Sale Value': typeof record['Sale Value'] === 'string' 
-          ? parseFloat(record['Sale Value'].replace(/[^0-9.-]+/g, '')) || 0 
-          : record['Sale Value'] || 0,
-        'Class Name': cleanFirstVisitValue(record['Class Name'] || ''),
-      })) : [];
-      
+      console.log("Processing sales data for conversions...");
+      const cleanedSalesData = salesData ? salesData.map(record => {
+        // Check which date field is available
+        const dateField = record['Date'] ? 'Date' : 'Sale Date';
+        const dateValue = formatDateString(record[dateField] || '');
+        
+        // Handle different sale value field structures
+        let saleValue = 0;
+        if (record['Sale Value'] !== undefined) {
+          saleValue = typeof record['Sale Value'] === 'string' 
+            ? parseFloat(record['Sale Value'].replace(/[^0-9.-]+/g, '')) || 0 
+            : record['Sale Value'] || 0;
+        } else if (record['Sale Value'] === undefined && record['Tax'] !== undefined) {
+          // This is the new sales format
+          saleValue = typeof record['Sale Value'] === 'string' 
+            ? parseFloat(record['Sale Value'].replace(/[^0-9.-]+/g, '')) || 0 
+            : (record['Sale Value'] as number) || 0;
+        }
+        
+        // Get email address (try both Customer Email and Paying Customer Email)
+        const customerEmail = record['Customer Email'] || record['Paying Customer Email'] || '';
+        
+        // Clean class name if present
+        const className = record['Class Name'] || record['Item'] || '';
+        const cleanedClassName = cleanFirstVisitValue(className);
+        
+        return {
+          ...record,
+          'Sale Date': dateValue,
+          'Date': dateValue, // Ensure both fields have the value for consistency
+          'Sale Value': saleValue,
+          'Customer Email': customerEmail,
+          'Class Name': cleanedClassName
+        };
+      }) : [];
+
       console.log("Cleaned new data sample:", cleanedNewData.slice(0, 2));
       console.log("Cleaned bookings data sample:", cleanedBookingsData.slice(0, 2));
       console.log("Cleaned sales data sample:", cleanedSalesData.slice(0, 2));
@@ -267,7 +305,7 @@ export const processData = (
                     booking['Cancelled'] === 'NO' &&
                     booking['Late Cancelled'] === 'NO' &&
                     booking['No Show'] === 'NO' &&
-                    booking['Class Date'] > teacherNewClients[0]['First visit at']
+                    isDateAfter(booking['Class Date'], teacherNewClients[0]['First visit at'])
                   );
                   
                   // Count unique emails with return visits
@@ -294,57 +332,93 @@ export const processData = (
                   console.log(`Retention: ${retainedClientsCount}/${newClientsCount} (${retentionRate.toFixed(1)}%)`);
                   
                   // Find converted clients (purchased after first visit)
-                  // Fixed logic: Match sales records with new clients
-                  let convertedClients: SaleRecord[] = [];
-                  if (cleanedSalesData && cleanedSalesData.length > 0) {
-                    console.log("Checking for converted clients in sales data...");
-                    convertedClients = cleanedSalesData.filter(sale => {
-                      // Get the matching new client record
-                      const matchingClient = teacherNewClients.find(client => client['Email'] === sale['Customer Email']);
-                      
-                      if (!matchingClient) return false;
-                      
-                      // Check conditions:
-                      // 1. Sale date > First visit date
-                      const saleDateAfterVisit = sale['Sale Date'] > matchingClient['First visit at'];
-                      
-                      // 2. Category != 'product'
-                      const notProductCategory = !sale['Category'] || sale['Category'] !== 'product';
-                      
-                      // 3. Item doesn't contain '2 for 1'
-                      const not2For1 = !sale['Item'] || !matchesPattern(sale['Item'] || '', "2 for 1");
-                      
-                      // 4. Sale Value > 0
-                      const hasSaleValue = (typeof sale['Sale Value'] === 'number' ? 
-                        sale['Sale Value'] : parseFloat(sale['Sale Value'] || '0')) > 0;
-                      
-                      const isConverted = saleDateAfterVisit && notProductCategory && not2For1 && hasSaleValue;
-                      
-                      if (isConverted) {
-                        console.log(`Found converted client: ${matchingClient['Email']} with sale value: ${sale['Sale Value']}`);
-                      }
-                      
-                      return isConverted;
-                    });
+                  if (cleanedSalesData.length === 0) {
+                    console.error("No sales data available for calculating conversions");
+                  } else {
+                    console.log(`Processing ${cleanedSalesData.length} sales records for conversion metrics`);
                   }
                   
+                  // Log a sample of sales data for debugging
+                  if (cleanedSalesData.length > 0) {
+                    console.log("Sample sales data for debugging:", cleanedSalesData.slice(0, 5));
+                  }
+                  
+                  // Find converted clients (purchased after first visit) with improved logic
+                  const convertedClients = cleanedSalesData.filter(sale => {
+                    // Find matching new client record
+                    const matchingClient = teacherNewClients.find(client => {
+                      const emailMatch = client['Email'] === (sale['Customer Email'] || sale['Paying Customer Email']);
+                      return emailMatch;
+                    });
+                    
+                    if (!matchingClient) {
+                      return false;
+                    }
+                    
+                    // Debug matched client
+                    console.log("Found potential conversion match:", {
+                      clientEmail: matchingClient['Email'],
+                      saleEmail: sale['Customer Email'] || sale['Paying Customer Email'],
+                      firstVisit: matchingClient['First visit at'],
+                      saleDate: sale['Date'] || sale['Sale Date'],
+                      category: sale['Category'],
+                      item: sale['Item'],
+                      saleValue: sale['Sale Value']
+                    });
+                    
+                    // Check conditions:
+                    // 1. Sale date > First visit date
+                    const saleDate = sale['Date'] || sale['Sale Date'] || '';
+                    const firstVisitDate = matchingClient['First visit at'];
+                    const saleDateAfterVisit = isDateAfter(saleDate, firstVisitDate);
+                    
+                    // 2. Category != 'product'
+                    const notProductCategory = !sale['Category'] || sale['Category'].toLowerCase() !== 'product';
+                    
+                    // 3. Item doesn't contain '2 for 1'
+                    const not2For1 = !sale['Item'] || !matchesPattern(sale['Item'] || '', "2 for 1");
+                    
+                    // 4. Sale Value > 0
+                    const saleValue = typeof sale['Sale Value'] === 'number' ? 
+                      sale['Sale Value'] : parseFloat(String(sale['Sale Value'] || '0').replace(/[^0-9.-]+/g, ''));
+                    const hasSaleValue = saleValue > 0;
+                    
+                    // Log detailed diagnostics
+                    console.log("Conversion conditions check:", {
+                      saleDateAfterVisit,
+                      notProductCategory,
+                      not2For1,
+                      hasSaleValue,
+                      saleValue
+                    });
+                    
+                    return saleDateAfterVisit && notProductCategory && not2For1 && hasSaleValue;
+                  });
+                  
+                  console.log(`Found ${convertedClients.length} converted clients for ${teacher}`);
+                  
                   // Count unique converted clients
-                  const convertedClientEmails = [...new Set(convertedClients.map(sale => sale['Customer Email']))];
+                  const convertedClientEmails = [...new Set(convertedClients.map(sale => 
+                    sale['Customer Email'] || sale['Paying Customer Email'] || ''))];
                   const convertedClientsCount = convertedClientEmails.length;
                   
                   // Create detailed converted client list
                   const convertedClientDetails = convertedClientEmails.map(email => {
-                    const clientSales = convertedClients.filter(sale => sale['Customer Email'] === email);
-                    const totalValue = clientSales.reduce((sum, sale) => 
-                      sum + (typeof sale['Sale Value'] === 'number' ? sale['Sale Value'] : parseFloat(sale['Sale Value'] || '0')), 0
-                    );
+                    const clientSales = convertedClients.filter(sale => 
+                      (sale['Customer Email'] || sale['Paying Customer Email']) === email);
+                    const totalValue = clientSales.reduce((sum, sale) => {
+                      const saleValue = typeof sale['Sale Value'] === 'number' ? 
+                        sale['Sale Value'] : parseFloat(String(sale['Sale Value'] || '0').replace(/[^0-9.-]+/g, ''));
+                      return sum + saleValue;
+                    }, 0);
+                    
                     const clientInfo = teacherNewClients.find(client => client['Email'] === email);
                     return {
                       email,
                       name: clientInfo ? `${clientInfo['First name']} ${clientInfo['Last name']}` : 'Unknown',
-                      date: clientSales[0]['Sale Date'],
+                      date: clientSales[0]['Date'] || clientSales[0]['Sale Date'] || '',
                       value: totalValue,
-                      membershipType: clientSales[0]['Membership used']
+                      membershipType: clientSales[0]['Membership used'] || clientSales[0]['Item'] || ''
                     };
                   });
                   
@@ -356,9 +430,11 @@ export const processData = (
                   console.log(`Conversion: ${convertedClientsCount}/${newClientsCount} (${conversionRate.toFixed(1)}%)`);
                   
                   // Calculate revenue metrics
-                  const totalRevenue = convertedClients.reduce((sum, sale) => 
-                    sum + (typeof sale['Sale Value'] === 'number' ? sale['Sale Value'] : parseFloat(sale['Sale Value'] || '0')), 0
-                  );
+                  const totalRevenue = convertedClients.reduce((sum, sale) => {
+                    const saleValue = typeof sale['Sale Value'] === 'number' ? 
+                      sale['Sale Value'] : parseFloat(String(sale['Sale Value'] || '0').replace(/[^0-9.-]+/g, ''));
+                    return sum + saleValue;
+                  }, 0);
                   
                   console.log(`Total revenue: ${totalRevenue}`);
                   
@@ -390,36 +466,39 @@ export const processData = (
                     : 0;
                   
                   // Influencer conversion
-                  const influencerConvertedCount = convertedClients.filter(sale => 
-                    teacherNewClients.some(client => 
-                      client['Email'] === sale['Customer Email'] && 
+                  const influencerConvertedCount = convertedClients.filter(sale => {
+                    const email = sale['Customer Email'] || sale['Paying Customer Email'] || '';
+                    return teacherNewClients.some(client => 
+                      client['Email'] === email && 
                       matchesPattern(client['Membership used'] || '', "sign-up|link|influencer|twain|ooo|lrs|x|p57|physique|complimentary")
-                    )
-                  ).length;
+                    );
+                  }).length;
                   
                   const influencerConversionRate = influencerSignups > 0 
                     ? (influencerConvertedCount / influencerSignups) * 100 
                     : 0;
                   
                   // Referral conversion
-                  const referralConvertedCount = convertedClients.filter(sale => 
-                    teacherNewClients.some(client => 
-                      client['Email'] === sale['Customer Email'] && 
+                  const referralConvertedCount = convertedClients.filter(sale => {
+                    const email = sale['Customer Email'] || sale['Paying Customer Email'] || '';
+                    return teacherNewClients.some(client => 
+                      client['Email'] === email && 
                       client['Membership used'] === 'Studio Complimentary Referral Class'
-                    )
-                  ).length;
+                    );
+                  }).length;
                   
                   const referralConversionRate = referrals > 0 
                     ? (referralConvertedCount / referrals) * 100 
                     : 0;
                   
                   // Trial to membership conversion
-                  const trialConvertedCount = convertedClients.filter(sale => 
-                    teacherNewClients.some(client => 
-                      client['Email'] === sale['Customer Email'] && 
+                  const trialConvertedCount = convertedClients.filter(sale => {
+                    const email = sale['Customer Email'] || sale['Paying Customer Email'] || '';
+                    return teacherNewClients.some(client => 
+                      client['Email'] === email && 
                       matchesPattern(client['Membership used'] || '', "Studio Open Barre Class|Newcomers 2 For 1")
-                    )
-                  ).length;
+                    );
+                  }).length;
                   
                   const trialToMembershipConversion = trials > 0 
                     ? (trialConvertedCount / trials) * 100 
@@ -427,15 +506,19 @@ export const processData = (
                   
                   // Create weekly revenue data for charts
                   const revenueByWeek = convertedClients.reduce((acc, sale) => {
-                    const date = new Date(sale['Sale Date']);
+                    const dateStr = sale['Date'] || sale['Sale Date'] || '';
+                    if (!dateStr) return acc;
+                    
+                    const date = parseDate(dateStr);
+                    if (!date) return acc;
+                    
                     const weekStart = new Date(date);
                     weekStart.setDate(date.getDate() - date.getDay());
                     const weekKey = weekStart.toISOString().split('T')[0];
                     
                     const existing = acc.find(item => item.week === weekKey);
-                    const saleValue = typeof sale['Sale Value'] === 'number' 
-                      ? sale['Sale Value'] 
-                      : parseFloat(sale['Sale Value'] || '0');
+                    const saleValue = typeof sale['Sale Value'] === 'number' ? 
+                      sale['Sale Value'] : parseFloat(String(sale['Sale Value'] || '0').replace(/[^0-9.-]+/g, ''));
                       
                     if (existing) {
                       existing.revenue += saleValue;
@@ -445,6 +528,8 @@ export const processData = (
                     
                     return acc;
                   }, [] as { week: string; revenue: number }[]);
+                  
+                  console.log("Revenue by week data:", revenueByWeek);
                   
                   // Create client source data for charts
                   const clientsBySource = [

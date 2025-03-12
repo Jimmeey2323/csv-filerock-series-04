@@ -61,19 +61,40 @@ export const categorizeFiles = (files: File[]) => {
 export const formatDateString = (dateStr: string): string => {
   // Handle date formats like "2025-03-01, 10:15 AM"
   try {
+    if (!dateStr) return '';
+    
+    console.log("Formatting date:", dateStr);
+    
+    // Check if the date is already in YYYY-MM-DD format
+    if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+      console.log("Date already in YYYY-MM-DD format:", dateStr);
+      return dateStr;
+    }
+    
+    // Extract date part from formats like "2025-03-11, 9:37 AM"
+    const dateMatch = dateStr.match(/(\d{4}-\d{2}-\d{2})/);
+    if (dateMatch && dateMatch[1]) {
+      console.log("Extracted date from string:", dateMatch[1]);
+      return dateMatch[1];
+    }
+    
     // Remove commas and any time component
-    const cleanedDateStr = dateStr.split(',')[0].trim();
+    const parts = dateStr.split(',');
+    const cleanedDateStr = parts[0].trim();
     
     // Parse the date
     const date = new Date(cleanedDateStr);
     
     // Check if the date is valid
     if (isNaN(date.getTime())) {
+      console.log("Invalid date after parsing:", dateStr);
       return dateStr;
     }
     
     // Return formatted date YYYY-MM-DD
-    return date.toISOString().split('T')[0];
+    const formattedDate = date.toISOString().split('T')[0];
+    console.log("Formatted date result:", formattedDate);
+    return formattedDate;
   } catch (e) {
     console.error("Error formatting date:", dateStr, e);
     return dateStr;
@@ -149,5 +170,54 @@ export const addToSearchHistory = (term: string): void => {
     localStorage.setItem('searchHistory', JSON.stringify(newHistory));
   } catch (e) {
     console.error("Error saving search history:", e);
+  }
+};
+
+// Parse date with timezone considerations
+export const parseDate = (dateStr: string): Date | null => {
+  if (!dateStr) return null;
+  
+  try {
+    // Try direct parsing
+    const directDate = new Date(dateStr);
+    if (!isNaN(directDate.getTime())) {
+      return directDate;
+    }
+    
+    // Try parsing with different formats
+    // Format: "2025-03-11, 9:37 AM"
+    const dateTimeMatch = dateStr.match(/(\d{4}-\d{2}-\d{2}),\s*(\d{1,2}):(\d{2})\s*(AM|PM)/i);
+    if (dateTimeMatch) {
+      const [_, dateStr, hours, minutes, ampm] = dateTimeMatch;
+      const hr = parseInt(hours, 10) + (ampm.toUpperCase() === 'PM' && parseInt(hours, 10) !== 12 ? 12 : 0);
+      const date = new Date(`${dateStr}T${hr.toString().padStart(2, '0')}:${minutes}:00`);
+      console.log(`Parsed date from "${dateStr}" to:`, date.toISOString());
+      return date;
+    }
+    
+    return null;
+  } catch (e) {
+    console.error("Error parsing date:", dateStr, e);
+    return null;
+  }
+};
+
+// Compare dates safely
+export const isDateAfter = (dateA: string, dateB: string): boolean => {
+  try {
+    const dateAObj = parseDate(dateA);
+    const dateBObj = parseDate(dateB);
+    
+    if (!dateAObj || !dateBObj) {
+      console.error("Could not parse dates for comparison:", dateA, dateB);
+      return false;
+    }
+    
+    const result = dateAObj.getTime() > dateBObj.getTime();
+    console.log(`Comparing dates: "${dateA}" > "${dateB}" = ${result}`);
+    return result;
+  } catch (e) {
+    console.error("Error comparing dates:", dateA, dateB, e);
+    return false;
   }
 };

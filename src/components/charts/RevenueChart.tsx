@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
@@ -8,6 +8,11 @@ interface RevenueChartProps {
 }
 
 const RevenueChart: React.FC<RevenueChartProps> = ({ data }) => {
+  useEffect(() => {
+    // Debug log the chart data
+    console.log("Revenue chart received data:", data);
+  }, [data]);
+
   if (!data || data.length === 0) {
     return (
       <Card className="w-full h-[350px] animate-fade-in">
@@ -22,20 +27,28 @@ const RevenueChart: React.FC<RevenueChartProps> = ({ data }) => {
   }
 
   // Format dates to be more readable
-  const formattedData = data.map(item => ({
-    ...item,
-    weekLabel: new Date(item.week).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-  }));
+  const formattedData = data.map(item => {
+    console.log(`Formatting date: ${item.week} with revenue: ${item.revenue}`);
+    return {
+      ...item,
+      weekLabel: new Date(item.week).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+    };
+  });
 
   // Sort data by date
   const sortedData = [...formattedData].sort((a, b) => new Date(a.week).getTime() - new Date(b.week).getTime());
 
-  console.log("Revenue chart data:", sortedData);
+  // Calculate total revenue for the title
+  const totalRevenue = sortedData.reduce((sum, item) => sum + item.revenue, 0);
+  
+  console.log("Revenue chart processed data:", sortedData);
 
   return (
     <Card className="w-full h-[350px] animate-fade-in">
       <CardHeader className="pb-2">
-        <CardTitle className="text-lg font-medium">Revenue by Week</CardTitle>
+        <CardTitle className="text-lg font-medium">
+          Revenue by Week (₹{totalRevenue.toLocaleString()})
+        </CardTitle>
       </CardHeader>
       <CardContent>
         <ResponsiveContainer width="100%" height={250}>
