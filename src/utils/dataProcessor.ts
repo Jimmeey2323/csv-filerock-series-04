@@ -247,6 +247,9 @@ export const processData = (
           setTimeout(() => {
             const processedData: ProcessedTeacherData[] = [];
             
+            // Also process by studio
+            const studioData: { [key: string]: ProcessedTeacherData } = {};
+            
             // Group data by teacher, location, and period
             teachers.forEach(teacher => {
               locations.forEach(location => {
@@ -298,19 +301,46 @@ export const processData = (
                     membershipType: client['Membership used']
                   }));
                   
-                  // Find return visits in bookings data
-                  const returnVisits = cleanedBookingsData.filter(booking => 
-                    newClientEmails.includes(booking['Customer Email']) &&
-                    booking['Teacher'] === teacher &&
-                    booking['Cancelled'] === 'NO' &&
-                    booking['Late Cancelled'] === 'NO' &&
-                    booking['No Show'] === 'NO' &&
-                    isDateAfter(booking['Class Date'], teacherNewClients[0]['First visit at'])
-                  );
+                  // FIXED: Find return visits in bookings data - only count visits AFTER first visit 
+                  // and where all 3 cancellation fields are "NO"
+                  const returnVisits = cleanedBookingsData.filter(booking => {
+                    // Get matching client record
+                    const matchingClient = teacherNewClients.find(client => 
+                      client['Email'] === booking['Customer Email']
+                    );
+                    
+                    if (!matchingClient) return false;
+                    
+                    // Ensure this isn't the first visit (date must be strictly after first visit)
+                    const isAfterFirstVisit = isDateAfter(booking['Class Date'], matchingClient['First visit at']);
+                    
+                    // Check all cancellation fields are "NO"
+                    const notCancelled = booking['Cancelled'] === 'NO';
+                    const notLateCancelled = booking['Late Cancelled'] === 'NO';
+                    const notNoShow = booking['No Show'] === 'NO'; 
+                    
+                    // Log for debugging
+                    if (booking['Customer Email'] === matchingClient['Email']) {
+                      console.log(`Return visit check for ${booking['Customer Email']}:`, {
+                        isAfterFirstVisit,
+                        notCancelled,
+                        notLateCancelled,
+                        notNoShow,
+                        firstVisit: matchingClient['First visit at'],
+                        bookingDate: booking['Class Date']
+                      });
+                    }
+                    
+                    return isAfterFirstVisit && notCancelled && notLateCancelled && notNoShow;
+                  });
+                  
+                  console.log(`Found ${returnVisits.length} return visits for all clients of ${teacher}`);
                   
                   // Count unique emails with return visits
                   const returnClientEmails = [...new Set(returnVisits.map(visit => visit['Customer Email']))];
                   const retainedClientsCount = returnClientEmails.length;
+                  
+                  console.log(`Found ${retainedClientsCount} unique retained clients for ${teacher}`);
                   
                   // Create detailed retained client list
                   const retainedClientDetails = returnClientEmails.map(email => {
@@ -347,7 +377,15 @@ export const processData = (
                   const convertedClients = cleanedSalesData.filter(sale => {
                     // Find matching new client record
                     const matchingClient = teacherNewClients.find(client => {
-                      const emailMatch = client['Email'] === (sale['Customer Email'] || sale['Paying Customer Email']);
+                      // Check both potential email fields
+                      const customerEmail = sale['Customer Email'] || '';
+                      const payingCustomerEmail = sale['Paying Customer Email'] || '';
+                      
+                      const emailMatch = (
+                        client['Email'] === customerEmail || 
+                        client['Email'] === payingCustomerEmail
+                      );
+                      
                       return emailMatch;
                     });
                     
@@ -373,7 +411,8 @@ export const processData = (
                     const saleDateAfterVisit = isDateAfter(saleDate, firstVisitDate);
                     
                     // 2. Category != 'product'
-                    const notProductCategory = !sale['Category'] || sale['Category'].toLowerCase() !== 'product';
+                    const category = (sale['Category'] || '').toLowerCase();
+                    const notProductCategory = category !== 'product';
                     
                     // 3. Item doesn't contain '2 for 1'
                     const not2For1 = !sale['Item'] || !matchesPattern(sale['Item'] || '', "2 for 1");
@@ -389,7 +428,8 @@ export const processData = (
                       notProductCategory,
                       not2For1,
                       hasSaleValue,
-                      saleValue
+                      saleValue,
+                      category
                     });
                     
                     return saleDateAfterVisit && notProductCategory && not2For1 && hasSaleValue;
@@ -569,8 +609,97 @@ export const processData = (
                     revenueByWeek,
                     clientsBySource
                   });
+                  
+                  // Combine data for studio view
+                  if (!studioData[location]) {
+                    studioData[location] = {
+                      teacherName: 'All Teachers',
+                      location,
+                      period,
+                      newClients: 0,
+                      trials: 0,
+                      referrals: 0,
+                      hosted: 0,
+                      influencerSignups: 0,
+                      others: 0,
+                      retainedClients: 0,
+                      retentionRate: 0,
+                      convertedClients: 0,
+                      conversionRate: 0,
+                      totalRevenue: 0,
+                      averageRevenuePerClient: 0,
+                      noShowRate: 0,
+                      lateCancellationRate: 0,
+                      firstTimeBuyerRate: 0,
+                      influencerConversionRate: 0,
+                      referralConversionRate: 0,
+                      trialToMembershipConversion: 0,
+                      newClientDetails: [],
+                      retainedClientDetails: [],
+                      convertedClientDetails: [],
+                      revenueByWeek: [],
+                      clientsBySource: []
+                    };
+                  }
+                  
+                  // Add this teacher's data to the studio total
+                  const studio = studioData[location];
+                  studio.newClients += newClientsCount;
+                  studio.trials += trials;
+                  studio.referrals += referrals;
+                  studio.hosted += hosted;
+                  studio.influencerSignups += influencerSignups;
+                  studio.others += others;
+                  studio.retainedClients += retainedClientsCount;
+                  studio.convertedClients += convertedClientsCount;
+                  studio.totalRevenue += totalRevenue;
+                  
+                  // Combine client details
+                  studio.newClientDetails = [...studio.newClientDetails, ...newClientDetails];
+                  studio.retainedClientDetails = [...studio.retainedClientDetails, ...retainedClientDetails];
+                  studio.convertedClientDetails = [...studio.convertedClientDetails, ...convertedClientDetails];
+                  
+                  // Combine revenue by week data
+                  revenueByWeek.forEach(weekData => {
+                    const existingWeek = studio.revenueByWeek.find(w => w.week === weekData.week);
+                    if (existingWeek) {
+                      existingWeek.revenue += weekData.revenue;
+                    } else {
+                      studio.revenueByWeek.push({ ...weekData });
+                    }
+                  });
+                  
+                  // Update studio client source data
+                  if (!studio.clientsBySource.length) {
+                    studio.clientsBySource = [...clientsBySource];
+                  } else {
+                    studio.clientsBySource.forEach((source, index) => {
+                      source.count += clientsBySource[index].count;
+                    });
+                  }
                 });
               });
+            });
+            
+            // Calculate rates for studios
+            Object.values(studioData).forEach(studio => {
+              // Calculate retention rate
+              studio.retentionRate = studio.newClients > 0 
+                ? (studio.retainedClients / studio.newClients) * 100 
+                : 0;
+              
+              // Calculate conversion rate
+              studio.conversionRate = studio.newClients > 0 
+                ? (studio.convertedClients / studio.newClients) * 100 
+                : 0;
+              
+              // Calculate average revenue per client
+              studio.averageRevenuePerClient = studio.convertedClients > 0 
+                ? studio.totalRevenue / studio.convertedClients 
+                : 0;
+              
+              // Add studio data to processedData
+              processedData.push(studio);
             });
             
             updateProgress({ progress: 100, currentStep: "Processing complete!" });

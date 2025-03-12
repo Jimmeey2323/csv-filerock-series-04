@@ -14,6 +14,7 @@ const RevenueChart: React.FC<RevenueChartProps> = ({ data }) => {
   }, [data]);
 
   if (!data || data.length === 0) {
+    console.log("No revenue data available for the chart");
     return (
       <Card className="w-full h-[350px] animate-fade-in">
         <CardHeader>
@@ -26,7 +27,7 @@ const RevenueChart: React.FC<RevenueChartProps> = ({ data }) => {
     );
   }
 
-  // Format dates to be more readable
+  // Format dates to be more readable and sort them
   const formattedData = data.map(item => {
     console.log(`Formatting date: ${item.week} with revenue: ${item.revenue}`);
     return {
@@ -42,6 +43,7 @@ const RevenueChart: React.FC<RevenueChartProps> = ({ data }) => {
   const totalRevenue = sortedData.reduce((sum, item) => sum + item.revenue, 0);
   
   console.log("Revenue chart processed data:", sortedData);
+  console.log("Total revenue for chart:", totalRevenue);
 
   return (
     <Card className="w-full h-[350px] animate-fade-in">

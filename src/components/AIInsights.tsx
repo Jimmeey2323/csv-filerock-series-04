@@ -2,7 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Lightbulb, TrendingDown, TrendingUp, AlertTriangle, BarChart2, Award, Users } from 'lucide-react';
+import { Lightbulb, TrendingDown, TrendingUp, AlertTriangle, BarChart2, Award } from 'lucide-react';
 import { ProcessedTeacherData } from '@/utils/dataProcessor';
 
 interface AIInsightsProps {
@@ -76,6 +76,7 @@ const AIInsights: React.FC<AIInsightsProps> = ({ data, isFiltered }) => {
       const converted = data.reduce((sum, item) => {
         if (source === 'trials') return sum + (item.trialToMembershipConversion * (item.trials as number) / 100);
         if (source === 'referrals') return sum + (item.referralConversionRate * (item.referrals as number) / 100);
+        if (source === 'hosted') return sum;
         if (source === 'influencerSignups') return sum + (item.influencerConversionRate * (item.influencerSignups as number) / 100);
         return sum;
       }, 0);
