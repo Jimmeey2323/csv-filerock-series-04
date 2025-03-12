@@ -1,8 +1,9 @@
 
 import React from 'react';
-import { Search, Calendar, MapPin, User, Filter, BarChart3, ArrowDownUp, Columns, Grid, List } from 'lucide-react';
+import { Search, Calendar, MapPin, User, Filter, BarChart3, ArrowDownUp, Columns, Grid, List, Store } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import CommandSearchInput from '@/components/ui/command-input';
 import {
   Select,
   SelectContent,
@@ -24,13 +25,17 @@ import {
   TabsList,
   TabsTrigger,
 } from '@/components/ui/tabs';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
 
 interface FilterBarProps {
   locations: string[];
   teachers: string[];
   periods: string[];
   activeViewMode: 'table' | 'cards' | 'detailed';
+  activeDataMode: 'teacher' | 'studio';
   onViewModeChange: (mode: 'table' | 'cards' | 'detailed') => void;
+  onDataModeChange: (mode: 'teacher' | 'studio') => void;
   onFilterChange: (filters: {
     location?: string;
     teacher?: string;
@@ -44,7 +49,9 @@ const FilterBar: React.FC<FilterBarProps> = ({
   teachers,
   periods,
   activeViewMode,
+  activeDataMode,
   onViewModeChange,
+  onDataModeChange,
   onFilterChange,
 }) => {
   const [filters, setFilters] = React.useState({
@@ -77,6 +84,28 @@ const FilterBar: React.FC<FilterBarProps> = ({
     <Card className="bg-white/70 backdrop-blur-sm rounded-lg border shadow-sm mb-4 animate-fade-in">
       <CardContent className="p-4">
         <div className="flex flex-col space-y-4">
+          {/* Data View Toggle */}
+          <div className="flex justify-between items-center border-b pb-3">
+            <div className="flex items-center space-x-2">
+              <Label htmlFor="data-view-toggle" className="text-sm font-medium">
+                {activeDataMode === 'teacher' ? 'Teacher View' : 'Studio View'}
+              </Label>
+              <Switch
+                id="data-view-toggle"
+                checked={activeDataMode === 'studio'}
+                onCheckedChange={(checked) => onDataModeChange(checked ? 'studio' : 'teacher')}
+              />
+              <Label htmlFor="data-view-toggle" className="text-sm text-muted-foreground">
+                {activeDataMode === 'teacher' ? <User className="h-4 w-4" /> : <Store className="h-4 w-4" />}
+              </Label>
+            </div>
+            <div className="text-xs text-muted-foreground">
+              {activeDataMode === 'teacher' 
+                ? 'View data by individual trainers' 
+                : 'View aggregated studio performance'}
+            </div>
+          </div>
+        
           {/* Active filters display */}
           {activeFiltersCount > 0 && (
             <div className="flex flex-wrap gap-2 mb-2">
@@ -112,12 +141,11 @@ const FilterBar: React.FC<FilterBarProps> = ({
 
           <div className="flex flex-col md:flex-row gap-3">
             <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
+              <CommandSearchInput
                 placeholder="Search teacher..."
-                className="pl-9"
                 value={filters.search}
-                onChange={(e) => handleFilterChange('search', e.target.value)}
+                onChange={(value) => handleFilterChange('search', value)}
+                className="flex-1"
               />
             </div>
             

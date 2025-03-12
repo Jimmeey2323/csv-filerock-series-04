@@ -85,7 +85,7 @@ export const cleanFirstVisitValue = (visitValue: string): string => {
   if (visitValue && typeof visitValue === 'string') {
     return visitValue.replace(/^Class\s*-\s*/i, '').trim();
   }
-  return visitValue;
+  return visitValue || '';
 };
 
 export const getMonthYearFromDate = (dateStr: string): string => {
@@ -108,4 +108,44 @@ export const getFileTypes = () => {
     bookings: 'bookings',
     payments: 'payments?',
   };
+};
+
+// Helper function to check if a string matches any pattern in an array of patterns
+export const matchesPattern = (value: string, patterns: string | string[]): boolean => {
+  if (!value) return false;
+  
+  const patternsArray = typeof patterns === 'string' ? [patterns] : patterns;
+  const regex = new RegExp(patternsArray.join('|'), 'i');
+  
+  return regex.test(value);
+};
+
+// Helper function to format numbers with commas for thousands
+export const formatNumber = (num: number): string => {
+  return num.toLocaleString();
+};
+
+// Get search history from local storage
+export const getSearchHistory = (): string[] => {
+  try {
+    const history = localStorage.getItem('searchHistory');
+    return history ? JSON.parse(history) : [];
+  } catch (e) {
+    console.error("Error retrieving search history:", e);
+    return [];
+  }
+};
+
+// Add search term to history
+export const addToSearchHistory = (term: string): void => {
+  if (!term.trim()) return;
+  
+  try {
+    const history = getSearchHistory();
+    // Add to beginning, remove duplicates
+    const newHistory = [term, ...history.filter(item => item !== term)].slice(0, 10);
+    localStorage.setItem('searchHistory', JSON.stringify(newHistory));
+  } catch (e) {
+    console.error("Error saving search history:", e);
+  }
 };

@@ -1,5 +1,5 @@
 
-import { formatDateString, getMonthYearFromDate, cleanFirstVisitValue } from './csvParser';
+import { formatDateString, getMonthYearFromDate, cleanFirstVisitValue, matchesPattern } from './csvParser';
 
 // Define types for our data structures
 interface NewRecord {
@@ -34,6 +34,7 @@ interface BookingRecord {
   'Sold by': string;
   'Refunded': string;
   'Home location': string;
+  'Category'?: string;
 }
 
 interface SaleRecord {
@@ -53,6 +54,8 @@ interface SaleRecord {
   'Sold by': string;
   'Refunded': string;
   'Home location': string;
+  'Category'?: string;
+  'Item'?: string;
 }
 
 interface ClientDetail {
@@ -60,6 +63,8 @@ interface ClientDetail {
   name: string;
   date: string;
   value?: number;
+  visitCount?: number;
+  membershipType?: string;
 }
 
 export interface ProcessedTeacherData {
@@ -191,7 +196,7 @@ export const processData = (
                     record['Teacher'] === teacher &&
                     record['First visit location'] === location &&
                     getMonthYearFromDate(record['First visit at']) === period &&
-                    !/(friends|family|staff)/i.test(record['Membership used'] || '')
+                    !matchesPattern(record['Membership used'] || '', "friends|family|staff")
                   );
                   
                   if (teacherNewClients.length === 0) return; // Skip if no data
@@ -200,7 +205,7 @@ export const processData = (
                   const newClientsCount = teacherNewClients.length;
                   
                   const trials = teacherNewClients.filter(record => 
-                    /(Studio Open Barre Class|Newcomers 2 For 1)/i.test(record['Membership used'] || '')
+                    matchesPattern(record['Membership used'] || '', "Studio Open Barre Class|Newcomers 2 For 1")
                   ).length;
                   
                   const referrals = teacherNewClients.filter(record => 
@@ -208,11 +213,11 @@ export const processData = (
                   ).length;
                   
                   const hosted = teacherNewClients.filter(record => 
-                    /(hosted|x|p57|physique|weword|rugby|outdoor|birthday|bridal|shower)/i.test(record['First visit'] || '')
+                    matchesPattern(record['First visit'] || '', "hosted|x|p57|physique|weword|rugby|outdoor|birthday|bridal|shower")
                   ).length;
                   
                   const influencerSignups = teacherNewClients.filter(record => 
-                    /(sign-up|link|influencer|twain|ooo|lrs|x|p57|physique|complimentary)/i.test(record['Membership used'] || '')
+                    matchesPattern(record['Membership used'] || '', "sign-up|link|influencer|twain|ooo|lrs|x|p57|physique|complimentary")
                   ).length;
                   
                   const others = newClientsCount - (trials + referrals + hosted + influencerSignups);
@@ -266,8 +271,8 @@ export const processData = (
                     newClientEmails.includes(sale['Customer Email']) &&
                     sale['Teacher'] === teacher &&
                     sale['Sale Date'] > teacherNewClients[0]['First visit at'] &&
-                    !/product/i.test(sale['Class Name'] || '') &&
-                    !/2 for 1/i.test(sale['Membership used'] || '') &&
+                    (!sale['Category'] || sale['Category'] !== 'product') &&
+                    (!sale['Item'] || !matchesPattern(sale['Item'] || '', "2 for 1")) &&
                     (typeof sale['Sale Value'] === 'number' ? sale['Sale Value'] : parseFloat(sale['Sale Value'] || '0')) > 0
                   );
                   
@@ -332,7 +337,7 @@ export const processData = (
                   const influencerConvertedCount = convertedClients.filter(sale => 
                     teacherNewClients.some(client => 
                       client['Email'] === sale['Customer Email'] && 
-                      /(sign-up|link|influencer|twain|ooo|lrs|x|p57|physique|complimentary)/i.test(client['Membership used'] || '')
+                      matchesPattern(client['Membership used'] || '', "sign-up|link|influencer|twain|ooo|lrs|x|p57|physique|complimentary")
                     )
                   ).length;
                   
@@ -356,7 +361,7 @@ export const processData = (
                   const trialConvertedCount = convertedClients.filter(sale => 
                     teacherNewClients.some(client => 
                       client['Email'] === sale['Customer Email'] && 
-                      /(Studio Open Barre Class|Newcomers 2 For 1)/i.test(client['Membership used'] || '')
+                      matchesPattern(client['Membership used'] || '', "Studio Open Barre Class|Newcomers 2 For 1")
                     )
                   ).length;
                   

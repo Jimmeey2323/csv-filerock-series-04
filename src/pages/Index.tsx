@@ -8,6 +8,9 @@ import FilterBar from '@/components/FilterBar';
 import ResultsTable from '@/components/ResultsTable';
 import { parseCSV, categorizeFiles, getFileTypes } from '@/utils/csvParser';
 import { processData, ProcessedTeacherData, ProcessingProgress } from '@/utils/dataProcessor';
+import Logo from '@/components/Logo';
+import AIInsights from '@/components/AIInsights';
+import { Card, CardContent } from '@/components/ui/card';
 
 const Index = () => {
   const [files, setFiles] = useState<File[]>([]);
@@ -21,6 +24,13 @@ const Index = () => {
   const [filteredData, setFilteredData] = useState<ProcessedTeacherData[]>([]);
   const [resultsVisible, setResultsVisible] = useState(false);
   const [viewMode, setViewMode] = useState<'table' | 'cards' | 'detailed'>('table');
+  const [dataMode, setDataMode] = useState<'teacher' | 'studio'>('teacher');
+  const [activeFilters, setActiveFilters] = useState({
+    location: '',
+    teacher: '',
+    period: '',
+    search: '',
+  });
 
   // Update progress
   const updateProgress = useCallback((progressData: ProcessingProgress) => {
@@ -103,26 +113,35 @@ const Index = () => {
 
   // Handle filter changes
   const handleFilterChange = useCallback((filters: { location?: string; teacher?: string; period?: string; search?: string }) => {
+    const newFilters = {
+      location: filters.location || '',
+      teacher: filters.teacher || '',
+      period: filters.period || '',
+      search: filters.search || '',
+    };
+    
+    setActiveFilters(newFilters);
+    
     let filtered = [...processedData];
     
     // Filter by location
-    if (filters.location && filters.location !== 'all-locations') {
-      filtered = filtered.filter(item => item.location === filters.location);
+    if (newFilters.location && newFilters.location !== 'all-locations') {
+      filtered = filtered.filter(item => item.location === newFilters.location);
     }
     
     // Filter by teacher
-    if (filters.teacher && filters.teacher !== 'all-teachers') {
-      filtered = filtered.filter(item => item.teacherName === filters.teacher);
+    if (newFilters.teacher && newFilters.teacher !== 'all-teachers') {
+      filtered = filtered.filter(item => item.teacherName === newFilters.teacher);
     }
     
     // Filter by period
-    if (filters.period && filters.period !== 'all-periods') {
-      filtered = filtered.filter(item => item.period === filters.period);
+    if (newFilters.period && newFilters.period !== 'all-periods') {
+      filtered = filtered.filter(item => item.period === newFilters.period);
     }
     
     // Filter by search (teacher name)
-    if (filters.search) {
-      const searchLower = filters.search.toLowerCase();
+    if (newFilters.search) {
+      const searchLower = newFilters.search.toLowerCase();
       filtered = filtered.filter(item => 
         item.teacherName.toLowerCase().includes(searchLower)
       );
@@ -130,11 +149,6 @@ const Index = () => {
     
     setFilteredData(filtered);
   }, [processedData]);
-
-  // Handle view mode change
-  const handleViewModeChange = (mode: 'table' | 'cards' | 'detailed') => {
-    setViewMode(mode);
-  };
 
   // Apply fade-in animation on mount
   useEffect(() => {
@@ -144,24 +158,35 @@ const Index = () => {
     return () => clearTimeout(timer);
   }, []);
 
+  // Check if any filters are active
+  const hasActiveFilters = Object.values(activeFilters).some(Boolean);
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white">
-      <main id="container" className="container py-8 transition-opacity duration-500 opacity-0">
-        <div className="space-y-6 mb-10">
-          <div className="flex flex-col items-center text-center space-y-4 animate-fade-in">
-            <div className="inline-flex items-center justify-center h-16 w-16 rounded-full bg-primary/10 text-primary mb-2">
-              <div className="h-8 w-8 rounded-full bg-primary animate-pulse-soft" />
-            </div>
-            <h1 className="text-4xl font-bold tracking-tight">CSV Data Processor</h1>
-            <p className="text-lg text-muted-foreground max-w-2xl">
-              Upload, process, and analyze your CSV files with ease. Generate comprehensive reports and insights.
-            </p>
+      <header className="border-b bg-white/80 backdrop-blur-sm sticky top-0 z-50">
+        <div className="container flex justify-between items-center py-3">
+          <Logo size="md" />
+          <div className="text-xs text-muted-foreground">
+            Analytics Dashboard
           </div>
         </div>
+      </header>
+      
+      <main id="container" className="container py-8 transition-opacity duration-500 opacity-0">
+        {!resultsVisible ? (
+          <>
+            <div className="space-y-6 mb-10">
+              <div className="flex flex-col items-center text-center space-y-4 animate-fade-in">
+                <div className="inline-flex items-center justify-center h-16 w-16 rounded-full bg-primary/10 text-primary mb-2">
+                  <div className="h-8 w-8 rounded-full bg-primary animate-pulse-soft" />
+                </div>
+                <h1 className="text-4xl font-bold tracking-tight">Studio Performance Analytics</h1>
+                <p className="text-lg text-muted-foreground max-w-2xl">
+                  Upload, process, and analyze your CSV files to gain insights into studio performance, teacher effectiveness, and client trends.
+                </p>
+              </div>
+            </div>
 
-        <div className="space-y-8">
-          {/* File Upload Section */}
-          {!resultsVisible && (
             <div className="grid grid-cols-1 gap-8 max-w-3xl mx-auto">
               <FileUploader 
                 onFilesAdded={handleFilesAdded} 
@@ -178,34 +203,46 @@ const Index = () => {
                 />
               )}
             </div>
-          )}
-
-          {/* Results Section */}
-          {resultsVisible && (
-            <div className="space-y-6 animate-fade-in">
-              <div className="flex justify-between items-center">
-                <h2 className="text-2xl font-semibold">Results</h2>
-                <button
-                  onClick={() => {
-                    setResultsVisible(false);
-                    setProcessedData([]);
-                    setFilteredData([]);
-                    setFiles([]);
-                  }}
-                  className="text-sm text-primary hover-underline"
-                >
-                  Process new files
-                </button>
-              </div>
-              
-              <ResultsTable
-                data={filteredData}
-                locations={locations}
-                isLoading={false}
-              />
+          </>
+        ) : (
+          <div className="space-y-6 animate-fade-in">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-2xl font-semibold">Performance Analytics</h2>
+              <button
+                onClick={() => {
+                  setResultsVisible(false);
+                  setProcessedData([]);
+                  setFilteredData([]);
+                  setFiles([]);
+                }}
+                className="text-sm text-primary hover-underline"
+              >
+                Process new files
+              </button>
             </div>
-          )}
-        </div>
+            
+            <AIInsights data={filteredData} isFiltered={hasActiveFilters} />
+            
+            <FilterBar
+              locations={locations}
+              teachers={teachers}
+              periods={periods}
+              activeViewMode={viewMode}
+              activeDataMode={dataMode}
+              onViewModeChange={setViewMode}
+              onDataModeChange={setDataMode}
+              onFilterChange={handleFilterChange}
+            />
+            
+            <ResultsTable
+              data={filteredData}
+              locations={locations}
+              isLoading={false}
+              viewMode={viewMode}
+              dataMode={dataMode}
+            />
+          </div>
+        )}
       </main>
 
       {/* Processing Loader */}
@@ -214,6 +251,15 @@ const Index = () => {
         progress={progress} 
         currentStep={currentStep} 
       />
+      
+      <footer className="border-t bg-white/80 backdrop-blur-sm py-4 mt-8">
+        <div className="container flex flex-col md:flex-row justify-between items-center">
+          <Logo size="sm" />
+          <div className="text-xs text-muted-foreground mt-2 md:mt-0">
+            StudioStats Analytics Dashboard • {new Date().getFullYear()}
+          </div>
+        </div>
+      </footer>
     </div>
   );
 };
