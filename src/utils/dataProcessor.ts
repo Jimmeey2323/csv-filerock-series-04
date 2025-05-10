@@ -1,3 +1,4 @@
+
 import { formatDateString, getMonthYearFromDate, cleanFirstVisitValue, matchesPattern, isDateAfter, parseDate } from './csvParser';
 
 // Define types for our data structures
@@ -111,6 +112,11 @@ export const processData = (
   locations: string[];
   teachers: string[];
   periods: string[];
+  includedRecords: any[];
+  excludedRecords: any[];
+  newClientRecords: any[];
+  convertedClientRecords: any[];
+  retainedClientRecords: any[];
 }> => {
   return new Promise((resolve) => {
     updateProgress({ progress: 5, currentStep: "Cleaning and validating data..." });
@@ -218,6 +224,13 @@ export const processData = (
             // Also process by studio
             const studioData: { [key: string]: ProcessedTeacherData } = {};
             
+            // Arrays to hold records for our new properties
+            const includedRecords: any[] = [];
+            const excludedRecords: any[] = [];
+            const newClientRecords: any[] = [];
+            const convertedClientRecords: any[] = [];
+            const retainedClientRecords: any[] = [];
+            
             // Group data by teacher, location, and period
             teachers.forEach(teacher => {
               locations.forEach(location => {
@@ -233,6 +246,28 @@ export const processData = (
                   if (teacherNewClients.length === 0) return; // Skip if no data
                   
                   console.log(`Processing ${teacher} at ${location} for period ${period}. Found ${teacherNewClients.length} new clients`);
+                  
+                  // Add records to our tracking arrays
+                  teacherNewClients.forEach(client => {
+                    includedRecords.push({
+                      ...client,
+                      reason: "Matched teacher, location, and period criteria"
+                    });
+                    newClientRecords.push({
+                      ...client,
+                      reason: "First time visitor"
+                    });
+                  });
+                  
+                  // Add excluded records
+                  enrichedNewData.filter(record => 
+                    matchesPattern(record['Membership used'] || '', "friends|family|staff")
+                  ).forEach(record => {
+                    excludedRecords.push({
+                      ...record,
+                      reason: "Friends, family, or staff membership"
+                    });
+                  });
                   
                   // Calculate client acquisition metrics
                   const newClientsCount = teacherNewClients.length;
@@ -314,6 +349,16 @@ export const processData = (
                   const retainedClientDetails = returnClientEmails.map(email => {
                     const clientVisits = returnVisits.filter(visit => visit['Customer Email'] === email); // Corrected field name
                     const clientInfo = teacherNewClients.find(client => client['Email'] === email);
+                    
+                    // Add this client to retained records
+                    if (clientInfo) {
+                      retainedClientRecords.push({
+                        ...clientInfo,
+                        visitsCount: clientVisits.length,
+                        reason: "Had return visits after initial trial"
+                      });
+                    }
+                    
                     return {
                       email,
                       name: clientInfo ? `${clientInfo['First name']} ${clientInfo['Last name']}` : 'Unknown',
@@ -401,7 +446,20 @@ export const processData = (
                       refunded: sale['Refunded']
                     });
                     
-                    return saleDateAfterVisit && notProductCategory && not2For1 && hasSaleValue && notRefunded;
+                    const isConverted = saleDateAfterVisit && notProductCategory && not2For1 && hasSaleValue && notRefunded;
+                    
+                    // Add to converted records if it matches all criteria
+                    if (isConverted && matchingClient) {
+                      convertedClientRecords.push({
+                        ...matchingClient,
+                        saleDate: sale['Date'],
+                        saleValue: saleValue,
+                        item: sale['Item'],
+                        reason: "Made purchase after initial visit"
+                      });
+                    }
+                    
+                    return isConverted;
                   });
                   
                   console.log(`Found ${convertedClients.length} converted clients for ${teacher}`);
@@ -683,12 +741,17 @@ export const processData = (
             // Sort teachers alphabetically
             const sortedTeachers = [...teachers].sort();
             
-            // Return processed data
+            // Return processed data along with the records we need
             resolve({
               processedData,
               locations,
               teachers: sortedTeachers,
-              periods: sortedPeriods
+              periods: sortedPeriods,
+              includedRecords,
+              excludedRecords,
+              newClientRecords,
+              convertedClientRecords,
+              retainedClientRecords
             });
           }, 500);
         }, 500);
@@ -696,3 +759,4 @@ export const processData = (
     }, 500);
   });
 };
+
