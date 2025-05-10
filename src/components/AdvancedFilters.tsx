@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import {
   Sheet,
@@ -110,14 +109,14 @@ const AdvancedFilters: React.FC<AdvancedFiltersProps> = ({
                   <div className="space-y-2">
                     <Label htmlFor="location-filter">Location</Label>
                     <Select 
-                      value={filters.basic?.location || ''} 
+                      value={filters.basic?.location || 'all-locations'} 
                       onValueChange={(value) => handleFilterChange('basic', 'location', value)}
                     >
                       <SelectTrigger id="location-filter" className="w-full">
                         <SelectValue placeholder="All Locations" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="">All Locations</SelectItem>
+                        <SelectItem value="all-locations">All Locations</SelectItem>
                         {locations.map((location) => (
                           <SelectItem key={location} value={location}>
                             {location}
@@ -130,14 +129,14 @@ const AdvancedFilters: React.FC<AdvancedFiltersProps> = ({
                   <div className="space-y-2">
                     <Label htmlFor="teacher-filter">Teacher</Label>
                     <Select 
-                      value={filters.basic?.teacher || ''} 
+                      value={filters.basic?.teacher || 'all-teachers'} 
                       onValueChange={(value) => handleFilterChange('basic', 'teacher', value)}
                     >
                       <SelectTrigger id="teacher-filter" className="w-full">
                         <SelectValue placeholder="All Teachers" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="">All Teachers</SelectItem>
+                        <SelectItem value="all-teachers">All Teachers</SelectItem>
                         {teachers.map((teacher) => (
                           <SelectItem key={teacher} value={teacher}>
                             {teacher}
@@ -151,14 +150,14 @@ const AdvancedFilters: React.FC<AdvancedFiltersProps> = ({
                 <div className="space-y-2">
                   <Label htmlFor="period-filter">Time Period</Label>
                   <Select 
-                    value={filters.basic?.period || ''} 
+                    value={filters.basic?.period || 'all-periods'} 
                     onValueChange={(value) => handleFilterChange('basic', 'period', value)}
                   >
                     <SelectTrigger id="period-filter" className="w-full">
                       <SelectValue placeholder="All Periods" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">All Periods</SelectItem>
+                      <SelectItem value="all-periods">All Periods</SelectItem>
                       {periods.map((period) => (
                         <SelectItem key={period} value={period}>
                           {period}
