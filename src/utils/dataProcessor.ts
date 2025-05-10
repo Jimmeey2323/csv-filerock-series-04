@@ -62,6 +62,7 @@ interface SaleRecord {
   'Date'?: string;
   'Tax'?: string | number;
   'Payment status'?: string;
+  'Payment method'?: string; // Updated to match the header in sales sheet
   'Paying Customer email'?: string;
   'Paying Customer name'?: string;
   'Customer name'?: string;
@@ -153,37 +154,35 @@ export const processData = (
       
       console.log("Processing sales data for conversions...");
       const cleanedSalesData = salesData ? salesData.map(record => {
-        // Check which date field is available
-        const dateField = record['Date'] ? 'Date' : 'Sale Date';
-        const dateValue = formatDateString(record[dateField] || '');
+        // Check which date field is available - Updated to use 'Date' field from the sales sheet
+        const dateValue = formatDateString(record['Date'] || '');
         
-        // Handle different sale value field structures
-        let saleValue = 0;
-        if (record['Sale value'] !== undefined) {
-          saleValue = typeof record['Sale value'] === 'string' 
-            ? parseFloat(record['Sale value'].replace(/[^0-9.-]+/g, '')) || 0 
-            : record['Sale value'] || 0;
-        } else if (record['Sale value'] === undefined && record['Tax'] !== undefined) {
-          // This is the new sales format
-          saleValue = typeof record['Sale value'] === 'string' 
-            ? parseFloat(record['Sale value'].replace(/[^0-9.-]+/g, '')) || 0 
-            : (record['Sale value'] as number) || 0;
-        }
+        // Handle sale value with the correct field name
+        const saleValue = typeof record['Sale value'] === 'string' 
+          ? parseFloat(record['Sale value'].replace(/[^0-9.-]+/g, '')) || 0 
+          : (record['Sale value'] as number) || 0;
         
-        // Get email address (try both Customer email and Paying Customer email)
-        const customerEmail = record['Customer email'] || record['Paying Customer email'] || '';
+        // Get email address correctly from sales sheet columns
+        const customerEmail = record['Customer email'] || '';
+        const payingCustomerEmail = record['Paying Customer email'] || '';
         
-        // Clean class name if present
-        const className = record['Class Name'] || record['Item'] || '';
+        // Clean class name/item if present
+        const className = record['Item'] || '';
         const cleanedClassName = cleanFirstVisitValue(className);
         
+        // Updated mapping to match the sales sheet column names
         return {
           ...record,
-          'Sale Date': dateValue,
-          'Date': dateValue, // Ensure both fields have the value for consistency
+          'Date': dateValue,
           'Sale value': saleValue,
           'Customer email': customerEmail,
-          'Class Name': cleanedClassName
+          'Paying Customer email': payingCustomerEmail,
+          'Item': cleanedClassName,
+          'Payment method': record['Payment method'],
+          'Sold by': record['Sold by'],
+          'Payment status': record['Payment status'],
+          'Location': record['Location'],
+          'Refunded': record['Refunded']
         };
       }) : [];
 
@@ -377,7 +376,7 @@ export const processData = (
                   const convertedClients = cleanedSalesData.filter(sale => {
                     // Find matching new client record
                     const matchingClient = teacherNewClients.find(client => {
-                      // Check both potential email fields
+                      // Check both potential email fields - Updated to match sales sheet columns
                       const customerEmail = sale['Customer email'] || '';
                       const payingCustomerEmail = sale['Paying Customer email'] || '';
                       
@@ -398,15 +397,15 @@ export const processData = (
                       clientEmail: matchingClient['Email'],
                       saleEmail: sale['Customer email'] || sale['Paying Customer email'],
                       firstVisit: matchingClient['First visit at'],
-                      saleDate: sale['Date'] || sale['Sale Date'],
+                      saleDate: sale['Date'],
                       category: sale['Category'],
                       item: sale['Item'],
                       saleValue: sale['Sale value']
                     });
                     
                     // Check conditions:
-                    // 1. Sale date > First visit date
-                    const saleDate = sale['Date'] || sale['Sale Date'] || '';
+                    // 1. Sale date > First visit date - Updated to use the 'Date' field from sales sheet
+                    const saleDate = sale['Date'] || '';
                     const firstVisitDate = matchingClient['First visit at'];
                     const saleDateAfterVisit = isDateAfter(saleDate, firstVisitDate);
                     
@@ -422,17 +421,22 @@ export const processData = (
                       sale['Sale value'] : parseFloat(String(sale['Sale value'] || '0').replace(/[^0-9.-]+/g, ''));
                     const hasSaleValue = saleValue > 0;
                     
+                    // 5. Not refunded - Updated to check the 'Refunded' field correctly
+                    const notRefunded = sale['Refunded'] !== 'YES';
+                    
                     // Log detailed diagnostics
                     console.log("Conversion conditions check:", {
                       saleDateAfterVisit,
                       notProductCategory,
                       not2For1,
                       hasSaleValue,
+                      notRefunded,
                       saleValue,
-                      category
+                      category,
+                      refunded: sale['Refunded']
                     });
                     
-                    return saleDateAfterVisit && notProductCategory && not2For1 && hasSaleValue;
+                    return saleDateAfterVisit && notProductCategory && not2For1 && hasSaleValue && notRefunded;
                   });
                   
                   console.log(`Found ${convertedClients.length} converted clients for ${teacher}`);
@@ -456,9 +460,9 @@ export const processData = (
                     return {
                       email,
                       name: clientInfo ? `${clientInfo['First name']} ${clientInfo['Last name']}` : 'Unknown',
-                      date: clientSales[0]['Date'] || clientSales[0]['Sale Date'] || '',
+                      date: clientSales[0]['Date'] || '',
                       value: totalValue,
-                      membershipType: clientSales[0]['Membership used'] || clientSales[0]['Item'] || ''
+                      membershipType: clientSales[0]['Item'] || ''
                     };
                   });
                   
@@ -546,7 +550,7 @@ export const processData = (
                   
                   // Create weekly revenue data for charts
                   const revenueByWeek = convertedClients.reduce((acc, sale) => {
-                    const dateStr = sale['Date'] || sale['Sale Date'] || '';
+                    const dateStr = sale['Date'] || '';
                     if (!dateStr) return acc;
                     
                     const date = parseDate(dateStr);
@@ -727,3 +731,4 @@ export const processData = (
     }, 500);
   });
 };
+
