@@ -11,12 +11,11 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { Sparkles, User2, Users2, DollarSign, Percent, TrendingUp, TrendingDown, FileText, LayoutDashboard } from 'lucide-react';
+import { Sparkles, User2, Users2, DollarSign, Percent, TrendingUp, TrendingDown, FileText, LayoutDashboard, MoreHorizontal } from 'lucide-react';
 import PerformanceMetricCard from '@/components/cards/PerformanceMetricCard';
 import RevenueChart from '@/components/charts/RevenueChart';
 import ClientDetailsModal from '@/components/ClientDetailsModal';
 import { Button } from '@/components/ui/button';
-import { DotsHorizontalIcon } from '@radix-ui/react-icons';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -165,7 +164,7 @@ const ResultsTable: React.FC<ResultsTableProps> = ({
                   <DropdownMenuTrigger asChild>
                     <Button variant="ghost" className="h-8 w-8 p-0">
                       <span className="sr-only">Open menu</span>
-                      <DotsHorizontalIcon className="h-4 w-4" />
+                      <MoreHorizontal className="h-4 w-4" />
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
@@ -246,7 +245,7 @@ const ResultsTable: React.FC<ResultsTableProps> = ({
                   <DropdownMenuTrigger asChild>
                     <Button variant="ghost" className="h-8 w-8 p-0">
                       <span className="sr-only">Open menu</span>
-                      <DotsHorizontalIcon className="h-4 w-4" />
+                      <MoreHorizontal className="h-4 w-4" />
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
@@ -309,7 +308,7 @@ const ResultsTable: React.FC<ResultsTableProps> = ({
                   <PerformanceMetricCard
                     title="Others"
                     value={item.others.toString()}
-                    icon={<DotsHorizontalIcon className="h-4 w-4 text-zinc-500" />}
+                    icon={<MoreHorizontal className="h-4 w-4 text-zinc-500" />}
                     tooltip="Number of clients from other sources"
                   />
                 </div>
