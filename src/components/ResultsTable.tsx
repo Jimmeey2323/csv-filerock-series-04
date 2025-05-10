@@ -1,4 +1,3 @@
-
 import React, { useMemo, useState, useCallback } from 'react';
 import {
   Table,
@@ -592,7 +591,7 @@ const ResultsTable: React.FC<ResultsTableProps> = ({
                 icon={<Users2 className="h-4 w-4 text-green-500" />}
                 status={item.retentionRate > 50 ? 'positive' : item.retentionRate < 30 ? 'negative' : 'neutral'}
                 tooltip="Number of clients retained"
-                onClick={(e) => {
+                onCustomClick={(e) => {
                   e.stopPropagation();
                   handleMetricClick(item, 'retention');
                 }}
@@ -604,7 +603,7 @@ const ResultsTable: React.FC<ResultsTableProps> = ({
                 icon={<Sparkles className="h-4 w-4 text-purple-500" />}
                 status={item.conversionRate > 10 ? 'positive' : item.conversionRate < 5 ? 'negative' : 'neutral'}
                 tooltip="Number of clients converted"
-                onClick={(e) => {
+                onCustomClick={(e) => {
                   e.stopPropagation();
                   handleMetricClick(item, 'conversion');
                 }}
@@ -732,7 +731,7 @@ const ResultsTable: React.FC<ResultsTableProps> = ({
                   icon={<Users2 className="h-4 w-4 text-green-500" />}
                   status={item.retentionRate > 50 ? 'positive' : item.retentionRate < 30 ? 'negative' : 'neutral'}
                   tooltip="Number of clients retained"
-                  onClick={(e) => {
+                  onCustomClick={(e) => {
                     e.stopPropagation();
                     handleMetricClick(item, 'retention');
                   }}
@@ -744,7 +743,7 @@ const ResultsTable: React.FC<ResultsTableProps> = ({
                   icon={<Sparkles className="h-4 w-4 text-purple-500" />}
                   status={item.conversionRate > 10 ? 'positive' : item.conversionRate < 5 ? 'negative' : 'neutral'}
                   tooltip="Number of clients converted"
-                  onClick={(e) => {
+                  onCustomClick={(e) => {
                     e.stopPropagation();
                     handleMetricClick(item, 'conversion');
                   }}

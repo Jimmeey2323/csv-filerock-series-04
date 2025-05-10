@@ -57,14 +57,19 @@ const DrillDownAnalytics: React.FC<DrillDownAnalyticsProps> = ({
 }) => {
   const [activeTab, setActiveTab] = React.useState('overview');
 
-  if (!data) return null;
-
-  // Determine which tab to show initially based on metricType
+  // IMPORTANT: Move the conditional to inside the effect
+  // This ensures the number of hooks stays consistent
   React.useEffect(() => {
-    if (metricType === 'conversion') setActiveTab('conversion');
-    else if (metricType === 'retention') setActiveTab('retention');
-    else setActiveTab('overview');
+    if (metricType === 'conversion') {
+      setActiveTab('conversion');
+    } else if (metricType === 'retention') {
+      setActiveTab('retention');
+    } else {
+      setActiveTab('overview');
+    }
   }, [metricType]);
+
+  if (!data) return null;
 
   // Format label based on type
   const getEntityLabel = () => {
@@ -195,7 +200,14 @@ const DrillDownAnalytics: React.FC<DrillDownAnalyticsProps> = ({
                   <CardTitle>Client Sources</CardTitle>
                 </CardHeader>
                 <CardContent className="flex items-center justify-center">
-                  <ClientSourceChart data={data} />
+                  {/* Fix type issue by passing the actual client source data */}
+                  <ClientSourceChart data={{
+                    trials: data.trials,
+                    referrals: data.referrals,
+                    hosted: data.hosted,
+                    influencerSignups: data.influencerSignups,
+                    others: data.others
+                  }} />
                 </CardContent>
               </Card>
             </div>
@@ -206,7 +218,11 @@ const DrillDownAnalytics: React.FC<DrillDownAnalyticsProps> = ({
                   <CardTitle>Revenue by Week</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <RevenueChart data={data.revenueByWeek || []} />
+                  {/* Ensure revenueByWeek matches the expected format */}
+                  <RevenueChart data={data.revenueByWeek ? data.revenueByWeek.map(item => ({
+                    name: item.week,
+                    value: item.revenue
+                  })) : []} />
                 </CardContent>
               </Card>
             </div>
@@ -318,12 +334,14 @@ const DrillDownAnalytics: React.FC<DrillDownAnalyticsProps> = ({
                     <div className="p-4 border rounded-lg text-center">
                       <h3 className="text-lg font-medium">Revenue Trend</h3>
                       <p className="text-3xl font-bold flex items-center justify-center gap-2">
-                        {data.revenueByWeek && data.revenueByWeek.length > 1 && 
-                         data.revenueByWeek[data.revenueByWeek.length - 1].value > 
-                         data.revenueByWeek[data.revenueByWeek.length - 2].value ? (
+                        {data.revenueByWeek && data.revenueByWeek.length > 1 ? 
+                         (data.revenueByWeek[data.revenueByWeek.length - 1].revenue > 
+                         data.revenueByWeek[data.revenueByWeek.length - 2].revenue ? (
                           <span className="text-green-500">Increasing</span>
                          ) : (
                           <span className="text-red-500">Decreasing</span>
+                         )) : (
+                           <span>Not enough data</span>
                          )} 
                       </p>
                     </div>
@@ -334,7 +352,11 @@ const DrillDownAnalytics: React.FC<DrillDownAnalyticsProps> = ({
                       <CardTitle className="text-lg">Revenue by Week</CardTitle>
                     </CardHeader>
                     <CardContent>
-                      <RevenueChart data={data.revenueByWeek || []} />
+                      {/* Ensure revenueByWeek matches the expected format */}
+                      <RevenueChart data={data.revenueByWeek ? data.revenueByWeek.map(item => ({
+                        name: item.week,
+                        value: item.revenue
+                      })) : []} />
                     </CardContent>
                   </Card>
                 </CardContent>
@@ -358,7 +380,12 @@ const DrillDownAnalytics: React.FC<DrillDownAnalyticsProps> = ({
                         <CardTitle className="text-lg">Client Acquisition</CardTitle>
                       </CardHeader>
                       <CardContent>
-                        <ConversionRatesChart data={data} />
+                        {/* Fix type issue by creating the expected data format */}
+                        <ConversionRatesChart data={[{
+                          name: 'Current Period',
+                          conversion: data.conversionRate,
+                          retention: data.retentionRate
+                        }]} />
                       </CardContent>
                     </Card>
                     
