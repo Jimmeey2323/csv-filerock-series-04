@@ -1,11 +1,12 @@
-import * as React from "react";
-import { ChevronLeft, ChevronRight } from "lucide-react";
-import { DayPicker } from "react-day-picker";
 
-import { cn } from "@/lib/utils";
-import { buttonVariants } from "@/components/ui/button";
+import * as React from "react"
+import { ChevronLeft, ChevronRight } from "lucide-react"
+import { DayPicker } from "react-day-picker"
 
-export type CalendarProps = React.ComponentProps<typeof DayPicker>;
+import { cn } from "@/lib/utils"
+import { buttonVariants } from "@/components/ui/button"
+
+export type CalendarProps = React.ComponentProps<typeof DayPicker>
 
 function Calendar({
   className,
@@ -52,13 +53,53 @@ function Calendar({
         ...classNames,
       }}
       components={{
-        IconLeft: ({ ..._props }) => <ChevronLeft className="h-4 w-4" />,
-        IconRight: ({ ..._props }) => <ChevronRight className="h-4 w-4" />,
+        IconLeft: ({ ...props }) => <ChevronLeft className="h-4 w-4" />,
+        IconRight: ({ ...props }) => <ChevronRight className="h-4 w-4" />,
       }}
       {...props}
     />
+  )
+}
+Calendar.displayName = "Calendar"
+
+// Add a DatePicker component that uses Calendar internally
+interface DatePickerProps {
+  date?: Date;
+  setDate: (date: Date | undefined) => void;
+  className?: string;
+  placeholder?: string;
+}
+
+export function DatePicker({ date, setDate, className, placeholder = "Pick a date" }: DatePickerProps) {
+  const [isOpen, setIsOpen] = React.useState(false);
+
+  const handleSelect = (date: Date | undefined) => {
+    setDate(date);
+    setIsOpen(false);
+  };
+
+  return (
+    <div className={cn("relative", className)}>
+      <button
+        type="button"
+        onClick={() => setIsOpen(!isOpen)}
+        className="w-full h-10 px-3 border border-input rounded-md flex items-center justify-between text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+      >
+        {date ? date.toLocaleDateString() : placeholder}
+        <ChevronRight className={cn("h-4 w-4 transition-transform", isOpen ? "rotate-90" : "")} />
+      </button>
+      {isOpen && (
+        <div className="absolute top-12 left-0 z-50 bg-background border rounded-md shadow-md">
+          <Calendar
+            mode="single"
+            selected={date}
+            onSelect={handleSelect}
+            initialFocus
+          />
+        </div>
+      )}
+    </div>
   );
 }
-Calendar.displayName = "Calendar";
 
-export { Calendar };
+export { DayPicker }
