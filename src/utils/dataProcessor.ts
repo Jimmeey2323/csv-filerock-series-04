@@ -23,10 +23,10 @@ interface BookingRecord {
   'Class Date': string;
   'Location': string;
   'Teacher': string;
-  'Customer Email': string;
+  'Customer email': string;
   'Payment Method': string;
   'Membership used': string;
-  'Sale Value': string | number;
+  'Sale value': string | number;
   'Sales tax': string | number;
   'Cancelled': string;
   'Late Cancelled': string;
@@ -44,10 +44,10 @@ interface SaleRecord {
   'Class Date'?: string;
   'Location'?: string;
   'Teacher'?: string;
-  'Customer Email'?: string;
+  'Customer email'?: string;
   'Payment Method'?: string;
   'Membership used'?: string;
-  'Sale Value'?: string | number;
+  'Sale value'?: string | number;
   'Sales tax'?: string | number;
   'Cancelled'?: string;
   'Late Cancelled'?: string;
@@ -62,7 +62,7 @@ interface SaleRecord {
   'Date'?: string;
   'Tax'?: string | number;
   'Payment status'?: string;
-  'Paying Customer Email'?: string;
+  'Paying Customer email'?: string;
   'Paying Customer name'?: string;
   'Customer name'?: string;
   'Note'?: string;
@@ -145,9 +145,9 @@ export const processData = (
         ...record,
         'Class Date': formatDateString(record['Class Date'] || ''),
         'Sale Date': formatDateString(record['Sale Date'] || ''),
-        'Sale Value': typeof record['Sale Value'] === 'string' 
-          ? parseFloat(record['Sale Value'].replace(/[^0-9.-]+/g, '')) || 0 
-          : record['Sale Value'] || 0,
+        'Sale value': typeof record['Sale value'] === 'string' 
+          ? parseFloat(record['Sale value'].replace(/[^0-9.-]+/g, '')) || 0 
+          : record['Sale value'] || 0,
         'Class Name': cleanFirstVisitValue(record['Class Name'] || ''),
       }));
       
@@ -159,19 +159,19 @@ export const processData = (
         
         // Handle different sale value field structures
         let saleValue = 0;
-        if (record['Sale Value'] !== undefined) {
-          saleValue = typeof record['Sale Value'] === 'string' 
-            ? parseFloat(record['Sale Value'].replace(/[^0-9.-]+/g, '')) || 0 
-            : record['Sale Value'] || 0;
-        } else if (record['Sale Value'] === undefined && record['Tax'] !== undefined) {
+        if (record['Sale value'] !== undefined) {
+          saleValue = typeof record['Sale value'] === 'string' 
+            ? parseFloat(record['Sale value'].replace(/[^0-9.-]+/g, '')) || 0 
+            : record['Sale value'] || 0;
+        } else if (record['Sale value'] === undefined && record['Tax'] !== undefined) {
           // This is the new sales format
-          saleValue = typeof record['Sale Value'] === 'string' 
-            ? parseFloat(record['Sale Value'].replace(/[^0-9.-]+/g, '')) || 0 
-            : (record['Sale Value'] as number) || 0;
+          saleValue = typeof record['Sale value'] === 'string' 
+            ? parseFloat(record['Sale value'].replace(/[^0-9.-]+/g, '')) || 0 
+            : (record['Sale value'] as number) || 0;
         }
         
-        // Get email address (try both Customer Email and Paying Customer Email)
-        const customerEmail = record['Customer Email'] || record['Paying Customer Email'] || '';
+        // Get email address (try both Customer email and Paying Customer email)
+        const customerEmail = record['Customer email'] || record['Paying Customer email'] || '';
         
         // Clean class name if present
         const className = record['Class Name'] || record['Item'] || '';
@@ -181,8 +181,8 @@ export const processData = (
           ...record,
           'Sale Date': dateValue,
           'Date': dateValue, // Ensure both fields have the value for consistency
-          'Sale Value': saleValue,
-          'Customer Email': customerEmail,
+          'Sale value': saleValue,
+          'Customer email': customerEmail,
           'Class Name': cleanedClassName
         };
       }) : [];
@@ -199,7 +199,7 @@ export const processData = (
           console.log(`Looking for booking match for: ${newRecord['Email']} - ${newRecord['First visit']} - ${newRecord['First visit at']} - ${newRecord['First visit location']}`);
           
           const matchingBooking = cleanedBookingsData.find(booking => {
-            const emailMatch = booking['Customer Email'] === newRecord['Email'];
+            const emailMatch = booking['Customer email'] === newRecord['Email'];
             const nameMatch = booking['Class Name'] === newRecord['First visit'];
             const dateMatch = booking['Class Date'] === newRecord['First visit at'];
             const locationMatch = booking['Location'] === newRecord['First visit location'];
@@ -306,7 +306,7 @@ export const processData = (
                   const returnVisits = cleanedBookingsData.filter(booking => {
                     // Get matching client record
                     const matchingClient = teacherNewClients.find(client => 
-                      client['Email'] === booking['Customer Email']
+                      client['Email'] === booking['Customer email']
                     );
                     
                     if (!matchingClient) return false;
@@ -320,8 +320,8 @@ export const processData = (
                     const notNoShow = booking['No Show'] === 'NO'; 
                     
                     // Log for debugging
-                    if (booking['Customer Email'] === matchingClient['Email']) {
-                      console.log(`Return visit check for ${booking['Customer Email']}:`, {
+                    if (booking['Customer email'] === matchingClient['Email']) {
+                      console.log(`Return visit check for ${booking['Customer email']}:`, {
                         isAfterFirstVisit,
                         notCancelled,
                         notLateCancelled,
@@ -337,14 +337,14 @@ export const processData = (
                   console.log(`Found ${returnVisits.length} return visits for all clients of ${teacher}`);
                   
                   // Count unique emails with return visits
-                  const returnClientEmails = [...new Set(returnVisits.map(visit => visit['Customer Email']))];
+                  const returnClientEmails = [...new Set(returnVisits.map(visit => visit['Customer email']))];
                   const retainedClientsCount = returnClientEmails.length;
                   
                   console.log(`Found ${retainedClientsCount} unique retained clients for ${teacher}`);
                   
                   // Create detailed retained client list
                   const retainedClientDetails = returnClientEmails.map(email => {
-                    const clientVisits = returnVisits.filter(visit => visit['Customer Email'] === email);
+                    const clientVisits = returnVisits.filter(visit => visit['Customer email'] === email);
                     const clientInfo = teacherNewClients.find(client => client['Email'] === email);
                     return {
                       email,
@@ -378,8 +378,8 @@ export const processData = (
                     // Find matching new client record
                     const matchingClient = teacherNewClients.find(client => {
                       // Check both potential email fields
-                      const customerEmail = sale['Customer Email'] || '';
-                      const payingCustomerEmail = sale['Paying Customer Email'] || '';
+                      const customerEmail = sale['Customer email'] || '';
+                      const payingCustomerEmail = sale['Paying Customer email'] || '';
                       
                       const emailMatch = (
                         client['Email'] === customerEmail || 
@@ -396,12 +396,12 @@ export const processData = (
                     // Debug matched client
                     console.log("Found potential conversion match:", {
                       clientEmail: matchingClient['Email'],
-                      saleEmail: sale['Customer Email'] || sale['Paying Customer Email'],
+                      saleEmail: sale['Customer email'] || sale['Paying Customer email'],
                       firstVisit: matchingClient['First visit at'],
                       saleDate: sale['Date'] || sale['Sale Date'],
                       category: sale['Category'],
                       item: sale['Item'],
-                      saleValue: sale['Sale Value']
+                      saleValue: sale['Sale value']
                     });
                     
                     // Check conditions:
@@ -417,9 +417,9 @@ export const processData = (
                     // 3. Item doesn't contain '2 for 1'
                     const not2For1 = !sale['Item'] || !matchesPattern(sale['Item'] || '', "2 for 1");
                     
-                    // 4. Sale Value > 0
-                    const saleValue = typeof sale['Sale Value'] === 'number' ? 
-                      sale['Sale Value'] : parseFloat(String(sale['Sale Value'] || '0').replace(/[^0-9.-]+/g, ''));
+                    // 4. Sale value > 0
+                    const saleValue = typeof sale['Sale value'] === 'number' ? 
+                      sale['Sale value'] : parseFloat(String(sale['Sale value'] || '0').replace(/[^0-9.-]+/g, ''));
                     const hasSaleValue = saleValue > 0;
                     
                     // Log detailed diagnostics
@@ -439,16 +439,16 @@ export const processData = (
                   
                   // Count unique converted clients
                   const convertedClientEmails = [...new Set(convertedClients.map(sale => 
-                    sale['Customer Email'] || sale['Paying Customer Email'] || ''))];
+                    sale['Customer email'] || sale['Paying Customer email'] || ''))];
                   const convertedClientsCount = convertedClientEmails.length;
                   
                   // Create detailed converted client list
                   const convertedClientDetails = convertedClientEmails.map(email => {
                     const clientSales = convertedClients.filter(sale => 
-                      (sale['Customer Email'] || sale['Paying Customer Email']) === email);
+                      (sale['Customer email'] || sale['Paying Customer email']) === email);
                     const totalValue = clientSales.reduce((sum, sale) => {
-                      const saleValue = typeof sale['Sale Value'] === 'number' ? 
-                        sale['Sale Value'] : parseFloat(String(sale['Sale Value'] || '0').replace(/[^0-9.-]+/g, ''));
+                      const saleValue = typeof sale['Sale value'] === 'number' ? 
+                        sale['Sale value'] : parseFloat(String(sale['Sale value'] || '0').replace(/[^0-9.-]+/g, ''));
                       return sum + saleValue;
                     }, 0);
                     
@@ -471,8 +471,8 @@ export const processData = (
                   
                   // Calculate revenue metrics
                   const totalRevenue = convertedClients.reduce((sum, sale) => {
-                    const saleValue = typeof sale['Sale Value'] === 'number' ? 
-                      sale['Sale Value'] : parseFloat(String(sale['Sale Value'] || '0').replace(/[^0-9.-]+/g, ''));
+                    const saleValue = typeof sale['Sale value'] === 'number' ? 
+                      sale['Sale value'] : parseFloat(String(sale['Sale value'] || '0').replace(/[^0-9.-]+/g, ''));
                     return sum + saleValue;
                   }, 0);
                   
@@ -507,7 +507,7 @@ export const processData = (
                   
                   // Influencer conversion
                   const influencerConvertedCount = convertedClients.filter(sale => {
-                    const email = sale['Customer Email'] || sale['Paying Customer Email'] || '';
+                    const email = sale['Customer email'] || sale['Paying Customer email'] || '';
                     return teacherNewClients.some(client => 
                       client['Email'] === email && 
                       matchesPattern(client['Membership used'] || '', "sign-up|link|influencer|twain|ooo|lrs|x|p57|physique|complimentary")
@@ -520,7 +520,7 @@ export const processData = (
                   
                   // Referral conversion
                   const referralConvertedCount = convertedClients.filter(sale => {
-                    const email = sale['Customer Email'] || sale['Paying Customer Email'] || '';
+                    const email = sale['Customer email'] || sale['Paying Customer email'] || '';
                     return teacherNewClients.some(client => 
                       client['Email'] === email && 
                       client['Membership used'] === 'Studio Complimentary Referral Class'
@@ -533,7 +533,7 @@ export const processData = (
                   
                   // Trial to membership conversion
                   const trialConvertedCount = convertedClients.filter(sale => {
-                    const email = sale['Customer Email'] || sale['Paying Customer Email'] || '';
+                    const email = sale['Customer email'] || sale['Paying Customer email'] || '';
                     return teacherNewClients.some(client => 
                       client['Email'] === email && 
                       matchesPattern(client['Membership used'] || '', "Studio Open Barre Class|Newcomers 2 For 1")
@@ -557,8 +557,8 @@ export const processData = (
                     const weekKey = weekStart.toISOString().split('T')[0];
                     
                     const existing = acc.find(item => item.week === weekKey);
-                    const saleValue = typeof sale['Sale Value'] === 'number' ? 
-                      sale['Sale Value'] : parseFloat(String(sale['Sale Value'] || '0').replace(/[^0-9.-]+/g, ''));
+                    const saleValue = typeof sale['Sale value'] === 'number' ? 
+                      sale['Sale value'] : parseFloat(String(sale['Sale value'] || '0').replace(/[^0-9.-]+/g, ''));
                       
                     if (existing) {
                       existing.revenue += saleValue;
