@@ -15,6 +15,7 @@ interface PerformanceMetricCardProps {
     value: number;
     label?: string;
   };
+  onCustomClick?: (e: React.MouseEvent) => void; // Added this prop
 }
 
 const PerformanceMetricCard: React.FC<PerformanceMetricCardProps> = ({
@@ -24,7 +25,8 @@ const PerformanceMetricCard: React.FC<PerformanceMetricCardProps> = ({
   icon,
   status,
   tooltip,
-  trend
+  trend,
+  onCustomClick
 }) => {
   const getStatusColor = () => {
     if (!status) return '';
@@ -34,7 +36,10 @@ const PerformanceMetricCard: React.FC<PerformanceMetricCardProps> = ({
   };
 
   return (
-    <Card className="card-hover bg-white/60 backdrop-blur-sm">
+    <Card 
+      className="card-hover bg-white/60 backdrop-blur-sm"
+      onClick={onCustomClick} // Add the click handler
+    >
       <CardContent className="pt-6">
         <div className="flex items-center justify-between">
           <div>
