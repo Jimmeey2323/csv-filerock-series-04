@@ -6,10 +6,24 @@ import FileList from '@/components/FileList';
 import ProcessingLoader from '@/components/ProcessingLoader';
 import FilterBar from '@/components/FilterBar';
 import ResultsTable from '@/components/ResultsTable';
+import RawDataView from '@/components/RawDataView';
 import { parseCSV, categorizeFiles, getFileTypes } from '@/utils/csvParser';
 import { processData, ProcessedTeacherData, ProcessingProgress } from '@/utils/dataProcessor';
 import Logo from '@/components/Logo';
 import AIInsights from '@/components/AIInsights';
+import { 
+  Tabs, 
+  TabsContent, 
+  TabsList, 
+  TabsTrigger 
+} from '@/components/ui/tabs';
+import { 
+  Collapsible, 
+  CollapsibleContent, 
+  CollapsibleTrigger 
+} from '@/components/ui/collapsible';
+import { ChevronDown, ChevronUp, FileText, Table, BarChart } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 const Index = () => {
   const [files, setFiles] = useState<File[]>([]);
@@ -24,6 +38,21 @@ const Index = () => {
   const [resultsVisible, setResultsVisible] = useState(false);
   const [viewMode, setViewMode] = useState<'table' | 'cards' | 'detailed'>('table');
   const [dataMode, setDataMode] = useState<'teacher' | 'studio'>('teacher');
+  const [activeTab, setActiveTab] = useState('analytics');
+  const [isInsightsOpen, setIsInsightsOpen] = useState(false);
+  const [rawData, setRawData] = useState({
+    newClientData: [],
+    bookingsData: [],
+    paymentsData: [],
+    processingResults: {
+      included: [],
+      excluded: [],
+      newClients: [],
+      convertedClients: [],
+      retainedClients: []
+    }
+  });
+  
   const [activeFilters, setActiveFilters] = useState({
     location: '',
     teacher: '',
@@ -82,6 +111,20 @@ const Index = () => {
         salesFileResult = await parseCSV(categorized.payments);
       }
       
+      // Save raw data for the Raw Data View
+      setRawData({
+        newClientData: newFileResult.data,
+        bookingsData: bookingsFileResult.data,
+        paymentsData: salesFileResult.data,
+        processingResults: {
+          included: [],
+          excluded: [],
+          newClients: [],
+          convertedClients: [],
+          retainedClients: []
+        }
+      });
+      
       // Process data
       const result = await processData(
         newFileResult.data,
@@ -96,6 +139,18 @@ const Index = () => {
       setLocations(result.locations);
       setTeachers(result.teachers);
       setPeriods(result.periods);
+      
+      // Update raw data processing results
+      setRawData(prev => ({
+        ...prev,
+        processingResults: {
+          included: result.includedRecords || [],
+          excluded: result.excludedRecords || [],
+          newClients: result.newClientRecords || [],
+          convertedClients: result.convertedClientRecords || [],
+          retainedClients: result.retainedClientRecords || []
+        }
+      }));
       
       // Show success and finish processing
       setTimeout(() => {
@@ -218,27 +273,74 @@ const Index = () => {
               </button>
             </div>
             
-            <AIInsights data={filteredData} isFiltered={hasActiveFilters} />
+            <Collapsible
+              open={isInsightsOpen}
+              onOpenChange={setIsInsightsOpen}
+              className="w-full space-y-2"
+            >
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-semibold">AI Insights & Recommendations</h3>
+                <CollapsibleTrigger asChild>
+                  <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                    {isInsightsOpen ? (
+                      <ChevronUp className="h-4 w-4" />
+                    ) : (
+                      <ChevronDown className="h-4 w-4" />  
+                    )}
+                    <span className="sr-only">Toggle insights</span>
+                  </Button>
+                </CollapsibleTrigger>
+              </div>
+              <CollapsibleContent className="space-y-2">
+                <AIInsights data={filteredData} isFiltered={hasActiveFilters} />
+              </CollapsibleContent>
+            </Collapsible>
             
-            <FilterBar
-              locations={locations}
-              teachers={teachers}
-              periods={periods}
-              activeViewMode={viewMode}
-              activeDataMode={dataMode}
-              onViewModeChange={setViewMode}
-              onDataModeChange={setDataMode}
-              onFilterChange={handleFilterChange}
-            />
-            
-            <ResultsTable
-              data={filteredData}
-              locations={locations}
-              isLoading={false}
-              viewMode={viewMode} 
-              dataMode={dataMode}
-              onFilterChange={handleFilterChange}
-            />
+            <Tabs defaultValue="analytics" value={activeTab} onValueChange={setActiveTab}>
+              <TabsList className="mb-4">
+                <TabsTrigger value="analytics" className="flex items-center gap-2">
+                  <BarChart className="h-4 w-4" />
+                  <span>Analytics Dashboard</span>
+                </TabsTrigger>
+                <TabsTrigger value="raw-data" className="flex items-center gap-2">
+                  <FileText className="h-4 w-4" />
+                  <span>Raw Data & Processing</span>
+                </TabsTrigger>
+              </TabsList>
+              
+              <TabsContent value="analytics" className="mt-0">
+                <div className="space-y-6">
+                  <FilterBar
+                    locations={locations}
+                    teachers={teachers}
+                    periods={periods}
+                    activeViewMode={viewMode}
+                    activeDataMode={dataMode}
+                    onViewModeChange={setViewMode}
+                    onDataModeChange={setDataMode}
+                    onFilterChange={handleFilterChange}
+                  />
+                  
+                  <ResultsTable
+                    data={filteredData}
+                    locations={locations}
+                    isLoading={false}
+                    viewMode={viewMode} 
+                    dataMode={dataMode}
+                    onFilterChange={handleFilterChange}
+                  />
+                </div>
+              </TabsContent>
+              
+              <TabsContent value="raw-data" className="mt-0">
+                <RawDataView
+                  newClientData={rawData.newClientData}
+                  bookingsData={rawData.bookingsData}
+                  paymentsData={rawData.paymentsData}
+                  processingResults={rawData.processingResults}
+                />
+              </TabsContent>
+            </Tabs>
           </div>
         )}
       </main>
