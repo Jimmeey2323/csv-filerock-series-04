@@ -345,23 +345,33 @@ export const processData = (
                   
                   console.log(`Found ${retainedClientsCount} unique retained clients for ${teacher}`);
                   
-                  // Create detailed retained client list
+                  // Create detailed retained client list and add to retainedClientRecords array
                   const retainedClientDetails = returnClientEmails.map(email => {
                     const clientVisits = returnVisits.filter(visit => visit['Customer Email'] === email); // Corrected field name
                     const clientInfo = teacherNewClients.find(client => client['Email'] === email);
                     
-                    // Add this client to retained records
+                    // Add this client to retained records with full client information
                     if (clientInfo) {
-                      retainedClientRecords.push({
+                      const retainedClient = {
                         ...clientInfo,
                         visitsCount: clientVisits.length,
-                        reason: "Had return visits after initial trial"
-                      });
+                        reason: "Had return visits after initial trial",
+                        firstVisitPostTrial: clientVisits[0]['Class Date'] || 'N/A'
+                      };
+                      retainedClientRecords.push(retainedClient);
+                      
+                      return {
+                        email,
+                        name: `${clientInfo['First name']} ${clientInfo['Last name']}`,
+                        date: clientVisits[0]['Class Date'],
+                        visitCount: clientVisits.length,
+                        membershipType: clientInfo['Membership used']
+                      };
                     }
                     
                     return {
                       email,
-                      name: clientInfo ? `${clientInfo['First name']} ${clientInfo['Last name']}` : 'Unknown',
+                      name: 'Unknown',
                       date: clientVisits[0]['Class Date'],
                       visitCount: clientVisits.length
                     };
@@ -448,15 +458,16 @@ export const processData = (
                     
                     const isConverted = saleDateAfterVisit && notProductCategory && not2For1 && hasSaleValue && notRefunded;
                     
-                    // Add to converted records if it matches all criteria
+                    // Add to converted records if it matches all criteria - with full client information
                     if (isConverted && matchingClient) {
-                      convertedClientRecords.push({
+                      const convertedClient = {
                         ...matchingClient,
                         saleDate: sale['Date'],
                         saleValue: saleValue,
                         item: sale['Item'],
                         reason: "Made purchase after initial visit"
-                      });
+                      };
+                      convertedClientRecords.push(convertedClient);
                     }
                     
                     return isConverted;
@@ -759,4 +770,3 @@ export const processData = (
     }, 500);
   });
 };
-

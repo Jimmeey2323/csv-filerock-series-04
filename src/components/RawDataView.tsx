@@ -115,6 +115,30 @@ const RawDataView: React.FC<RawDataProps> = ({
     );
   };
 
+  // Helper function to format client name
+  const formatClientName = (client: any) => {
+    if (client['First name'] && client['Last name']) {
+      return `${client['First name']} ${client['Last name']}`;
+    } else if (client.name) {
+      return client.name;
+    } else if (client.customerName) {
+      return client.customerName;
+    } else if (client['Email'] || client.email) {
+      return client['Email'] || client.email;
+    }
+    return 'Unknown';
+  };
+
+  // Helper to get email
+  const getClientEmail = (client: any) => {
+    return client['Email'] || client.email || '';
+  };
+
+  // Helper to get dates
+  const getFirstVisitDate = (client: any) => {
+    return client['First visit at'] || client.firstVisit || client.date || '';
+  };
+
   const renderProcessingTab = () => {
     return (
       <div className="space-y-6">
@@ -160,9 +184,10 @@ const RawDataView: React.FC<RawDataProps> = ({
                     <div key={index} className="flex items-start border-b py-2">
                       <Badge variant="outline" className="mr-2 mt-0.5">#{index + 1}</Badge>
                       <div>
-                        <p className="font-medium">{item.name || item.customerName || item.email || 'Unknown'}</p>
+                        <p className="font-medium">{formatClientName(item)}</p>
                         <p className="text-sm text-muted-foreground">{item.reason || 'No reason specified'}</p>
-                        <p className="text-xs text-muted-foreground">{item.email || ''}</p>
+                        <p className="text-xs text-muted-foreground">{getClientEmail(item)}</p>
+                        <p className="text-xs text-muted-foreground">{getFirstVisitDate(item)}</p>
                       </div>
                     </div>
                   ))}
@@ -184,10 +209,11 @@ const RawDataView: React.FC<RawDataProps> = ({
                     <div key={index} className="flex items-start border-b py-2">
                       <Badge variant="default" className="mr-2 mt-0.5">#{index + 1}</Badge>
                       <div>
-                        <p className="font-medium">{item.name || item.customerName || item.email || 'Unknown'}</p>
+                        <p className="font-medium">{formatClientName(item)}</p>
                         <p className="text-sm text-muted-foreground">{item.reason || 'First time visitor'}</p>
-                        <p className="text-xs text-muted-foreground">{item.email || ''}</p>
-                        <p className="text-xs text-muted-foreground">{item.date || item.firstVisit || ''}</p>
+                        <p className="text-xs text-muted-foreground">{getClientEmail(item)}</p>
+                        <p className="text-xs text-muted-foreground">{getFirstVisitDate(item)}</p>
+                        <p className="text-xs text-muted-foreground">Membership: {item['Membership used'] || 'N/A'}</p>
                       </div>
                     </div>
                   ))}
@@ -214,12 +240,13 @@ const RawDataView: React.FC<RawDataProps> = ({
                         <div key={index} className="flex items-start border-b py-2">
                           <Badge variant="success" className="mr-2 mt-0.5">#{index + 1}</Badge>
                           <div>
-                            <p className="font-medium">{item.name || item.customerName || item.email || 'Unknown'}</p>
+                            <p className="font-medium">{formatClientName(item)}</p>
                             <p className="text-sm text-muted-foreground">{item.reason || 'Purchased membership'}</p>
-                            <p className="text-xs text-muted-foreground">First visit: {item.firstVisit || 'N/A'}</p>
-                            <p className="text-xs text-muted-foreground">First purchase: {item.firstPurchaseDate || item.purchaseDate || 'N/A'}</p>
-                            <p className="text-xs text-muted-foreground">Purchase item: {item.firstPurchaseItem || item.purchaseItem || 'N/A'}</p>
-                            <p className="text-xs text-muted-foreground">Value: {item.purchaseValue ? `₹${item.purchaseValue}` : 'N/A'}</p>
+                            <p className="text-xs text-muted-foreground">Email: {getClientEmail(item)}</p>
+                            <p className="text-xs text-muted-foreground">First visit: {item['First visit at'] || item.firstVisit || 'N/A'}</p>
+                            <p className="text-xs text-muted-foreground">First purchase: {item.saleDate || item.purchaseDate || 'N/A'}</p>
+                            <p className="text-xs text-muted-foreground">Purchase item: {item.item || item.purchaseItem || 'N/A'}</p>
+                            <p className="text-xs text-muted-foreground">Value: {item.saleValue ? `₹${item.saleValue}` : 'N/A'}</p>
                           </div>
                         </div>
                       ))}
@@ -232,11 +259,12 @@ const RawDataView: React.FC<RawDataProps> = ({
                         <div key={index} className="flex items-start border-b py-2">
                           <Badge variant="outline" className="mr-2 mt-0.5">#{index + 1}</Badge>
                           <div>
-                            <p className="font-medium">{item.name || item.customerName || item.email || 'Unknown'}</p>
+                            <p className="font-medium">{formatClientName(item)}</p>
                             <p className="text-sm text-muted-foreground">{item.reason || 'Multiple visits'}</p>
-                            <p className="text-xs text-muted-foreground">Visits: {item.visitsPostTrial || item.totalVisitsPostTrial || 'N/A'}</p>
-                            <p className="text-xs text-muted-foreground">First visit post trial: {item.firstVisitPostTrial || 'N/A'}</p>
-                            <p className="text-xs text-muted-foreground">Membership: {item.membershipUsed || 'N/A'}</p>
+                            <p className="text-xs text-muted-foreground">Email: {getClientEmail(item)}</p>
+                            <p className="text-xs text-muted-foreground">First visit: {item['First visit at'] || item.firstVisit || 'N/A'}</p>
+                            <p className="text-xs text-muted-foreground">Visits: {item.visitsCount || 'N/A'}</p>
+                            <p className="text-xs text-muted-foreground">Membership: {item['Membership used'] || 'N/A'}</p>
                           </div>
                         </div>
                       ))}
