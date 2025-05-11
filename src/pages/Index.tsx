@@ -318,7 +318,7 @@ const Index = () => {
   }, []);
   return <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white">
       <header className="border-b bg-white/80 backdrop-blur-sm sticky top-0 z-50">
-        <div className="container flex justify-between items-center py-3">
+        <div className="container flex justify-between items-center py-3 bg-neutral-50">
           <Logo size="md" />
           
         </div>
