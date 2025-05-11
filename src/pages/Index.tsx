@@ -11,17 +11,8 @@ import { processData, ProcessedTeacherData, ProcessingProgress } from '@/utils/d
 import { deduplicateClientsByEmail } from '@/utils/deduplication';
 import Logo from '@/components/Logo';
 import AIInsights from '@/components/AIInsights';
-import { 
-  Tabs, 
-  TabsContent, 
-  TabsList, 
-  TabsTrigger 
-} from '@/components/ui/tabs';
-import { 
-  Collapsible, 
-  CollapsibleContent, 
-  CollapsibleTrigger 
-} from '@/components/ui/collapsible';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { ChevronDown, ChevronUp, FileText, Table, BarChart } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
@@ -32,9 +23,8 @@ const STORAGE_KEYS = {
   LOCATIONS: 'studio-stats-locations',
   TEACHERS: 'studio-stats-teachers',
   PERIODS: 'studio-stats-periods',
-  RAW_DATA: 'studio-stats-raw-data',
+  RAW_DATA: 'studio-stats-raw-data'
 };
-
 const Index = () => {
   const [files, setFiles] = useState<File[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -62,12 +52,11 @@ const Index = () => {
       retainedClients: []
     }
   });
-  
   const [activeFilters, setActiveFilters] = useState({
     location: '',
     teacher: '',
     period: '',
-    search: '',
+    search: ''
   });
 
   // Load saved data from localStorage on component mount
@@ -78,28 +67,22 @@ const Index = () => {
     const savedTeachers = localStorage.getItem(STORAGE_KEYS.TEACHERS);
     const savedPeriods = localStorage.getItem(STORAGE_KEYS.PERIODS);
     const savedRawData = localStorage.getItem(STORAGE_KEYS.RAW_DATA);
-    
     if (savedProcessedData) {
       setProcessedData(JSON.parse(savedProcessedData));
       setResultsVisible(true);
     }
-    
     if (savedFilteredData) {
       setFilteredData(JSON.parse(savedFilteredData));
     }
-    
     if (savedLocations) {
       setLocations(JSON.parse(savedLocations));
     }
-    
     if (savedTeachers) {
       setTeachers(JSON.parse(savedTeachers));
     }
-    
     if (savedPeriods) {
       setPeriods(JSON.parse(savedPeriods));
     }
-    
     if (savedRawData) {
       setRawData(JSON.parse(savedRawData));
     }
@@ -110,23 +93,18 @@ const Index = () => {
     if (processedData.length > 0) {
       localStorage.setItem(STORAGE_KEYS.PROCESSED_DATA, JSON.stringify(processedData));
     }
-    
     if (filteredData.length > 0) {
       localStorage.setItem(STORAGE_KEYS.FILTERED_DATA, JSON.stringify(filteredData));
     }
-    
     if (locations.length > 0) {
       localStorage.setItem(STORAGE_KEYS.LOCATIONS, JSON.stringify(locations));
     }
-    
     if (teachers.length > 0) {
       localStorage.setItem(STORAGE_KEYS.TEACHERS, JSON.stringify(teachers));
     }
-    
     if (periods.length > 0) {
       localStorage.setItem(STORAGE_KEYS.PERIODS, JSON.stringify(periods));
     }
-    
     if (rawData.newClientData.length > 0 || rawData.bookingsData.length > 0) {
       localStorage.setItem(STORAGE_KEYS.RAW_DATA, JSON.stringify(rawData));
     }
@@ -157,17 +135,15 @@ const Index = () => {
 
     // Categorize files
     const categorized = categorizeFiles(files);
-    
     if (!categorized.new) {
       toast.error('Missing New client file. Please upload a file with "new" in the name');
       return;
     }
-    
     if (!categorized.bookings) {
       toast.error('Missing Bookings file. Please upload a file with "bookings" in the name');
       return;
     }
-    
+
     // Clear previous data before processing new files
     setProcessedData([]);
     setFilteredData([]);
@@ -186,25 +162,31 @@ const Index = () => {
         retainedClients: []
       }
     });
-    
+
     // Clear localStorage when processing new files
     Object.values(STORAGE_KEYS).forEach(key => localStorage.removeItem(key));
-    
     setIsProcessing(true);
-    updateProgress({ progress: 0, currentStep: 'Starting processing...' });
-
+    updateProgress({
+      progress: 0,
+      currentStep: 'Starting processing...'
+    });
     try {
       // Parse CSV files
-      updateProgress({ progress: 10, currentStep: 'Parsing CSV files...' });
+      updateProgress({
+        progress: 10,
+        currentStep: 'Parsing CSV files...'
+      });
       const newFileResult = await parseCSV(categorized.new);
       const bookingsFileResult = await parseCSV(categorized.bookings);
-      
+
       // Check if payments file exists
-      let salesFileResult = { data: [] };
+      let salesFileResult = {
+        data: []
+      };
       if (categorized.payments) {
         salesFileResult = await parseCSV(categorized.payments);
       }
-      
+
       // Save raw data for the Raw Data View
       setRawData({
         newClientData: newFileResult.data,
@@ -218,25 +200,20 @@ const Index = () => {
           retainedClients: []
         }
       });
-      
+
       // Process data
-      const result = await processData(
-        newFileResult.data,
-        bookingsFileResult.data,
-        salesFileResult.data,
-        updateProgress
-      );
-      
+      const result = await processData(newFileResult.data, bookingsFileResult.data, salesFileResult.data, updateProgress);
+
       // Update state with processed data
       setProcessedData(result.processedData);
       setFilteredData(result.processedData);
       setLocations(result.locations);
       setTeachers(result.teachers);
       setPeriods(result.periods);
-      
+
       // Deduplicate excluded records before updating raw data
       const deduplicatedExcluded = deduplicateClientsByEmail(result.excludedRecords || []);
-      
+
       // Update raw data processing results with deduplicated excluded records
       setRawData(prev => ({
         ...prev,
@@ -248,7 +225,7 @@ const Index = () => {
           retainedClients: result.retainedClientRecords || []
         }
       }));
-      
+
       // Show success and finish processing
       setTimeout(() => {
         setIsProcessing(false);
@@ -263,41 +240,41 @@ const Index = () => {
   }, [files, updateProgress]);
 
   // Handle filter changes
-  const handleFilterChange = useCallback((filters: { location?: string; teacher?: string; period?: string; search?: string }) => {
+  const handleFilterChange = useCallback((filters: {
+    location?: string;
+    teacher?: string;
+    period?: string;
+    search?: string;
+  }) => {
     const newFilters = {
       location: filters.location || '',
       teacher: filters.teacher || '',
       period: filters.period || '',
-      search: filters.search || '',
+      search: filters.search || ''
     };
-    
     setActiveFilters(newFilters);
-    
     let filtered = [...processedData];
-    
+
     // Filter by location
     if (newFilters.location && newFilters.location !== 'all-locations') {
       filtered = filtered.filter(item => item.location === newFilters.location);
     }
-    
+
     // Filter by teacher
     if (newFilters.teacher && newFilters.teacher !== 'all-teachers') {
       filtered = filtered.filter(item => item.teacherName === newFilters.teacher);
     }
-    
+
     // Filter by period
     if (newFilters.period && newFilters.period !== 'all-periods') {
       filtered = filtered.filter(item => item.period === newFilters.period);
     }
-    
+
     // Filter by search (teacher name)
     if (newFilters.search) {
       const searchLower = newFilters.search.toLowerCase();
-      filtered = filtered.filter(item => 
-        item.teacherName.toLowerCase().includes(searchLower)
-      );
+      filtered = filtered.filter(item => item.teacherName.toLowerCase().includes(searchLower));
     }
-    
     setFilteredData(filtered);
   }, [processedData]);
 
@@ -316,7 +293,7 @@ const Index = () => {
   const handleResetApp = useCallback(() => {
     // Clear localStorage
     Object.values(STORAGE_KEYS).forEach(key => localStorage.removeItem(key));
-    
+
     // Reset state
     setResultsVisible(false);
     setProcessedData([]);
@@ -337,22 +314,18 @@ const Index = () => {
         retainedClients: []
       }
     });
-    
     toast.success('Application reset. You can upload new files');
   }, []);
-
-  return (
-    <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white">
+  return <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white">
       <header className="border-b bg-white/80 backdrop-blur-sm sticky top-0 z-50">
         <div className="container flex justify-between items-center py-3">
           <Logo size="md" />
-          <div className="text-xl font-semibold">Studio Stats</div>
+          
         </div>
       </header>
       
       <main id="container" className="container py-8 transition-opacity duration-500 opacity-0">
-        {!resultsVisible ? (
-          <>
+        {!resultsVisible ? <>
             <div className="space-y-6 mb-10">
               <div className="flex flex-col items-center text-center space-y-4 animate-fade-in">
                 <div className="inline-flex items-center justify-center h-16 w-16 rounded-full bg-primary/10 text-primary mb-2">
@@ -366,58 +339,31 @@ const Index = () => {
             </div>
 
             <div className="grid grid-cols-1 gap-8 max-w-3xl mx-auto">
-              <FileUploader 
-                onFilesAdded={handleFilesAdded} 
-                accept=".csv" 
-                maxFiles={10}
-              />
+              <FileUploader onFilesAdded={handleFilesAdded} accept=".csv" maxFiles={10} />
               
-              {files.length > 0 && (
-                <FileList 
-                  files={files} 
-                  onRemove={handleRemoveFile} 
-                  onProcessFiles={handleProcessFiles}
-                  fileTypes={getFileTypes()}
-                />
-              )}
+              {files.length > 0 && <FileList files={files} onRemove={handleRemoveFile} onProcessFiles={handleProcessFiles} fileTypes={getFileTypes()} />}
             </div>
-          </>
-        ) : (
-          <div className="space-y-6 animate-fade-in">
+          </> : <div className="space-y-6 animate-fade-in">
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-2xl font-semibold">Performance Analytics</h2>
               <div className="flex space-x-4">
-                <button
-                  onClick={handleResetApp}
-                  className="text-sm text-destructive hover:underline"
-                >
+                <button onClick={handleResetApp} className="text-sm text-destructive hover:underline">
                   Reset data
                 </button>
-                <button
-                  onClick={() => {
-                    setResultsVisible(false);
-                  }}
-                  className="text-sm text-primary hover:underline"
-                >
+                <button onClick={() => {
+              setResultsVisible(false);
+            }} className="text-sm text-primary hover:underline">
                   Process new files
                 </button>
               </div>
             </div>
             
-            <Collapsible
-              open={isInsightsOpen}
-              onOpenChange={setIsInsightsOpen}
-              className="w-full space-y-2"
-            >
+            <Collapsible open={isInsightsOpen} onOpenChange={setIsInsightsOpen} className="w-full space-y-2">
               <div className="flex items-center justify-between">
                 <h3 className="text-lg font-semibold">AI Insights & Recommendations</h3>
                 <CollapsibleTrigger asChild>
                   <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                    {isInsightsOpen ? (
-                      <ChevronUp className="h-4 w-4" />
-                    ) : (
-                      <ChevronDown className="h-4 w-4" />  
-                    )}
+                    {isInsightsOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
                     <span className="sr-only">Toggle insights</span>
                   </Button>
                 </CollapsibleTrigger>
@@ -441,55 +387,27 @@ const Index = () => {
               
               <TabsContent value="analytics" className="mt-0">
                 <div className="space-y-6">
-                  <FilterBar
-                    locations={locations}
-                    teachers={teachers}
-                    periods={periods}
-                    activeViewMode={viewMode}
-                    activeDataMode={dataMode}
-                    onViewModeChange={setViewMode}
-                    onDataModeChange={setDataMode}
-                    onFilterChange={handleFilterChange}
-                  />
+                  <FilterBar locations={locations} teachers={teachers} periods={periods} activeViewMode={viewMode} activeDataMode={dataMode} onViewModeChange={setViewMode} onDataModeChange={setDataMode} onFilterChange={handleFilterChange} />
                   
-                  <ResultsTable
-                    data={filteredData}
-                    locations={locations}
-                    isLoading={false}
-                    viewMode={viewMode} 
-                    dataMode={dataMode}
-                    onFilterChange={handleFilterChange}
-                  />
+                  <ResultsTable data={filteredData} locations={locations} isLoading={false} viewMode={viewMode} dataMode={dataMode} onFilterChange={handleFilterChange} />
                 </div>
               </TabsContent>
               
               <TabsContent value="raw-data" className="mt-0">
-                <RawDataView
-                  newClientData={rawData.newClientData}
-                  bookingsData={rawData.bookingsData}
-                  paymentsData={rawData.paymentsData}
-                  processingResults={rawData.processingResults}
-                />
+                <RawDataView newClientData={rawData.newClientData} bookingsData={rawData.bookingsData} paymentsData={rawData.paymentsData} processingResults={rawData.processingResults} />
               </TabsContent>
             </Tabs>
-          </div>
-        )}
+          </div>}
       </main>
 
       {/* Processing Loader */}
-      <ProcessingLoader 
-        isProcessing={isProcessing} 
-        progress={progress} 
-        currentStep={currentStep} 
-      />
+      <ProcessingLoader isProcessing={isProcessing} progress={progress} currentStep={currentStep} />
       
       <footer className="border-t bg-white/80 backdrop-blur-sm py-4 mt-8">
         <div className="container text-center text-xs text-muted-foreground">
           Studio Stats Analytics Dashboard • {new Date().getFullYear()}
         </div>
       </footer>
-    </div>
-  );
+    </div>;
 };
-
 export default Index;
