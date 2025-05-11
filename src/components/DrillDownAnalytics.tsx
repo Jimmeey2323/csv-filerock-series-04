@@ -1,32 +1,53 @@
 
 import React from 'react';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
+import { 
+  Dialog, 
+  DialogContent, 
+  DialogHeader, 
   DialogTitle,
-  DialogFooter,
+  DialogDescription,
+  DialogFooter
 } from '@/components/ui/dialog';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+  TableFooter
+} from '@/components/ui/table';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { ProcessedTeacherData } from '@/utils/dataProcessor';
-import { X, BarChart, PieChart, Table, Users } from 'lucide-react';
-import ClientSourceChart from './charts/ClientSourceChart';
-import ConversionRatesChart from './charts/ConversionRatesChart';
-import RevenueChart from './charts/RevenueChart';
-import PerformanceMetricCard from './cards/PerformanceMetricCard';
-import StudioMetricCard from './cards/StudioMetricCard';
+import { Badge } from '@/components/ui/badge';
+import { Separator } from '@/components/ui/separator';
+import { 
+  BarChart as BarChartIcon,
+  LineChart as LineChartIcon,
+  LayoutDashboard,
+  ListFilter,
+  Table as TableIcon,
+  PieChart as PieChartIcon,
+  UserRound,
+  DollarSign,
+  Percent,
+  Calendar,
+  ArrowUpDown,
+  Users
+} from 'lucide-react';
+import RevenueChart from '@/components/charts/RevenueChart';
+import ConversionRatesChart from '@/components/charts/ConversionRatesChart';
+import ClientSourceChart from '@/components/charts/ClientSourceChart';
 
 interface DrillDownAnalyticsProps {
   isOpen: boolean;
   onClose: () => void;
   data: ProcessedTeacherData | null;
   type: 'teacher' | 'studio' | 'location' | 'period';
-  metricType: 'conversion' | 'retention' | 'all';
+  metricType?: 'conversion' | 'retention' | 'all';
 }
 
 const DrillDownAnalytics: React.FC<DrillDownAnalyticsProps> = ({
@@ -34,368 +55,401 @@ const DrillDownAnalytics: React.FC<DrillDownAnalyticsProps> = ({
   onClose,
   data,
   type,
-  metricType
+  metricType = 'all'
 }) => {
-  if (!data) return null;
-  
-  const displayName = type === 'teacher' ? data.teacherName : data.location;
-  const initialTab = metricType === 'conversion' ? 'conversion' : 
-                     metricType === 'retention' ? 'retention' : 'overview';
+  const [activeTab, setActiveTab] = React.useState('overview');
 
-  // Format client details
-  const formatClientValue = (value: any) => {
-    if (value === null || value === undefined || value === '') return 'N/A';
-    if (typeof value === 'number') {
-      // If it looks like currency
-      if (value > 100) return `₹${value.toLocaleString()}`;
-      return value.toString();
+  // Use the useEffect hook to update the active tab based on metricType
+  React.useEffect(() => {
+    if (metricType === 'conversion') {
+      setActiveTab('conversion');
+    } else if (metricType === 'retention') {
+      setActiveTab('retention');
+    } else {
+      setActiveTab('overview');
     }
-    return value;
+  }, [metricType]);
+
+  if (!data) return null;
+
+  // Format label based on type
+  const getEntityLabel = () => {
+    switch (type) {
+      case 'teacher': return `Teacher: ${data.teacherName}`;
+      case 'studio': return `Studio: All Studios`;
+      case 'location': return `Location: ${data.location}`;
+      case 'period': return `Period: ${data.period}`;
+      default: return data.teacherName;
+    }
+  };
+
+  const renderClientTable = (clients: any[], title: string) => (
+    <Card className="w-full">
+      <CardHeader className="pb-2">
+        <CardTitle className="text-lg">{title}</CardTitle>
+        <CardDescription>
+          {clients.length} {title.toLowerCase()} found
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="p-0">
+        <ScrollArea className="h-[400px] rounded-md border">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Name</TableHead>
+                <TableHead>Email</TableHead>
+                <TableHead>First Visit</TableHead>
+                {title.includes('Converted') && (
+                  <>
+                    <TableHead>First Purchase Date</TableHead>
+                    <TableHead>First Purchase Item</TableHead>
+                    <TableHead>Purchase Value</TableHead>
+                  </>
+                )}
+                {title.includes('Retained') && (
+                  <>
+                    <TableHead>Total Visits Post Trial</TableHead>
+                    <TableHead>First Visit Post Trial</TableHead>
+                    <TableHead>Membership Used</TableHead>
+                  </>
+                )}
+                <TableHead>Status</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {clients.map((client, idx) => (
+                <TableRow key={`${client.email}-${idx}`}>
+                  <TableCell className="font-medium">{client.name || client.customerName || 'N/A'}</TableCell>
+                  <TableCell>{client.email || 'N/A'}</TableCell>
+                  <TableCell>{client.firstVisit || 'N/A'}</TableCell>
+                  {title.includes('Converted') && (
+                    <>
+                      <TableCell>{client.firstPurchaseDate || client.purchaseDate || 'N/A'}</TableCell>
+                      <TableCell>{client.firstPurchaseItem || client.purchaseItem || 'N/A'}</TableCell>
+                      <TableCell>{client.purchaseValue ? `₹${client.purchaseValue}` : 'N/A'}</TableCell>
+                    </>
+                  )}
+                  {title.includes('Retained') && (
+                    <>
+                      <TableCell>{client.visitsPostTrial || client.totalVisitsPostTrial || '0'}</TableCell>
+                      <TableCell>{client.firstVisitPostTrial || 'N/A'}</TableCell>
+                      <TableCell>{client.membershipUsed || 'N/A'}</TableCell>
+                    </>
+                  )}
+                  <TableCell>
+                    <Badge 
+                      variant={
+                        title.includes('Converted') ? 'success' : 
+                        title.includes('Retained') ? 'outline' : 'default'
+                      }
+                    >
+                      {title.includes('Converted') ? 'Converted' : 
+                       title.includes('Retained') ? 'Retained' : 'New'}
+                    </Badge>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </ScrollArea>
+      </CardContent>
+    </Card>
+  );
+
+  // Create properly formatted data for ClientSourceChart
+  const clientSourceData = [
+    { source: 'Trials', count: data.trials || 0 },
+    { source: 'Referrals', count: data.referrals || 0 },
+    { source: 'Hosted', count: data.hosted || 0 },
+    { source: 'Influencer', count: data.influencerSignups || 0 },
+    { source: 'Others', count: data.others || 0 }
+  ];
+
+  // Convert revenue data format for RevenueChart
+  const revenueChartData = data.revenueByWeek ? data.revenueByWeek : [];
+
+  // Create properly formatted ConversionRateData
+  const conversionRateData = {
+    name: 'Current Period',
+    conversion: data.conversionRate,
+    retention: data.retentionRate,
+    trial: data.trials || 0,
+    referral: data.referrals || 0,
+    influencer: data.influencerSignups || 0
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-w-[90vw] max-h-[90vh] w-full flex flex-col">
-        <DialogHeader>
-          <div className="flex items-center justify-between">
-            <DialogTitle className="text-xl">
-              {type === 'teacher' ? 'Teacher Performance' : 'Studio Performance'}: {displayName}
-            </DialogTitle>
-            <Button variant="ghost" size="icon" onClick={onClose}>
-              <X className="h-4 w-4" />
-            </Button>
-          </div>
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="max-w-5xl h-[80vh] p-0">
+        <DialogHeader className="sticky top-0 z-10 bg-background pt-6 px-6 shadow-sm">
+          <DialogTitle className="text-2xl">{getEntityLabel()} Analytics</DialogTitle>
           <DialogDescription>
-            Period: {data.period} | Location: {data.location}
+            Detailed performance metrics and client data analysis
           </DialogDescription>
+          <Separator className="mt-4" />
         </DialogHeader>
         
-        <Tabs defaultValue={initialTab} className="flex-1 flex flex-col min-h-0">
-          <TabsList className="w-full justify-start mb-4">
-            <TabsTrigger value="overview" className="flex items-center gap-2">
-              <BarChart className="h-4 w-4" />
-              <span>Overview</span>
-            </TabsTrigger>
-            <TabsTrigger value="conversion" className="flex items-center gap-2">
-              <PieChart className="h-4 w-4" />
-              <span>Conversion Analysis</span>
-            </TabsTrigger>
-            <TabsTrigger value="retention" className="flex items-center gap-2">
-              <Users className="h-4 w-4" />
-              <span>Retention Analysis</span>
-            </TabsTrigger>
-            <TabsTrigger value="clientData" className="flex items-center gap-2">
-              <Table className="h-4 w-4" />
-              <span>Client Data</span>
-            </TabsTrigger>
-          </TabsList>
-          
-          <ScrollArea className="flex-1">
-            <div className="px-1">
-              <TabsContent value="overview" className="m-0 space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                  <StudioMetricCard 
-                    title="New Clients" 
-                    value={data.newClients.toString()} 
-                    location={data.location}
-                    icon="user"
-                    tooltip="Number of new clients acquired"
-                    metrics={[
-                      { label: "Trial Sessions", value: data.trials || 0, status: "neutral" },
-                      { label: "Referrals", value: data.referrals || 0, status: "positive" }
-                    ]}
-                  />
-                  <StudioMetricCard 
-                    title="Conversion Rate" 
-                    value={`${data.conversionRate.toFixed(1)}%`} 
-                    location={data.location}
-                    prevValue="8.5%"
-                    changeType={data.conversionRate > 10 ? "positive" : "negative"}
-                    icon="arrowUpCircle"
-                    tooltip="Percentage of clients who converted from trial to paid"
-                    metrics={[
-                      { label: "Converted", value: data.convertedClients || 0, status: "positive" },
-                      { label: "Trials", value: data.trials || 0, status: "neutral" }
-                    ]}
-                  />
-                  <StudioMetricCard 
-                    title="Retention Rate" 
-                    value={`${data.retentionRate.toFixed(1)}%`}
-                    location={data.location} 
-                    prevValue="45.0%"
-                    changeType={data.retentionRate > 50 ? "positive" : "negative"}
-                    icon="repeat"
-                    tooltip="Percentage of clients who returned after initial visit"
-                    metrics={[
-                      { label: "Retained", value: data.retainedClients || 0, status: "positive" },
-                      { label: "Churn", value: data.newClients - data.retainedClients, status: "negative" }
-                    ]}
-                  />
-                  <StudioMetricCard 
-                    title="Total Revenue" 
-                    value={`₹${data.totalRevenue.toLocaleString()}`}
-                    location={data.location}
-                    prevValue={`₹${(data.totalRevenue * 0.8).toLocaleString()}`}
-                    changeType="positive"
-                    icon="wallet"
-                    tooltip="Total revenue generated"
-                    metrics={[
-                      { label: "Avg. Ticket", value: `₹${(data.totalRevenue / data.convertedClients || 0).toFixed(0)}`, status: "neutral" },
-                      { label: "Memberships", value: data.memberships || 0, status: "positive" }
-                    ]}
-                  />
-                </div>
+        <div className="px-6 overflow-auto">
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="pt-4">
+            <TabsList className="grid grid-cols-5 gap-4 mb-6">
+              <TabsTrigger value="overview" className="flex items-center gap-2">
+                <LayoutDashboard className="h-4 w-4" />
+                <span>Overview</span>
+              </TabsTrigger>
+              <TabsTrigger value="conversion" className="flex items-center gap-2">
+                <Percent className="h-4 w-4" />
+                <span>Conversion</span>
+              </TabsTrigger>
+              <TabsTrigger value="retention" className="flex items-center gap-2">
+                <UserRound className="h-4 w-4" />
+                <span>Retention</span>
+              </TabsTrigger>
+              <TabsTrigger value="revenue" className="flex items-center gap-2">
+                <DollarSign className="h-4 w-4" />
+                <span>Revenue</span>
+              </TabsTrigger>
+              <TabsTrigger value="trends" className="flex items-center gap-2">
+                <ArrowUpDown className="h-4 w-4" />
+                <span>Trends</span>
+              </TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="overview" className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <Card className="shadow-sm border-muted/60 bg-gradient-to-br from-card to-background">
+                  <CardHeader>
+                    <CardTitle>Performance Summary</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="flex flex-col p-4 bg-muted/20 rounded-lg border border-muted/40">
+                        <span className="text-sm text-muted-foreground">New Clients</span>
+                        <span className="text-2xl font-bold">{data.newClients}</span>
+                      </div>
+                      <div className="flex flex-col p-4 bg-muted/20 rounded-lg border border-muted/40">
+                        <span className="text-sm text-muted-foreground">Retained Clients</span>
+                        <span className="text-2xl font-bold">
+                          {data.retainedClients} 
+                          <Badge className="ml-2" variant={data.retentionRate > 50 ? "success" : "destructive"}>
+                            {data.retentionRate.toFixed(1)}%
+                          </Badge>
+                        </span>
+                      </div>
+                      <div className="flex flex-col p-4 bg-muted/20 rounded-lg border border-muted/40">
+                        <span className="text-sm text-muted-foreground">Converted Clients</span>
+                        <span className="text-2xl font-bold">
+                          {data.convertedClients}
+                          <Badge className="ml-2" variant={data.conversionRate > 10 ? "success" : "destructive"}>
+                            {data.conversionRate.toFixed(1)}%
+                          </Badge>
+                        </span>
+                      </div>
+                      <div className="flex flex-col p-4 bg-muted/20 rounded-lg border border-muted/40">
+                        <span className="text-sm text-muted-foreground">Total Revenue</span>
+                        <span className="text-2xl font-bold">₹{data.totalRevenue.toLocaleString()}</span>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
                 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>Client Acquisition Sources</CardTitle>
-                    </CardHeader>
-                    <CardContent className="h-[250px]">
-                      <ClientSourceChart 
-                        data={[
-                          { name: 'Trials', value: data.trials || 0 },
-                          { name: 'Referrals', value: data.referrals || 0 },
-                          { name: 'Hosted', value: data.hosted || 0 },
-                          { name: 'Influencer', value: data.influencerSignups || 0 },
-                          { name: 'Others', value: data.others || 0 }
-                        ]}
-                      />
-                    </CardContent>
-                  </Card>
+                <Card className="shadow-sm border-muted/60">
+                  <CardHeader>
+                    <CardTitle>Client Sources</CardTitle>
+                  </CardHeader>
+                  <CardContent className="flex items-center justify-center">
+                    <ClientSourceChart data={clientSourceData} />
+                  </CardContent>
+                </Card>
+              </div>
+              
+              <Card className="shadow-sm border-muted/60">
+                <CardHeader>
+                  <CardTitle>Revenue by Week</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <RevenueChart data={revenueChartData} />
+                </CardContent>
+              </Card>
+            </TabsContent>
+            
+            <TabsContent value="conversion" className="space-y-6">
+              <Card className="shadow-sm border-muted/60">
+                <CardHeader>
+                  <CardTitle>Conversion Analysis</CardTitle>
+                  <CardDescription>
+                    Detailed breakdown of client conversion journey from trials to paid memberships
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  <div className="flex space-x-4">
+                    <div className="flex-1 p-4 border border-muted/40 rounded-lg text-center bg-muted/10">
+                      <h3 className="text-lg font-medium">Conversion Rate</h3>
+                      <p className="text-3xl font-bold text-primary mt-2">{data.conversionRate.toFixed(1)}%</p>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        {data.conversionRate > 10 ? 'Above average' : 'Below average'}
+                      </p>
+                    </div>
+                    <div className="flex-1 p-4 border border-muted/40 rounded-lg text-center bg-muted/10">
+                      <h3 className="text-lg font-medium">Converted Clients</h3>
+                      <p className="text-3xl font-bold mt-2">{data.convertedClients}</p>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        out of {data.newClients} new clients
+                      </p>
+                    </div>
+                    <div className="flex-1 p-4 border border-muted/40 rounded-lg text-center bg-muted/10">
+                      <h3 className="text-lg font-medium">Avg. Revenue</h3>
+                      <p className="text-3xl font-bold mt-2">₹{data.averageRevenuePerClient.toLocaleString(undefined, { maximumFractionDigits: 0 })}</p>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        per converted client
+                      </p>
+                    </div>
+                  </div>
                   
-                  <Card>
+                  {data.convertedClientDetails && data.convertedClientDetails.length > 0 && (
+                    renderClientTable(data.convertedClientDetails, "Converted Clients")
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+            
+            <TabsContent value="retention" className="space-y-6">
+              <Card className="shadow-sm border-muted/60">
+                <CardHeader>
+                  <CardTitle>Retention Analysis</CardTitle>
+                  <CardDescription>
+                    Detailed breakdown of client retention patterns
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  <div className="flex space-x-4">
+                    <div className="flex-1 p-4 border border-muted/40 rounded-lg text-center bg-muted/10">
+                      <h3 className="text-lg font-medium">Retention Rate</h3>
+                      <p className="text-3xl font-bold text-primary mt-2">{data.retentionRate.toFixed(1)}%</p>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        {data.retentionRate > 50 ? 'Above average' : 'Below average'}
+                      </p>
+                    </div>
+                    <div className="flex-1 p-4 border border-muted/40 rounded-lg text-center bg-muted/10">
+                      <h3 className="text-lg font-medium">Retained Clients</h3>
+                      <p className="text-3xl font-bold mt-2">{data.retainedClients}</p>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        out of total clients
+                      </p>
+                    </div>
+                    <div className="flex-1 p-4 border border-muted/40 rounded-lg text-center bg-muted/10">
+                      <h3 className="text-lg font-medium">No Show Rate</h3>
+                      <p className="text-3xl font-bold mt-2">{data.noShowRate.toFixed(1)}%</p>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        {data.noShowRate < 10 ? 'Good' : 'Needs improvement'}
+                      </p>
+                    </div>
+                  </div>
+                  
+                  {data.retainedClientDetails && data.retainedClientDetails.length > 0 && (
+                    renderClientTable(data.retainedClientDetails, "Retained Clients")
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+            
+            <TabsContent value="revenue" className="space-y-6">
+              <Card className="shadow-sm border-muted/60">
+                <CardHeader>
+                  <CardTitle>Revenue Analysis</CardTitle>
+                  <CardDescription>
+                    Detailed breakdown of revenue streams and financial performance
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  <div className="grid grid-cols-3 gap-4">
+                    <div className="p-4 border border-muted/40 rounded-lg text-center bg-muted/10">
+                      <h3 className="text-lg font-medium">Total Revenue</h3>
+                      <p className="text-3xl font-bold text-primary mt-2">₹{data.totalRevenue.toLocaleString()}</p>
+                    </div>
+                    <div className="p-4 border border-muted/40 rounded-lg text-center bg-muted/10">
+                      <h3 className="text-lg font-medium">Revenue per Client</h3>
+                      <p className="text-3xl font-bold mt-2">₹{data.averageRevenuePerClient.toLocaleString(undefined, { maximumFractionDigits: 0 })}</p>
+                    </div>
+                    <div className="p-4 border border-muted/40 rounded-lg text-center bg-muted/10">
+                      <h3 className="text-lg font-medium">Revenue Trend</h3>
+                      <p className="text-3xl font-bold flex items-center justify-center gap-2 mt-2">
+                        {data.revenueByWeek && data.revenueByWeek.length > 1 ? 
+                         (data.revenueByWeek[data.revenueByWeek.length - 1].revenue > 
+                         data.revenueByWeek[data.revenueByWeek.length - 2].revenue ? (
+                          <span className="text-green-500">Increasing</span>
+                         ) : (
+                          <span className="text-red-500">Decreasing</span>
+                         )) : (
+                           <span>Not enough data</span>
+                         )} 
+                      </p>
+                    </div>
+                  </div>
+                  
+                  <Card className="shadow-sm border-muted/60 bg-card/60">
                     <CardHeader>
-                      <CardTitle>Conversion Rates</CardTitle>
+                      <CardTitle className="text-lg">Revenue by Week</CardTitle>
                     </CardHeader>
-                    <CardContent className="h-[250px]">
-                      <ConversionRatesChart 
-                        data={[
-                          { name: 'Conversion Rate', value: data.conversionRate || 0 },
-                          { name: 'Retention Rate', value: data.retentionRate || 0 }
-                        ]}
-                      />
+                    <CardContent>
+                      <RevenueChart data={revenueChartData} />
                     </CardContent>
                   </Card>
-                </div>
-                
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Revenue by Week</CardTitle>
-                  </CardHeader>
-                  <CardContent className="h-[200px]">
-                    <RevenueChart data={data.revenueByWeek || []} />
-                  </CardContent>
-                </Card>
-              </TabsContent>
-              
-              <TabsContent value="conversion" className="m-0 space-y-4">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Conversion Analysis</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      <div className="space-y-4">
-                        <PerformanceMetricCard
-                          title="New Clients"
-                          value={data.newClients.toString()}
-                          icon={<Users className="h-4 w-4 text-blue-500" />}
-                          tooltip="Total number of new clients"
-                        />
-                        <PerformanceMetricCard
-                          title="Converted Clients"
-                          value={data.convertedClients.toString()}
-                          icon={<Users className="h-4 w-4 text-green-500" />}
-                          tooltip="Clients who purchased after trial"
-                        />
-                        <PerformanceMetricCard
-                          title="Conversion Rate"
-                          value={`${data.conversionRate.toFixed(1)}%`}
-                          icon={<BarChart className="h-4 w-4 text-amber-500" />}
-                          status={data.conversionRate > 10 ? "positive" : "negative"}
-                          tooltip="Percentage of clients who converted from trial to paid"
-                        />
-                      </div>
-                      
-                      <div className="md:col-span-2">
-                        <Card>
-                          <CardHeader>
-                            <CardTitle className="text-sm">Conversion Rate Comparison</CardTitle>
-                          </CardHeader>
-                          <CardContent className="h-[200px]">
-                            <ConversionRatesChart 
-                              data={[
-                                { name: 'Conversion Rate', value: data.conversionRate || 0 }
-                              ]}
-                            />
-                          </CardContent>
-                        </Card>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </TabsContent>
-              
-              <TabsContent value="retention" className="m-0 space-y-4">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Retention Analysis</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      <div className="space-y-4">
-                        <PerformanceMetricCard
-                          title="New Clients"
-                          value={data.newClients.toString()}
-                          icon={<Users className="h-4 w-4 text-blue-500" />}
-                          tooltip="Total number of new clients"
-                        />
-                        <PerformanceMetricCard
-                          title="Retained Clients"
-                          value={data.retainedClients.toString()}
-                          icon={<Users className="h-4 w-4 text-green-500" />}
-                          tooltip="Clients who returned after initial visit"
-                        />
-                        <PerformanceMetricCard
-                          title="Retention Rate"
-                          value={`${data.retentionRate.toFixed(1)}%`}
-                          icon={<BarChart className="h-4 w-4 text-amber-500" />}
-                          status={data.retentionRate > 50 ? "positive" : "negative"}
-                          tooltip="Percentage of clients who returned after initial visit"
-                        />
-                      </div>
-                      
-                      <div className="md:col-span-2">
-                        <Card>
-                          <CardHeader>
-                            <CardTitle className="text-sm">Retention Rate Comparison</CardTitle>
-                          </CardHeader>
-                          <CardContent className="h-[200px]">
-                            <ConversionRatesChart 
-                              data={[
-                                { name: 'Retention Rate', value: data.retentionRate || 0 }
-                              ]}
-                            />
-                          </CardContent>
-                        </Card>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </TabsContent>
-              
-              <TabsContent value="clientData" className="m-0">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Client Details</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                      <Card>
-                        <CardHeader className="p-4">
-                          <CardTitle className="text-sm flex items-center">
-                            <Badge className="mr-2 bg-blue-500">New</Badge>
-                            New Clients ({data.newClientDetails.length})
-                          </CardTitle>
-                        </CardHeader>
-                        <CardContent className="p-0">
-                          <ScrollArea className="h-[300px]">
-                            <div className="p-4 space-y-3">
-                              {data.newClientDetails.map((client, index) => (
-                                <div key={index} className="border rounded-md p-3 bg-muted/20">
-                                  <div className="font-medium">{client.name || 'N/A'}</div>
-                                  <div className="text-xs text-muted-foreground">{client.email || 'N/A'}</div>
-                                  
-                                  <div className="grid grid-cols-2 gap-1 mt-2 text-xs">
-                                    <div>First Visit:</div>
-                                    <div className="font-medium">{formatClientValue(client.visitDate)}</div>
-                                    
-                                    <div>Source:</div>
-                                    <div className="font-medium">{formatClientValue(client.sourceType)}</div>
-                                  </div>
-                                </div>
-                              ))}
-                            </div>
-                          </ScrollArea>
-                        </CardContent>
-                      </Card>
-                      
-                      <Card>
-                        <CardHeader className="p-4">
-                          <CardTitle className="text-sm flex items-center">
-                            <Badge className="mr-2 bg-green-500">Retained</Badge>
-                            Retained Clients ({data.retainedClientDetails.length})
-                          </CardTitle>
-                        </CardHeader>
-                        <CardContent className="p-0">
-                          <ScrollArea className="h-[300px]">
-                            <div className="p-4 space-y-3">
-                              {data.retainedClientDetails.map((client, index) => (
-                                <div key={index} className="border rounded-md p-3 bg-muted/20">
-                                  <div className="font-medium">{client.name || 'N/A'}</div>
-                                  <div className="text-xs text-muted-foreground">{client.email || 'N/A'}</div>
-                                  
-                                  <div className="grid grid-cols-2 gap-1 mt-2 text-xs">
-                                    <div>First Visit:</div>
-                                    <div className="font-medium">{formatClientValue(client.visitDate)}</div>
-                                    
-                                    <div>Return Visits:</div>
-                                    <div className="font-medium">{formatClientValue(client.visitCount)}</div>
-                                    
-                                    <div>Last Visit:</div>
-                                    <div className="font-medium">{formatClientValue(client.lastVisit)}</div>
-                                  </div>
-                                </div>
-                              ))}
-                            </div>
-                          </ScrollArea>
-                        </CardContent>
-                      </Card>
-                      
-                      <Card>
-                        <CardHeader className="p-4">
-                          <CardTitle className="text-sm flex items-center">
-                            <Badge className="mr-2 bg-purple-500">Converted</Badge>
-                            Converted Clients ({data.convertedClientDetails.length})
-                          </CardTitle>
-                        </CardHeader>
-                        <CardContent className="p-0">
-                          <ScrollArea className="h-[300px]">
-                            <div className="p-4 space-y-3">
-                              {data.convertedClientDetails.map((client, index) => (
-                                <div key={index} className="border rounded-md p-3 bg-muted/20">
-                                  <div className="font-medium">{client.name || 'N/A'}</div>
-                                  <div className="text-xs text-muted-foreground">{client.email || 'N/A'}</div>
-                                  
-                                  <div className="grid grid-cols-2 gap-1 mt-2 text-xs">
-                                    <div>First Visit:</div>
-                                    <div className="font-medium">{formatClientValue(client.visitDate)}</div>
-                                    
-                                    <div>First Purchase:</div>
-                                    <div className="font-medium">{formatClientValue(client.purchaseDate)}</div>
-                                    
-                                    <div>Purchase Value:</div>
-                                    <div className="font-medium">{formatClientValue(client.amount)}</div>
-                                    
-                                    <div>First Purchase Item:</div>
-                                    <div className="font-medium">{formatClientValue(client.itemName)}</div>
-                                  </div>
-                                </div>
-                              ))}
-                            </div>
-                          </ScrollArea>
-                        </CardContent>
-                      </Card>
-                    </div>
-                  </CardContent>
-                </Card>
-              </TabsContent>
-            </div>
-          </ScrollArea>
-        </Tabs>
+                </CardContent>
+              </Card>
+            </TabsContent>
+            
+            <TabsContent value="trends" className="space-y-6">
+              <Card className="shadow-sm border-muted/60">
+                <CardHeader>
+                  <CardTitle>Performance Trends</CardTitle>
+                  <CardDescription>
+                    Historical performance and trend analysis
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-2 gap-6">
+                    <Card className="shadow-sm border-muted/30 bg-card/60">
+                      <CardHeader>
+                        <CardTitle className="text-lg">Client Acquisition</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <ConversionRatesChart data={[conversionRateData]} />
+                      </CardContent>
+                    </Card>
+                    
+                    <Card className="shadow-sm border-muted/30 bg-card/60">
+                      <CardHeader>
+                        <CardTitle className="text-lg">Attendance Patterns</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="flex flex-col p-4 border border-muted/40 rounded-lg bg-muted/10">
+                            <span className="text-sm text-muted-foreground">No Show Rate</span>
+                            <span className="text-xl font-bold">{data.noShowRate.toFixed(1)}%</span>
+                          </div>
+                          <div className="flex flex-col p-4 border border-muted/40 rounded-lg bg-muted/10">
+                            <span className="text-sm text-muted-foreground">Late Cancellation</span>
+                            <span className="text-xl font-bold">{data.lateCancellationRate.toFixed(1)}%</span>
+                          </div>
+                          <div className="flex flex-col p-4 border border-muted/40 rounded-lg bg-muted/10">
+                            <span className="text-sm text-muted-foreground">Retention Rate</span>
+                            <span className="text-xl font-bold">{data.retentionRate.toFixed(1)}%</span>
+                          </div>
+                          <div className="flex flex-col p-4 border border-muted/40 rounded-lg bg-muted/10">
+                            <span className="text-sm text-muted-foreground">Conversion Rate</span>
+                            <span className="text-xl font-bold">{data.conversionRate.toFixed(1)}%</span>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+          </Tabs>
+        </div>
         
-        <DialogFooter className="mt-4">
+        <DialogFooter className="sticky bottom-0 bg-background p-6 border-t">
           <Button onClick={onClose}>Close</Button>
         </DialogFooter>
       </DialogContent>

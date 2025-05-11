@@ -25,13 +25,12 @@ import {
   BarChart, 
   PieChart,
   Calendar,
-  Filter,
+  SlidersHorizontal,
   User,
   Store,
   MapPin,
   Eye,
-  ArrowUp,
-  ArrowDown,
+  ArrowUpDown,
   Settings
 } from 'lucide-react';
 
@@ -75,25 +74,14 @@ const TableViewOptions: React.FC<TableViewOptionsProps> = ({
     }
   };
 
-  // Format column names for display
-  const formatColumnName = (column: string) => {
-    return column
-      .replace(/([A-Z])/g, ' $1') // Insert space before capital letters
-      .replace(/^./, (str) => str.toUpperCase()); // Capitalize first letter
-  };
-
   return (
     <div className="flex flex-col space-y-4">
       <div className="flex justify-between items-center">
-        <Tabs value={activeView} onValueChange={onViewChange} className="w-auto">
-          <TabsList className="inline-flex h-10 items-center justify-center rounded-md bg-muted p-1 text-muted-foreground overflow-x-auto">
+        <Tabs value={activeView} onValueChange={onViewChange}>
+          <TabsList>
             {views.map(view => (
-              <TabsTrigger 
-                key={view.id} 
-                value={view.id} 
-                className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1.5 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm"
-              >
-                <view.icon className="h-4 w-4 mr-2" />
+              <TabsTrigger key={view.id} value={view.id} className="flex items-center gap-2">
+                <view.icon className="h-4 w-4" />
                 <span>{view.label}</span>
               </TabsTrigger>
             ))}
@@ -108,31 +96,31 @@ const TableViewOptions: React.FC<TableViewOptionsProps> = ({
                 <span>Table Options</span>
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent className="w-56" align="end">
+            <DropdownMenuContent className="w-56">
               <DropdownMenuLabel>Table Configuration</DropdownMenuLabel>
               <DropdownMenuSeparator />
               
               <DropdownMenuSub>
-                <DropdownMenuSubTrigger className="cursor-pointer">
-                  <Filter className="mr-2 h-4 w-4" />
+                <DropdownMenuSubTrigger>
+                  <SlidersHorizontal className="mr-2 h-4 w-4" />
                   <span>Group By</span>
                 </DropdownMenuSubTrigger>
                 <DropdownMenuPortal>
                   <DropdownMenuSubContent>
                     <DropdownMenuRadioGroup value={activeGroupBy} onValueChange={onGroupByChange}>
-                      <DropdownMenuRadioItem value="teacher" className="cursor-pointer">
+                      <DropdownMenuRadioItem value="teacher">
                         <User className="mr-2 h-4 w-4" />
                         Teacher
                       </DropdownMenuRadioItem>
-                      <DropdownMenuRadioItem value="studio" className="cursor-pointer">
+                      <DropdownMenuRadioItem value="studio">
                         <Store className="mr-2 h-4 w-4" />
                         Studio
                       </DropdownMenuRadioItem>
-                      <DropdownMenuRadioItem value="location" className="cursor-pointer">
+                      <DropdownMenuRadioItem value="location">
                         <MapPin className="mr-2 h-4 w-4" />
                         Location
                       </DropdownMenuRadioItem>
-                      <DropdownMenuRadioItem value="period" className="cursor-pointer">
+                      <DropdownMenuRadioItem value="period">
                         <Calendar className="mr-2 h-4 w-4" />
                         Period
                       </DropdownMenuRadioItem>
@@ -142,7 +130,7 @@ const TableViewOptions: React.FC<TableViewOptionsProps> = ({
               </DropdownMenuSub>
               
               <DropdownMenuSub>
-                <DropdownMenuSubTrigger className="cursor-pointer">
+                <DropdownMenuSubTrigger>
                   <Eye className="mr-2 h-4 w-4" />
                   <span>Column Visibility</span>
                 </DropdownMenuSubTrigger>
@@ -155,9 +143,8 @@ const TableViewOptions: React.FC<TableViewOptionsProps> = ({
                         onCheckedChange={(checked) => 
                           handleColumnVisibilityChange(column, checked as boolean)
                         }
-                        className="cursor-pointer"
                       >
-                        {formatColumnName(column)}
+                        {column}
                       </DropdownMenuCheckboxItem>
                     ))}
                   </DropdownMenuSubContent>
@@ -165,36 +152,33 @@ const TableViewOptions: React.FC<TableViewOptionsProps> = ({
               </DropdownMenuSub>
               
               <DropdownMenuSub>
-                <DropdownMenuSubTrigger className="cursor-pointer">
-                  {activeSort.direction === 'asc' ? (
-                    <ArrowUp className="mr-2 h-4 w-4" />
-                  ) : (
-                    <ArrowDown className="mr-2 h-4 w-4" />
-                  )}
+                <DropdownMenuSubTrigger>
+                  <ArrowUpDown className="mr-2 h-4 w-4" />
                   <span>Sort By</span>
                 </DropdownMenuSubTrigger>
                 <DropdownMenuPortal>
                   <DropdownMenuSubContent>
                     {availableColumns.map(column => (
-                      <DropdownMenuItem 
-                        key={column}
-                        className="cursor-pointer flex items-center justify-between"
-                        onClick={() => onSortChange(
-                          column, 
-                          activeSort.column === column && activeSort.direction === 'desc' ? 'asc' : 'desc'
-                        )}
-                      >
-                        {formatColumnName(column)}
-                        {activeSort.column === column && (
-                          <Badge variant="outline" className="ml-auto">
-                            {activeSort.direction === 'asc' ? (
-                              <ArrowUp className="h-3 w-3" />
-                            ) : (
-                              <ArrowDown className="h-3 w-3" />
-                            )}
-                          </Badge>
-                        )}
-                      </DropdownMenuItem>
+                      <DropdownMenuSub key={column}>
+                        <DropdownMenuSubTrigger>
+                          {column}
+                          {activeSort.column === column && (
+                            <Badge variant="outline" className="ml-auto">
+                              {activeSort.direction === 'asc' ? 'Asc' : 'Desc'}
+                            </Badge>
+                          )}
+                        </DropdownMenuSubTrigger>
+                        <DropdownMenuPortal>
+                          <DropdownMenuSubContent>
+                            <DropdownMenuItem onClick={() => onSortChange(column, 'asc')}>
+                              Ascending
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => onSortChange(column, 'desc')}>
+                              Descending
+                            </DropdownMenuItem>
+                          </DropdownMenuSubContent>
+                        </DropdownMenuPortal>
+                      </DropdownMenuSub>
                     ))}
                   </DropdownMenuSubContent>
                 </DropdownMenuPortal>

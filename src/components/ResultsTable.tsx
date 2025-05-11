@@ -253,264 +253,261 @@ const ResultsTable: React.FC<ResultsTableProps> = ({
         </CardTitle>
       </CardHeader>
       <CardContent className="p-0">
-        <div className="relative overflow-hidden" style={{ height: '600px' }}>
-          <ScrollArea className="h-[600px]">
-            <Table>
-              <TableHeader className="sticky top-0 z-20 bg-muted/50">
-                <TableRow>
+        <ScrollArea className="max-h-[600px]">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                {visibleColumns.includes('teacherName') && (
+                  <TableHead className="w-[200px]">
+                    {dataMode === 'teacher' ? 'Teacher' : 'Studio'}
+                  </TableHead>
+                )}
+                {visibleColumns.includes('location') && (
+                  <TableHead>Location</TableHead>
+                )}
+                {visibleColumns.includes('period') && (
+                  <TableHead>Period</TableHead>
+                )}
+                {visibleColumns.includes('newClients') && (
+                  <TableHead className="text-center">New Clients</TableHead>
+                )}
+                {visibleColumns.includes('retainedClients') && (
+                  <TableHead className="text-center">Retained Clients</TableHead>
+                )}
+                {visibleColumns.includes('retentionRate') && (
+                  <TableHead className="text-center">Retention Rate</TableHead>
+                )}
+                {visibleColumns.includes('convertedClients') && (
+                  <TableHead className="text-center">Converted Clients</TableHead>
+                )}
+                {visibleColumns.includes('conversionRate') && (
+                  <TableHead className="text-center">Conversion Rate</TableHead>
+                )}
+                {visibleColumns.includes('totalRevenue') && (
+                  <TableHead className="text-center">Total Revenue</TableHead>
+                )}
+                {visibleColumns.includes('trials') && (
+                  <TableHead className="text-center">Trials</TableHead>
+                )}
+                {visibleColumns.includes('referrals') && (
+                  <TableHead className="text-center">Referrals</TableHead>
+                )}
+                {visibleColumns.includes('hosted') && (
+                  <TableHead className="text-center">Hosted Events</TableHead>
+                )}
+                {visibleColumns.includes('influencerSignups') && (
+                  <TableHead className="text-center">Influencer Signups</TableHead>
+                )}
+                {visibleColumns.includes('others') && (
+                  <TableHead className="text-center">Others</TableHead>
+                )}
+                {visibleColumns.includes('averageRevenuePerClient') && (
+                  <TableHead className="text-center">Avg. Revenue/Client</TableHead>
+                )}
+                {visibleColumns.includes('noShowRate') && (
+                  <TableHead className="text-center">No Show Rate</TableHead>
+                )}
+                {visibleColumns.includes('lateCancellationRate') && (
+                  <TableHead className="text-center">Late Cancellation Rate</TableHead>
+                )}
+                <TableHead className="w-[70px]"></TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {displayData.map((item) => (
+                <TableRow 
+                  key={`${item.teacherName}-${item.location}-${item.period}`}
+                  isClickable={true}
+                  onClick={() => handleRowClick(item)}
+                >
                   {visibleColumns.includes('teacherName') && (
-                    <TableHead className="w-[200px]">
-                      {dataMode === 'teacher' ? 'Teacher' : 'Studio'}
-                    </TableHead>
+                    <TableCell className="font-medium">{dataMode === 'teacher' ? item.teacherName : item.location}</TableCell>
                   )}
                   {visibleColumns.includes('location') && (
-                    <TableHead>Location</TableHead>
+                    <TableCell>{item.location}</TableCell>
                   )}
                   {visibleColumns.includes('period') && (
-                    <TableHead>Period</TableHead>
+                    <TableCell>{item.period}</TableCell>
                   )}
                   {visibleColumns.includes('newClients') && (
-                    <TableHead className="text-center">New Clients</TableHead>
+                    <TableCell className="text-center">{item.newClients}</TableCell>
                   )}
                   {visibleColumns.includes('retainedClients') && (
-                    <TableHead className="text-center">Retained Clients</TableHead>
+                    <TableCell className="text-center">{item.retainedClients}</TableCell>
                   )}
                   {visibleColumns.includes('retentionRate') && (
-                    <TableHead className="text-center">Retention Rate</TableHead>
+                    <TableCell className="text-center">
+                      <Badge 
+                        variant={item.retentionRate > 50 ? "outline" : "destructive"} 
+                        className="cursor-pointer hover:bg-muted"
+                        onClick={(e) => handleMetricClick(item, 'retention')}
+                      >
+                        {item.retentionRate.toFixed(1)}%
+                      </Badge>
+                    </TableCell>
                   )}
                   {visibleColumns.includes('convertedClients') && (
-                    <TableHead className="text-center">Converted Clients</TableHead>
+                    <TableCell className="text-center">{item.convertedClients}</TableCell>
                   )}
                   {visibleColumns.includes('conversionRate') && (
-                    <TableHead className="text-center">Conversion Rate</TableHead>
+                    <TableCell className="text-center">
+                      <Badge 
+                        variant={item.conversionRate > 10 ? "outline" : "destructive"} 
+                        className="cursor-pointer hover:bg-muted"
+                        onClick={(e) => handleMetricClick(item, 'conversion')}
+                      >
+                        {item.conversionRate.toFixed(1)}%
+                      </Badge>
+                    </TableCell>
                   )}
                   {visibleColumns.includes('totalRevenue') && (
-                    <TableHead className="text-center">Total Revenue</TableHead>
+                    <TableCell className="text-center">₹{item.totalRevenue.toLocaleString()}</TableCell>
                   )}
                   {visibleColumns.includes('trials') && (
-                    <TableHead className="text-center">Trials</TableHead>
+                    <TableCell className="text-center">{item.trials}</TableCell>
                   )}
                   {visibleColumns.includes('referrals') && (
-                    <TableHead className="text-center">Referrals</TableHead>
+                    <TableCell className="text-center">{item.referrals}</TableCell>
                   )}
                   {visibleColumns.includes('hosted') && (
-                    <TableHead className="text-center">Hosted Events</TableHead>
+                    <TableCell className="text-center">{item.hosted}</TableCell>
                   )}
                   {visibleColumns.includes('influencerSignups') && (
-                    <TableHead className="text-center">Influencer Signups</TableHead>
+                    <TableCell className="text-center">{item.influencerSignups}</TableCell>
                   )}
                   {visibleColumns.includes('others') && (
-                    <TableHead className="text-center">Others</TableHead>
+                    <TableCell className="text-center">{item.others}</TableCell>
                   )}
                   {visibleColumns.includes('averageRevenuePerClient') && (
-                    <TableHead className="text-center">Avg. Revenue/Client</TableHead>
+                    <TableCell className="text-center">
+                      ₹{item.averageRevenuePerClient.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                    </TableCell>
                   )}
                   {visibleColumns.includes('noShowRate') && (
-                    <TableHead className="text-center">No Show Rate</TableHead>
+                    <TableCell className="text-center">{item.noShowRate.toFixed(1)}%</TableCell>
                   )}
                   {visibleColumns.includes('lateCancellationRate') && (
-                    <TableHead className="text-center">Late Cancellation Rate</TableHead>
+                    <TableCell className="text-center">{item.lateCancellationRate.toFixed(1)}%</TableCell>
                   )}
-                  <TableHead className="w-[70px]"></TableHead>
+                  <TableCell>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" className="h-8 w-8 p-0" onClick={(e) => e.stopPropagation()}>
+                          <span className="sr-only">Open menu</span>
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                        <DropdownMenuItem onClick={(e) => {
+                          e.stopPropagation();
+                          handleOpenClientModal(dataMode === 'teacher' ? item.teacherName : item.location, 'new');
+                        }}>
+                          <User2 className="mr-2 h-4 w-4" />
+                          View New Clients
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={(e) => {
+                          e.stopPropagation();
+                          handleOpenClientModal(dataMode === 'teacher' ? item.teacherName : item.location, 'retained');
+                        }}>
+                          <Users2 className="mr-2 h-4 w-4" />
+                          View Retained Clients
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={(e) => {
+                          e.stopPropagation();
+                          handleOpenClientModal(dataMode === 'teacher' ? item.teacherName : item.location, 'converted');
+                        }}>
+                          <FileText className="mr-2 h-4 w-4" />
+                          View Converted Clients
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem onClick={(e) => {
+                          e.stopPropagation();
+                          handleRowClick(item);
+                        }}>
+                          <LayoutDashboard className="mr-2 h-4 w-4" />
+                          View Detailed Analytics
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </TableCell>
                 </TableRow>
-              </TableHeader>
-              <TableBody>
-                {displayData.map((item) => (
-                  <TableRow 
-                    key={`${item.teacherName}-${item.location}-${item.period}`}
-                    isClickable={true}
-                    onClick={() => handleRowClick(item)}
-                    className="h-12"
-                  >
-                    {visibleColumns.includes('teacherName') && (
-                      <TableCell className="font-medium">{dataMode === 'teacher' ? item.teacherName : item.location}</TableCell>
-                    )}
-                    {visibleColumns.includes('location') && (
-                      <TableCell>{item.location}</TableCell>
-                    )}
-                    {visibleColumns.includes('period') && (
-                      <TableCell>{item.period}</TableCell>
-                    )}
-                    {visibleColumns.includes('newClients') && (
-                      <TableCell className="text-center">{item.newClients}</TableCell>
-                    )}
-                    {visibleColumns.includes('retainedClients') && (
-                      <TableCell className="text-center">{item.retainedClients}</TableCell>
-                    )}
-                    {visibleColumns.includes('retentionRate') && (
-                      <TableCell className="text-center">
-                        <Badge 
-                          variant={item.retentionRate > 50 ? "outline" : "destructive"} 
-                          className="cursor-pointer hover:bg-muted"
-                          onClick={(e) => handleMetricClick(item, 'retention')}
-                        >
-                          {item.retentionRate.toFixed(1)}%
-                        </Badge>
-                      </TableCell>
-                    )}
-                    {visibleColumns.includes('convertedClients') && (
-                      <TableCell className="text-center">{item.convertedClients}</TableCell>
-                    )}
-                    {visibleColumns.includes('conversionRate') && (
-                      <TableCell className="text-center">
-                        <Badge 
-                          variant={item.conversionRate > 10 ? "outline" : "destructive"} 
-                          className="cursor-pointer hover:bg-muted"
-                          onClick={(e) => handleMetricClick(item, 'conversion')}
-                        >
-                          {item.conversionRate.toFixed(1)}%
-                        </Badge>
-                      </TableCell>
-                    )}
-                    {visibleColumns.includes('totalRevenue') && (
-                      <TableCell className="text-center">₹{item.totalRevenue.toLocaleString()}</TableCell>
-                    )}
-                    {visibleColumns.includes('trials') && (
-                      <TableCell className="text-center">{item.trials}</TableCell>
-                    )}
-                    {visibleColumns.includes('referrals') && (
-                      <TableCell className="text-center">{item.referrals}</TableCell>
-                    )}
-                    {visibleColumns.includes('hosted') && (
-                      <TableCell className="text-center">{item.hosted}</TableCell>
-                    )}
-                    {visibleColumns.includes('influencerSignups') && (
-                      <TableCell className="text-center">{item.influencerSignups}</TableCell>
-                    )}
-                    {visibleColumns.includes('others') && (
-                      <TableCell className="text-center">{item.others}</TableCell>
-                    )}
-                    {visibleColumns.includes('averageRevenuePerClient') && (
-                      <TableCell className="text-center">
-                        ₹{item.averageRevenuePerClient.toLocaleString(undefined, { maximumFractionDigits: 0 })}
-                      </TableCell>
-                    )}
-                    {visibleColumns.includes('noShowRate') && (
-                      <TableCell className="text-center">{item.noShowRate.toFixed(1)}%</TableCell>
-                    )}
-                    {visibleColumns.includes('lateCancellationRate') && (
-                      <TableCell className="text-center">{item.lateCancellationRate.toFixed(1)}%</TableCell>
-                    )}
-                    <TableCell>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" className="h-8 w-8 p-0" onClick={(e) => e.stopPropagation()}>
-                            <span className="sr-only">Open menu</span>
-                            <MoreHorizontal className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                          <DropdownMenuItem onClick={(e) => {
-                            e.stopPropagation();
-                            handleOpenClientModal(dataMode === 'teacher' ? item.teacherName : item.location, 'new');
-                          }}>
-                            <User2 className="mr-2 h-4 w-4" />
-                            View New Clients
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={(e) => {
-                            e.stopPropagation();
-                            handleOpenClientModal(dataMode === 'teacher' ? item.teacherName : item.location, 'retained');
-                          }}>
-                            <Users2 className="mr-2 h-4 w-4" />
-                            View Retained Clients
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={(e) => {
-                            e.stopPropagation();
-                            handleOpenClientModal(dataMode === 'teacher' ? item.teacherName : item.location, 'converted');
-                          }}>
-                            <FileText className="mr-2 h-4 w-4" />
-                            View Converted Clients
-                          </DropdownMenuItem>
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem onClick={(e) => {
-                            e.stopPropagation();
-                            handleRowClick(item);
-                          }}>
-                            <LayoutDashboard className="mr-2 h-4 w-4" />
-                            View Detailed Analytics
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-              <TableFooter className="sticky bottom-0 z-10 bg-primary text-primary-foreground">
-                <TableRow className="h-12">
-                  {visibleColumns.includes('teacherName') && (
-                    <TableCell className="font-bold">TOTALS</TableCell>
-                  )}
-                  {visibleColumns.includes('location') && (
-                    <TableCell></TableCell>
-                  )}
-                  {visibleColumns.includes('period') && (
-                    <TableCell></TableCell>
-                  )}
-                  {visibleColumns.includes('newClients') && (
-                    <TableCell className="text-center font-bold">{totals.newClients}</TableCell>
-                  )}
-                  {visibleColumns.includes('retainedClients') && (
-                    <TableCell className="text-center font-bold">{totals.retainedClients}</TableCell>
-                  )}
-                  {visibleColumns.includes('retentionRate') && (
-                    <TableCell className="text-center font-bold">{avgRetentionRate.toFixed(1)}%</TableCell>
-                  )}
-                  {visibleColumns.includes('convertedClients') && (
-                    <TableCell className="text-center font-bold">{totals.convertedClients}</TableCell>
-                  )}
-                  {visibleColumns.includes('conversionRate') && (
-                    <TableCell className="text-center font-bold">{avgConversionRate.toFixed(1)}%</TableCell>
-                  )}
-                  {visibleColumns.includes('totalRevenue') && (
-                    <TableCell className="text-center font-bold">₹{totals.totalRevenue.toLocaleString()}</TableCell>
-                  )}
-                  {visibleColumns.includes('trials') && (
-                    <TableCell className="text-center font-bold">
-                      {displayData.reduce((sum, item) => sum + item.trials, 0)}
-                    </TableCell>
-                  )}
-                  {visibleColumns.includes('referrals') && (
-                    <TableCell className="text-center font-bold">
-                      {displayData.reduce((sum, item) => sum + item.referrals, 0)}
-                    </TableCell>
-                  )}
-                  {visibleColumns.includes('hosted') && (
-                    <TableCell className="text-center font-bold">
-                      {displayData.reduce((sum, item) => sum + item.hosted, 0)}
-                    </TableCell>
-                  )}
-                  {visibleColumns.includes('influencerSignups') && (
-                    <TableCell className="text-center font-bold">
-                      {displayData.reduce((sum, item) => sum + item.influencerSignups, 0)}
-                    </TableCell>
-                  )}
-                  {visibleColumns.includes('others') && (
-                    <TableCell className="text-center font-bold">
-                      {displayData.reduce((sum, item) => sum + item.others, 0)}
-                    </TableCell>
-                  )}
-                  {visibleColumns.includes('averageRevenuePerClient') && (
-                    <TableCell className="text-center font-bold">
-                      ₹{(totals.totalRevenue / totals.newClients).toLocaleString(undefined, { maximumFractionDigits: 0 })}
-                    </TableCell>
-                  )}
-                  {visibleColumns.includes('noShowRate') && (
-                    <TableCell className="text-center font-bold">
-                      {avgNoShowRate.toFixed(1)}%
-                    </TableCell>
-                  )}
-                  {visibleColumns.includes('lateCancellationRate') && (
-                    <TableCell className="text-center font-bold">
-                      {avgLateCancellationRate.toFixed(1)}%
-                    </TableCell>
-                  )}
+              ))}
+            </TableBody>
+            <TableFooter className="bg-primary text-primary-foreground">
+              <TableRow>
+                {visibleColumns.includes('teacherName') && (
+                  <TableCell className="font-bold">TOTALS</TableCell>
+                )}
+                {visibleColumns.includes('location') && (
                   <TableCell></TableCell>
-                </TableRow>
-              </TableFooter>
-            </Table>
-          </ScrollArea>
-        </div>
+                )}
+                {visibleColumns.includes('period') && (
+                  <TableCell></TableCell>
+                )}
+                {visibleColumns.includes('newClients') && (
+                  <TableCell className="text-center font-bold">{totals.newClients}</TableCell>
+                )}
+                {visibleColumns.includes('retainedClients') && (
+                  <TableCell className="text-center font-bold">{totals.retainedClients}</TableCell>
+                )}
+                {visibleColumns.includes('retentionRate') && (
+                  <TableCell className="text-center font-bold">{avgRetentionRate.toFixed(1)}%</TableCell>
+                )}
+                {visibleColumns.includes('convertedClients') && (
+                  <TableCell className="text-center font-bold">{totals.convertedClients}</TableCell>
+                )}
+                {visibleColumns.includes('conversionRate') && (
+                  <TableCell className="text-center font-bold">{avgConversionRate.toFixed(1)}%</TableCell>
+                )}
+                {visibleColumns.includes('totalRevenue') && (
+                  <TableCell className="text-center font-bold">₹{totals.totalRevenue.toLocaleString()}</TableCell>
+                )}
+                {visibleColumns.includes('trials') && (
+                  <TableCell className="text-center font-bold">
+                    {displayData.reduce((sum, item) => sum + item.trials, 0)}
+                  </TableCell>
+                )}
+                {visibleColumns.includes('referrals') && (
+                  <TableCell className="text-center font-bold">
+                    {displayData.reduce((sum, item) => sum + item.referrals, 0)}
+                  </TableCell>
+                )}
+                {visibleColumns.includes('hosted') && (
+                  <TableCell className="text-center font-bold">
+                    {displayData.reduce((sum, item) => sum + item.hosted, 0)}
+                  </TableCell>
+                )}
+                {visibleColumns.includes('influencerSignups') && (
+                  <TableCell className="text-center font-bold">
+                    {displayData.reduce((sum, item) => sum + item.influencerSignups, 0)}
+                  </TableCell>
+                )}
+                {visibleColumns.includes('others') && (
+                  <TableCell className="text-center font-bold">
+                    {displayData.reduce((sum, item) => sum + item.others, 0)}
+                  </TableCell>
+                )}
+                {visibleColumns.includes('averageRevenuePerClient') && (
+                  <TableCell className="text-center font-bold">
+                    ₹{(totals.totalRevenue / totals.newClients).toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                  </TableCell>
+                )}
+                {visibleColumns.includes('noShowRate') && (
+                  <TableCell className="text-center font-bold">
+                    {avgNoShowRate.toFixed(1)}%
+                  </TableCell>
+                )}
+                {visibleColumns.includes('lateCancellationRate') && (
+                  <TableCell className="text-center font-bold">
+                    {avgLateCancellationRate.toFixed(1)}%
+                  </TableCell>
+                )}
+                <TableCell></TableCell>
+              </TableRow>
+            </TableFooter>
+          </Table>
+        </ScrollArea>
       </CardContent>
     </Card>
   );
@@ -871,38 +868,9 @@ const ResultsTable: React.FC<ResultsTableProps> = ({
         <CardTitle>Calendar View</CardTitle>
       </CardHeader>
       <CardContent className="h-[600px]">
-        <div className="grid grid-cols-7 gap-1 h-full">
-          {/* Calendar header - days of week */}
-          {['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'].map(day => (
-            <div key={day} className="text-center font-medium p-2 bg-muted/20 rounded-md">
-              {day}
-            </div>
-          ))}
-          
-          {/* Calendar body - dates */}
-          {Array.from({ length: 35 }).map((_, index) => {
-            const day = index + 1;
-            // Get sample data for this day - in a real app, you'd filter by date
-            const dayData = day <= 28 ? {
-              newClients: Math.floor(Math.random() * 5),
-              revenue: Math.floor(Math.random() * 10000)
-            } : null;
-            
-            return (
-              <div 
-                key={index} 
-                className={`border rounded-md p-2 h-20 ${day <= 28 ? 'bg-white' : 'bg-gray-100 opacity-50'}`}
-              >
-                <div className="font-bold text-sm">{day <= 28 ? day : ''}</div>
-                {dayData && (
-                  <div className="text-xs">
-                    <div className="text-blue-600">{dayData.newClients} new</div>
-                    <div className="text-green-600">₹{dayData.revenue}</div>
-                  </div>
-                )}
-              </div>
-            );
-          })}
+        <div className="h-full flex items-center justify-center bg-muted/20 rounded-md">
+          <Calendar className="h-16 w-16 text-muted-foreground" />
+          <p className="ml-2 text-muted-foreground">Calendar View (Coming Soon)</p>
         </div>
       </CardContent>
     </Card>
@@ -913,106 +881,10 @@ const ResultsTable: React.FC<ResultsTableProps> = ({
       <CardHeader>
         <CardTitle>Performance Trends</CardTitle>
       </CardHeader>
-      <CardContent>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm">Month-over-Month Growth</CardTitle>
-            </CardHeader>
-            <CardContent className="h-64">
-              <div className="h-full flex items-center justify-center relative">
-                <div className="absolute inset-0 flex flex-col justify-end">
-                  {/* Simplified bar chart */}
-                  <div className="flex h-48 items-end gap-2 justify-around">
-                    {[45, 60, 35, 75, 90, 65].map((value, index) => (
-                      <div key={index} className="relative group w-10">
-                        <div 
-                          className="bg-primary/80 rounded-t-sm w-full transition-all hover:bg-primary"
-                          style={{ height: `${value}%` }}
-                        ></div>
-                        <div className="absolute bottom-0 left-0 right-0 -mb-5 text-xs text-center">
-                          Month {index + 1}
-                        </div>
-                        <div className="absolute -top-8 left-1/2 transform -translate-x-1/2 bg-black text-white text-xs py-1 px-2 rounded opacity-0 group-hover:opacity-100 transition-opacity">
-                          {value}%
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm">Client Acquisition Sources</CardTitle>
-            </CardHeader>
-            <CardContent className="h-64">
-              <div className="h-full flex items-center justify-center relative">
-                {/* Simplified pie chart */}
-                <div className="relative w-48 h-48">
-                  <div className="absolute inset-0 bg-blue-500 rounded-full clip-half"></div>
-                  <div className="absolute inset-0 bg-green-500 rounded-full clip-quarter rotate-180"></div>
-                  <div className="absolute inset-0 bg-yellow-500 rounded-full clip-eighth rotate-180"></div>
-                  <div className="absolute inset-0 bg-purple-500 rounded-full clip-sixteenth rotate-270"></div>
-                  
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <div className="bg-white rounded-full w-24 h-24"></div>
-                  </div>
-                </div>
-                
-                <div className="absolute right-0 top-0 bottom-0 w-24 flex flex-col justify-center space-y-2">
-                  <div className="flex items-center text-xs">
-                    <div className="w-3 h-3 bg-blue-500 mr-2"></div>
-                    <span>Referrals (40%)</span>
-                  </div>
-                  <div className="flex items-center text-xs">
-                    <div className="w-3 h-3 bg-green-500 mr-2"></div>
-                    <span>Trials (30%)</span>
-                  </div>
-                  <div className="flex items-center text-xs">
-                    <div className="w-3 h-3 bg-yellow-500 mr-2"></div>
-                    <span>Events (20%)</span>
-                  </div>
-                  <div className="flex items-center text-xs">
-                    <div className="w-3 h-3 bg-purple-500 mr-2"></div>
-                    <span>Other (10%)</span>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          
-          <Card className="col-span-full">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm">Performance by Teacher</CardTitle>
-            </CardHeader>
-            <CardContent className="h-64">
-              <div className="h-full flex items-center justify-center relative">
-                <div className="absolute inset-0 flex flex-col justify-end">
-                  {/* Horizontal bar chart */}
-                  <div className="flex flex-col h-full w-full justify-around py-2">
-                    {['Teacher A', 'Teacher B', 'Teacher C', 'Teacher D', 'Teacher E'].map((teacher, index) => {
-                      const value = Math.floor(Math.random() * 80) + 20;
-                      return (
-                        <div key={index} className="flex items-center w-full h-8 mb-1">
-                          <div className="w-24 text-xs font-medium pr-2">{teacher}</div>
-                          <div className="flex-1 bg-muted h-full rounded-sm overflow-hidden">
-                            <div 
-                              className="bg-primary h-full rounded-sm"
-                              style={{ width: `${value}%` }}
-                            ></div>
-                          </div>
-                          <div className="w-12 text-xs font-medium pl-2 text-right">{value}%</div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+      <CardContent className="h-[600px]">
+        <div className="h-full flex items-center justify-center bg-muted/20 rounded-md">
+          <BarChart className="h-16 w-16 text-muted-foreground" />
+          <p className="ml-2 text-muted-foreground">Trends View (Coming Soon)</p>
         </div>
       </CardContent>
     </Card>
