@@ -92,13 +92,13 @@ const RawDataView: React.FC<RawDataProps> = ({
                     
                     {type === 'Processing Results' && (
                       <TableCell>
-                        {processingResults.excluded.some(item => item.id === row.id) ? (
+                        {processingResults.excluded.some(item => item.id === row.id || item.email === row.email) ? (
                           <Badge variant="destructive">Excluded</Badge>
-                        ) : processingResults.newClients.some(item => item.id === row.id) ? (
+                        ) : processingResults.newClients.some(item => item.id === row.id || item.email === row.email) ? (
                           <Badge variant="default">New Client</Badge>
-                        ) : processingResults.convertedClients.some(item => item.id === row.id) ? (
+                        ) : processingResults.convertedClients.some(item => item.id === row.id || item.email === row.email) ? (
                           <Badge variant="success">Converted</Badge>
-                        ) : processingResults.retainedClients.some(item => item.id === row.id) ? (
+                        ) : processingResults.retainedClients.some(item => item.id === row.id || item.email === row.email) ? (
                           <Badge variant="outline">Retained</Badge>
                         ) : (
                           <Badge variant="secondary">Processed</Badge>
@@ -160,8 +160,9 @@ const RawDataView: React.FC<RawDataProps> = ({
                     <div key={index} className="flex items-start border-b py-2">
                       <Badge variant="outline" className="mr-2 mt-0.5">#{index + 1}</Badge>
                       <div>
-                        <p className="font-medium">{item.name || item.email || 'Unknown'}</p>
+                        <p className="font-medium">{item.name || item.customerName || item.email || 'Unknown'}</p>
                         <p className="text-sm text-muted-foreground">{item.reason || 'No reason specified'}</p>
+                        <p className="text-xs text-muted-foreground">{item.email || ''}</p>
                       </div>
                     </div>
                   ))}
@@ -183,8 +184,10 @@ const RawDataView: React.FC<RawDataProps> = ({
                     <div key={index} className="flex items-start border-b py-2">
                       <Badge variant="default" className="mr-2 mt-0.5">#{index + 1}</Badge>
                       <div>
-                        <p className="font-medium">{item.name || item.email || 'Unknown'}</p>
+                        <p className="font-medium">{item.name || item.customerName || item.email || 'Unknown'}</p>
                         <p className="text-sm text-muted-foreground">{item.reason || 'First time visitor'}</p>
+                        <p className="text-xs text-muted-foreground">{item.email || ''}</p>
+                        <p className="text-xs text-muted-foreground">{item.date || item.firstVisit || ''}</p>
                       </div>
                     </div>
                   ))}
@@ -211,9 +214,12 @@ const RawDataView: React.FC<RawDataProps> = ({
                         <div key={index} className="flex items-start border-b py-2">
                           <Badge variant="success" className="mr-2 mt-0.5">#{index + 1}</Badge>
                           <div>
-                            <p className="font-medium">{item.name || item.email || 'Unknown'}</p>
+                            <p className="font-medium">{item.name || item.customerName || item.email || 'Unknown'}</p>
                             <p className="text-sm text-muted-foreground">{item.reason || 'Purchased membership'}</p>
-                            <p className="text-xs text-muted-foreground">First purchase: {item.firstPurchaseDate || 'N/A'}</p>
+                            <p className="text-xs text-muted-foreground">First visit: {item.firstVisit || 'N/A'}</p>
+                            <p className="text-xs text-muted-foreground">First purchase: {item.firstPurchaseDate || item.purchaseDate || 'N/A'}</p>
+                            <p className="text-xs text-muted-foreground">Purchase item: {item.firstPurchaseItem || item.purchaseItem || 'N/A'}</p>
+                            <p className="text-xs text-muted-foreground">Value: {item.purchaseValue ? `₹${item.purchaseValue}` : 'N/A'}</p>
                           </div>
                         </div>
                       ))}
@@ -226,9 +232,11 @@ const RawDataView: React.FC<RawDataProps> = ({
                         <div key={index} className="flex items-start border-b py-2">
                           <Badge variant="outline" className="mr-2 mt-0.5">#{index + 1}</Badge>
                           <div>
-                            <p className="font-medium">{item.name || item.email || 'Unknown'}</p>
+                            <p className="font-medium">{item.name || item.customerName || item.email || 'Unknown'}</p>
                             <p className="text-sm text-muted-foreground">{item.reason || 'Multiple visits'}</p>
-                            <p className="text-xs text-muted-foreground">Visits: {item.visitCount || 'N/A'}</p>
+                            <p className="text-xs text-muted-foreground">Visits: {item.visitsPostTrial || item.totalVisitsPostTrial || 'N/A'}</p>
+                            <p className="text-xs text-muted-foreground">First visit post trial: {item.firstVisitPostTrial || 'N/A'}</p>
+                            <p className="text-xs text-muted-foreground">Membership: {item.membershipUsed || 'N/A'}</p>
                           </div>
                         </div>
                       ))}

@@ -119,19 +119,19 @@ const DrillDownAnalytics: React.FC<DrillDownAnalyticsProps> = ({
             <TableBody>
               {clients.map((client, idx) => (
                 <TableRow key={`${client.email}-${idx}`}>
-                  <TableCell className="font-medium">{client.name || 'N/A'}</TableCell>
-                  <TableCell>{client.email}</TableCell>
+                  <TableCell className="font-medium">{client.name || client.customerName || 'N/A'}</TableCell>
+                  <TableCell>{client.email || 'N/A'}</TableCell>
                   <TableCell>{client.firstVisit || 'N/A'}</TableCell>
                   {title.includes('Converted') && (
                     <>
-                      <TableCell>{client.firstPurchaseDate || 'N/A'}</TableCell>
-                      <TableCell>{client.firstPurchaseItem || 'N/A'}</TableCell>
+                      <TableCell>{client.firstPurchaseDate || client.purchaseDate || 'N/A'}</TableCell>
+                      <TableCell>{client.firstPurchaseItem || client.purchaseItem || 'N/A'}</TableCell>
                       <TableCell>{client.purchaseValue ? `₹${client.purchaseValue}` : 'N/A'}</TableCell>
                     </>
                   )}
                   {title.includes('Retained') && (
                     <>
-                      <TableCell>{client.visitsPostTrial || '0'}</TableCell>
+                      <TableCell>{client.visitsPostTrial || client.totalVisitsPostTrial || '0'}</TableCell>
                       <TableCell>{client.firstVisitPostTrial || 'N/A'}</TableCell>
                       <TableCell>{client.membershipUsed || 'N/A'}</TableCell>
                     </>
@@ -305,7 +305,7 @@ const DrillDownAnalytics: React.FC<DrillDownAnalyticsProps> = ({
                     </div>
                   </div>
                   
-                  {data.convertedClientDetails.length > 0 && (
+                  {data.convertedClientDetails && data.convertedClientDetails.length > 0 && (
                     renderClientTable(data.convertedClientDetails, "Converted Clients")
                   )}
                 </CardContent>
@@ -345,7 +345,7 @@ const DrillDownAnalytics: React.FC<DrillDownAnalyticsProps> = ({
                     </div>
                   </div>
                   
-                  {data.retainedClientDetails.length > 0 && (
+                  {data.retainedClientDetails && data.retainedClientDetails.length > 0 && (
                     renderClientTable(data.retainedClientDetails, "Retained Clients")
                   )}
                 </CardContent>

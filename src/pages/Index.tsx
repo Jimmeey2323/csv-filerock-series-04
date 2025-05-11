@@ -25,6 +25,16 @@ import {
 import { ChevronDown, ChevronUp, FileText, Table, BarChart } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
+// Local storage keys
+const STORAGE_KEYS = {
+  PROCESSED_DATA: 'studio-stats-processed-data',
+  FILTERED_DATA: 'studio-stats-filtered-data',
+  LOCATIONS: 'studio-stats-locations',
+  TEACHERS: 'studio-stats-teachers',
+  PERIODS: 'studio-stats-periods',
+  RAW_DATA: 'studio-stats-raw-data',
+};
+
 const Index = () => {
   const [files, setFiles] = useState<File[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -59,6 +69,68 @@ const Index = () => {
     period: '',
     search: '',
   });
+
+  // Load saved data from localStorage on component mount
+  useEffect(() => {
+    const savedProcessedData = localStorage.getItem(STORAGE_KEYS.PROCESSED_DATA);
+    const savedFilteredData = localStorage.getItem(STORAGE_KEYS.FILTERED_DATA);
+    const savedLocations = localStorage.getItem(STORAGE_KEYS.LOCATIONS);
+    const savedTeachers = localStorage.getItem(STORAGE_KEYS.TEACHERS);
+    const savedPeriods = localStorage.getItem(STORAGE_KEYS.PERIODS);
+    const savedRawData = localStorage.getItem(STORAGE_KEYS.RAW_DATA);
+    
+    if (savedProcessedData) {
+      setProcessedData(JSON.parse(savedProcessedData));
+      setResultsVisible(true);
+    }
+    
+    if (savedFilteredData) {
+      setFilteredData(JSON.parse(savedFilteredData));
+    }
+    
+    if (savedLocations) {
+      setLocations(JSON.parse(savedLocations));
+    }
+    
+    if (savedTeachers) {
+      setTeachers(JSON.parse(savedTeachers));
+    }
+    
+    if (savedPeriods) {
+      setPeriods(JSON.parse(savedPeriods));
+    }
+    
+    if (savedRawData) {
+      setRawData(JSON.parse(savedRawData));
+    }
+  }, []);
+
+  // Save data to localStorage whenever it changes
+  useEffect(() => {
+    if (processedData.length > 0) {
+      localStorage.setItem(STORAGE_KEYS.PROCESSED_DATA, JSON.stringify(processedData));
+    }
+    
+    if (filteredData.length > 0) {
+      localStorage.setItem(STORAGE_KEYS.FILTERED_DATA, JSON.stringify(filteredData));
+    }
+    
+    if (locations.length > 0) {
+      localStorage.setItem(STORAGE_KEYS.LOCATIONS, JSON.stringify(locations));
+    }
+    
+    if (teachers.length > 0) {
+      localStorage.setItem(STORAGE_KEYS.TEACHERS, JSON.stringify(teachers));
+    }
+    
+    if (periods.length > 0) {
+      localStorage.setItem(STORAGE_KEYS.PERIODS, JSON.stringify(periods));
+    }
+    
+    if (rawData.newClientData.length > 0 || rawData.bookingsData.length > 0) {
+      localStorage.setItem(STORAGE_KEYS.RAW_DATA, JSON.stringify(rawData));
+    }
+  }, [processedData, filteredData, locations, teachers, periods, rawData]);
 
   // Update progress
   const updateProgress = useCallback((progressData: ProcessingProgress) => {
@@ -95,6 +167,28 @@ const Index = () => {
       toast.error('Missing Bookings file. Please upload a file with "bookings" in the name');
       return;
     }
+    
+    // Clear previous data before processing new files
+    setProcessedData([]);
+    setFilteredData([]);
+    setLocations([]);
+    setTeachers([]);
+    setPeriods([]);
+    setRawData({
+      newClientData: [],
+      bookingsData: [],
+      paymentsData: [],
+      processingResults: {
+        included: [],
+        excluded: [],
+        newClients: [],
+        convertedClients: [],
+        retainedClients: []
+      }
+    });
+    
+    // Clear localStorage when processing new files
+    Object.values(STORAGE_KEYS).forEach(key => localStorage.removeItem(key));
     
     setIsProcessing(true);
     updateProgress({ progress: 0, currentStep: 'Starting processing...' });
@@ -215,6 +309,35 @@ const Index = () => {
   // Check if any filters are active
   const hasActiveFilters = Object.values(activeFilters).some(Boolean);
 
+  // Clear saved data and reset to upload screen
+  const handleResetApp = useCallback(() => {
+    // Clear localStorage
+    Object.values(STORAGE_KEYS).forEach(key => localStorage.removeItem(key));
+    
+    // Reset state
+    setResultsVisible(false);
+    setProcessedData([]);
+    setFilteredData([]);
+    setLocations([]);
+    setTeachers([]);
+    setPeriods([]);
+    setFiles([]);
+    setRawData({
+      newClientData: [],
+      bookingsData: [],
+      paymentsData: [],
+      processingResults: {
+        included: [],
+        excluded: [],
+        newClients: [],
+        convertedClients: [],
+        retainedClients: []
+      }
+    });
+    
+    toast.success('Application reset. You can upload new files');
+  }, []);
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white">
       <header className="border-b bg-white/80 backdrop-blur-sm sticky top-0 z-50">
@@ -260,17 +383,22 @@ const Index = () => {
           <div className="space-y-6 animate-fade-in">
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-2xl font-semibold">Performance Analytics</h2>
-              <button
-                onClick={() => {
-                  setResultsVisible(false);
-                  setProcessedData([]);
-                  setFilteredData([]);
-                  setFiles([]);
-                }}
-                className="text-sm text-primary hover-underline"
-              >
-                Process new files
-              </button>
+              <div className="flex space-x-4">
+                <button
+                  onClick={handleResetApp}
+                  className="text-sm text-destructive hover:underline"
+                >
+                  Reset data
+                </button>
+                <button
+                  onClick={() => {
+                    setResultsVisible(false);
+                  }}
+                  className="text-sm text-primary hover:underline"
+                >
+                  Process new files
+                </button>
+              </div>
             </div>
             
             <Collapsible
