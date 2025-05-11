@@ -1,21 +1,25 @@
 
 import React, { useState } from 'react';
 import {
+  Tabs,
+  TabsList,
+  TabsTrigger,
+  TabsContent
+} from '@/components/ui/tabs';
+import {
   Table,
   TableBody,
   TableCell,
   TableHead,
   TableHeader,
-  TableRow,
+  TableRow
 } from '@/components/ui/table';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Search, FileText, Filter } from 'lucide-react';
+import { FileText, Users, AlertCircle, CheckCircle, RefreshCw } from 'lucide-react';
 
-interface RawDataProps {
+interface RawDataViewProps {
   newClientData: any[];
   bookingsData: any[];
   paymentsData: any[];
@@ -28,294 +32,335 @@ interface RawDataProps {
   };
 }
 
-const RawDataView: React.FC<RawDataProps> = ({
+const RawDataView: React.FC<RawDataViewProps> = ({
   newClientData,
   bookingsData,
   paymentsData,
   processingResults
 }) => {
-  const [searchTerm, setSearchTerm] = useState('');
+  const [searchText, setSearchText] = useState('');
   
+  // Function to filter data based on search text
   const filterData = (data: any[]) => {
-    if (!searchTerm) return data;
-    return data.filter(item => 
-      Object.values(item).some(val => 
-        val && val.toString().toLowerCase().includes(searchTerm.toLowerCase())
-      )
-    );
+    if (!searchText.trim()) return data;
+    const searchLower = searchText.toLowerCase();
+    
+    return data.filter(item => {
+      // Check if any value in the item contains the search text
+      return Object.values(item).some(
+        value => value && typeof value === 'string' && value.toLowerCase().includes(searchLower)
+      );
+    });
+  };
+  
+  // Function to get unique records from excluded/included reasons
+  // This solves the duplicate records issue
+  const getUniqueRecords = (records: any[]) => {
+    const uniqueMap = new Map();
+    
+    records.forEach(record => {
+      const key = record.email || record.name || JSON.stringify(record);
+      if (!uniqueMap.has(key)) {
+        uniqueMap.set(key, record);
+      }
+    });
+    
+    return Array.from(uniqueMap.values());
+  };
+  
+  // Properly format the client info
+  const formatClientInfo = (client: any) => {
+    const name = client.name || client.studentName || client['Student Name'] || client['Client Name'] || 'N/A';
+    const email = client.email || client['Email Id'] || client['Email'] || 'N/A';
+    const date = client.date || client['Registration Date'] || client['Date'] || 'N/A';
+    
+    return `${name} (${email}) - ${date}`;
   };
 
-  const renderDataTable = (data: any[], type: string) => {
-    if (!data || data.length === 0) return <p className="text-center py-8">No data available</p>;
-    
-    const filteredData = filterData(data);
-    const columns = Object.keys(filteredData[0] || {});
+  // Display exclusion reasons with data
+  const renderExclusionReasons = () => {
+    const uniqueExcluded = getUniqueRecords(processingResults.excluded);
     
     return (
-      <Card className="shadow-sm">
-        <CardHeader className="pb-2">
-          <div className="flex justify-between items-center">
-            <CardTitle className="text-lg">
-              {type} Data
-              <Badge variant="outline" className="ml-2">{filteredData.length} rows</Badge>
-            </CardTitle>
-            <div className="relative w-64">
-              <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search data..."
-                className="pl-8"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
-            </div>
-          </div>
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <AlertCircle className="h-5 w-5 text-destructive" />
+            Exclusion Reasons ({uniqueExcluded.length})
+          </CardTitle>
         </CardHeader>
-        <CardContent className="p-0">
-          <ScrollArea className="h-[450px] rounded-md">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  {columns.map((column) => (
-                    <TableHead key={column}>{column}</TableHead>
-                  ))}
-                  {type === 'Processing Results' && <TableHead>Status/Reason</TableHead>}
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredData.map((row, rowIndex) => (
-                  <TableRow key={rowIndex}>
-                    {columns.map((column) => (
-                      <TableCell key={`${rowIndex}-${column}`}>
-                        {row[column] !== undefined ? row[column].toString() : ''}
-                      </TableCell>
-                    ))}
-                    
-                    {type === 'Processing Results' && (
-                      <TableCell>
-                        {processingResults.excluded.some(item => item.id === row.id || item.email === row.email) ? (
-                          <Badge variant="destructive">Excluded</Badge>
-                        ) : processingResults.newClients.some(item => item.id === row.id || item.email === row.email) ? (
-                          <Badge variant="default">New Client</Badge>
-                        ) : processingResults.convertedClients.some(item => item.id === row.id || item.email === row.email) ? (
-                          <Badge variant="success">Converted</Badge>
-                        ) : processingResults.retainedClients.some(item => item.id === row.id || item.email === row.email) ? (
-                          <Badge variant="outline">Retained</Badge>
-                        ) : (
-                          <Badge variant="secondary">Processed</Badge>
-                        )}
-                      </TableCell>
-                    )}
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+        <CardContent>
+          <ScrollArea className="h-[400px]">
+            <div className="space-y-4">
+              {uniqueExcluded.map((record, index) => (
+                <div key={index} className="border rounded-lg p-3 bg-muted/20">
+                  <div className="font-medium">#{index + 1}</div>
+                  <div className="text-sm">{formatClientInfo(record)}</div>
+                  <div className="mt-1 text-sm text-muted-foreground">
+                    Reason: {record.exclusionReason || 'Not specified'}
+                  </div>
+                </div>
+              ))}
+            </div>
           </ScrollArea>
         </CardContent>
       </Card>
     );
   };
 
-  // Helper function to format client name
-  const formatClientName = (client: any) => {
-    if (client['First name'] && client['Last name']) {
-      return `${client['First name']} ${client['Last name']}`;
-    } else if (client.name) {
-      return client.name;
-    } else if (client.customerName) {
-      return client.customerName;
-    } else if (client['Email'] || client.email) {
-      return client['Email'] || client.email;
-    }
-    return 'Unknown';
-  };
-
-  // Helper to get email
-  const getClientEmail = (client: any) => {
-    return client['Email'] || client.email || '';
-  };
-
-  // Helper to get dates
-  const getFirstVisitDate = (client: any) => {
-    return client['First visit at'] || client.firstVisit || client.date || '';
-  };
-
-  const renderProcessingTab = () => {
+  // Display new client info
+  const renderNewClientReasons = () => {
+    const uniqueNewClients = getUniqueRecords(processingResults.newClients);
+    
     return (
-      <div className="space-y-6">
-        <div className="grid grid-cols-1 gap-4">
-          <Card className="shadow-sm">
-            <CardHeader>
-              <CardTitle className="text-lg">Processing Status</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-4 gap-4">
-                <div className="bg-muted/30 rounded-lg p-4">
-                  <div className="text-sm text-muted-foreground">Total Records</div>
-                  <div className="text-2xl font-semibold">{processingResults.included.length + processingResults.excluded.length}</div>
-                </div>
-                <div className="bg-muted/30 rounded-lg p-4">
-                  <div className="text-sm text-muted-foreground">Included</div>
-                  <div className="text-2xl font-semibold">{processingResults.included.length}</div>
-                </div>
-                <div className="bg-muted/30 rounded-lg p-4">
-                  <div className="text-sm text-muted-foreground">Excluded</div>
-                  <div className="text-2xl font-semibold">{processingResults.excluded.length}</div>
-                </div>
-                <div className="bg-muted/30 rounded-lg p-4">
-                  <div className="text-sm text-muted-foreground">Conversion Rate</div>
-                  <div className="text-2xl font-semibold">
-                    {processingResults.newClients.length > 0 
-                      ? `${((processingResults.convertedClients.length / processingResults.newClients.length) * 100).toFixed(1)}%`
-                      : '0%'}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Users className="h-5 w-5 text-blue-500" />
+            New Client Details ({uniqueNewClients.length})
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <ScrollArea className="h-[400px]">
+            <div className="space-y-4">
+              {uniqueNewClients.map((record, index) => (
+                <div key={index} className="border rounded-lg p-3 bg-muted/20">
+                  <div className="font-medium">#{index + 1}</div>
+                  <div className="text-sm">{formatClientInfo(record)}</div>
+                  <div className="mt-1 text-sm text-muted-foreground">
+                    First visit: {record.firstVisitDate || 'N/A'}
+                  </div>
+                  <div className="text-sm text-muted-foreground">
+                    Source: {record.source || record.acquisitionSource || 'N/A'}
                   </div>
                 </div>
-              </div>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Exclusion Reasons</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ScrollArea className="h-[180px]">
-                <div className="space-y-2">
-                  {processingResults.excluded.map((item, index) => (
-                    <div key={index} className="flex items-start border-b py-2">
-                      <Badge variant="outline" className="mr-2 mt-0.5">#{index + 1}</Badge>
-                      <div>
-                        <p className="font-medium">{formatClientName(item)}</p>
-                        <p className="text-sm text-muted-foreground">{item.reason || 'No reason specified'}</p>
-                        <p className="text-xs text-muted-foreground">{getClientEmail(item)}</p>
-                        <p className="text-xs text-muted-foreground">{getFirstVisitDate(item)}</p>
-                      </div>
-                    </div>
-                  ))}
+              ))}
+            </div>
+          </ScrollArea>
+        </CardContent>
+      </Card>
+    );
+  };
+
+  // Display retention info
+  const renderRetentionReasons = () => {
+    const uniqueRetained = getUniqueRecords(processingResults.retainedClients);
+    
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <RefreshCw className="h-5 w-5 text-green-500" />
+            Retained Client Details ({uniqueRetained.length})
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <ScrollArea className="h-[400px]">
+            <div className="space-y-4">
+              {uniqueRetained.map((record, index) => (
+                <div key={index} className="border rounded-lg p-3 bg-muted/20">
+                  <div className="font-medium">#{index + 1}</div>
+                  <div className="text-sm">{formatClientInfo(record)}</div>
+                  <div className="mt-1 text-sm">
+                    Had return visits after initial trial
+                  </div>
+                  <div className="text-sm text-muted-foreground">
+                    Visits: {record.visitCount || 'N/A'}
+                  </div>
+                  <div className="text-sm text-muted-foreground">
+                    First visit post trial: {record.firstVisitPostTrial || 'N/A'}
+                  </div>
+                  <div className="text-sm text-muted-foreground">
+                    Membership: {record.membershipType || 'N/A'}
+                  </div>
                 </div>
-              </ScrollArea>
-            </CardContent>
-          </Card>
-        </div>
-        
-        <div className="grid grid-cols-2 gap-4">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">New Client Reasons</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ScrollArea className="h-[240px]">
-                <div className="space-y-2">
-                  {processingResults.newClients.map((item, index) => (
-                    <div key={index} className="flex items-start border-b py-2">
-                      <Badge variant="default" className="mr-2 mt-0.5">#{index + 1}</Badge>
-                      <div>
-                        <p className="font-medium">{formatClientName(item)}</p>
-                        <p className="text-sm text-muted-foreground">{item.reason || 'First time visitor'}</p>
-                        <p className="text-xs text-muted-foreground">{getClientEmail(item)}</p>
-                        <p className="text-xs text-muted-foreground">{getFirstVisitDate(item)}</p>
-                        <p className="text-xs text-muted-foreground">Membership: {item['Membership used'] || 'N/A'}</p>
-                      </div>
-                    </div>
-                  ))}
+              ))}
+            </div>
+          </ScrollArea>
+        </CardContent>
+      </Card>
+    );
+  };
+
+  // Display conversion info
+  const renderConversionReasons = () => {
+    const uniqueConverted = getUniqueRecords(processingResults.convertedClients);
+    
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <CheckCircle className="h-5 w-5 text-purple-500" />
+            Converted Client Details ({uniqueConverted.length})
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <ScrollArea className="h-[400px]">
+            <div className="space-y-4">
+              {uniqueConverted.map((record, index) => (
+                <div key={index} className="border rounded-lg p-3 bg-muted/20">
+                  <div className="font-medium">#{index + 1}</div>
+                  <div className="text-sm">{formatClientInfo(record)}</div>
+                  <div className="mt-1 text-sm text-muted-foreground">
+                    First purchase: {record.firstPurchaseDate || 'N/A'}
+                  </div>
+                  <div className="text-sm text-muted-foreground">
+                    Purchase value: {record.purchaseValue ? `₹${record.purchaseValue}` : 'N/A'}
+                  </div>
+                  <div className="text-sm text-muted-foreground">
+                    First purchase item: {record.firstPurchaseItem || 'N/A'}
+                  </div>
                 </div>
-              </ScrollArea>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Conversion/Retention Reasons</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ScrollArea className="h-[240px]">
-                <Tabs defaultValue="converted">
-                  <TabsList className="w-full">
-                    <TabsTrigger value="converted" className="flex-1">Converted</TabsTrigger>
-                    <TabsTrigger value="retained" className="flex-1">Retained</TabsTrigger>
-                  </TabsList>
-                  
-                  <TabsContent value="converted">
-                    <div className="space-y-2 pt-2">
-                      {processingResults.convertedClients.map((item, index) => (
-                        <div key={index} className="flex items-start border-b py-2">
-                          <Badge variant="success" className="mr-2 mt-0.5">#{index + 1}</Badge>
-                          <div>
-                            <p className="font-medium">{formatClientName(item)}</p>
-                            <p className="text-sm text-muted-foreground">{item.reason || 'Purchased membership'}</p>
-                            <p className="text-xs text-muted-foreground">Email: {getClientEmail(item)}</p>
-                            <p className="text-xs text-muted-foreground">First visit: {item['First visit at'] || item.firstVisit || 'N/A'}</p>
-                            <p className="text-xs text-muted-foreground">First purchase: {item.saleDate || item.purchaseDate || 'N/A'}</p>
-                            <p className="text-xs text-muted-foreground">Purchase item: {item.item || item.purchaseItem || 'N/A'}</p>
-                            <p className="text-xs text-muted-foreground">Value: {item.saleValue ? `₹${item.saleValue}` : 'N/A'}</p>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </TabsContent>
-                  
-                  <TabsContent value="retained">
-                    <div className="space-y-2 pt-2">
-                      {processingResults.retainedClients.map((item, index) => (
-                        <div key={index} className="flex items-start border-b py-2">
-                          <Badge variant="outline" className="mr-2 mt-0.5">#{index + 1}</Badge>
-                          <div>
-                            <p className="font-medium">{formatClientName(item)}</p>
-                            <p className="text-sm text-muted-foreground">{item.reason || 'Multiple visits'}</p>
-                            <p className="text-xs text-muted-foreground">Email: {getClientEmail(item)}</p>
-                            <p className="text-xs text-muted-foreground">First visit: {item['First visit at'] || item.firstVisit || 'N/A'}</p>
-                            <p className="text-xs text-muted-foreground">Visits: {item.visitsCount || 'N/A'}</p>
-                            <p className="text-xs text-muted-foreground">Membership: {item['Membership used'] || 'N/A'}</p>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </TabsContent>
-                </Tabs>
-              </ScrollArea>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
+              ))}
+            </div>
+          </ScrollArea>
+        </CardContent>
+      </Card>
     );
   };
 
   return (
-    <Tabs defaultValue="processing" className="w-full">
-      <TabsList className="grid grid-cols-4 mb-4">
-        <TabsTrigger value="processing" className="flex items-center gap-2">
-          <Filter className="h-4 w-4" />
-          <span>Processing Analysis</span>
-        </TabsTrigger>
-        <TabsTrigger value="new" className="flex items-center gap-2">
-          <FileText className="h-4 w-4" />
-          <span>New Clients</span>
-        </TabsTrigger>
-        <TabsTrigger value="bookings" className="flex items-center gap-2">
-          <FileText className="h-4 w-4" />
-          <span>Bookings</span>
-        </TabsTrigger>
-        <TabsTrigger value="payments" className="flex items-center gap-2">
-          <FileText className="h-4 w-4" />
-          <span>Payments</span>
-        </TabsTrigger>
-      </TabsList>
+    <div className="space-y-6">
+      <div className="flex justify-between">
+        <h2 className="text-xl font-bold">Raw Data & Processing</h2>
+        <Input
+          placeholder="Search data..."
+          value={searchText}
+          onChange={(e) => setSearchText(e.target.value)}
+          className="w-64"
+        />
+      </div>
       
-      <TabsContent value="processing">
-        {renderProcessingTab()}
-      </TabsContent>
-      
-      <TabsContent value="new">
-        {renderDataTable(newClientData, 'New Client')}
-      </TabsContent>
-      
-      <TabsContent value="bookings">
-        {renderDataTable(bookingsData, 'Bookings')}
-      </TabsContent>
-      
-      <TabsContent value="payments">
-        {renderDataTable(paymentsData || [], 'Payments')}
-      </TabsContent>
-    </Tabs>
+      <Tabs defaultValue="newClients">
+        <TabsList className="mb-4">
+          <TabsTrigger value="newClients" className="flex items-center gap-2">
+            <FileText className="h-4 w-4" />
+            <span>New Client Data</span>
+          </TabsTrigger>
+          <TabsTrigger value="bookings" className="flex items-center gap-2">
+            <FileText className="h-4 w-4" />
+            <span>Bookings Data</span>
+          </TabsTrigger>
+          {paymentsData.length > 0 && (
+            <TabsTrigger value="payments" className="flex items-center gap-2">
+              <FileText className="h-4 w-4" />
+              <span>Payments Data</span>
+            </TabsTrigger>
+          )}
+          <TabsTrigger value="processing" className="flex items-center gap-2">
+            <FileText className="h-4 w-4" />
+            <span>Processing Analysis</span>
+          </TabsTrigger>
+        </TabsList>
+        
+        <TabsContent value="newClients">
+          <Card>
+            <CardHeader>
+              <CardTitle>New Client Data ({newClientData.length} records)</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ScrollArea className="h-[500px]">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      {newClientData.length > 0 && Object.keys(newClientData[0]).map((key) => (
+                        <TableHead key={key}>{key}</TableHead>
+                      ))}
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filterData(newClientData).map((row, rowIndex) => (
+                      <TableRow key={rowIndex}>
+                        {Object.entries(row).map(([key, value], cellIndex) => (
+                          <TableCell key={`${rowIndex}-${cellIndex}`}>
+                            {value !== null && value !== undefined ? value.toString() : 'N/A'}
+                          </TableCell>
+                        ))}
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </ScrollArea>
+            </CardContent>
+          </Card>
+        </TabsContent>
+        
+        <TabsContent value="bookings">
+          <Card>
+            <CardHeader>
+              <CardTitle>Bookings Data ({bookingsData.length} records)</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ScrollArea className="h-[500px]">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      {bookingsData.length > 0 && Object.keys(bookingsData[0]).map((key) => (
+                        <TableHead key={key}>{key}</TableHead>
+                      ))}
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filterData(bookingsData).map((row, rowIndex) => (
+                      <TableRow key={rowIndex}>
+                        {Object.entries(row).map(([key, value], cellIndex) => (
+                          <TableCell key={`${rowIndex}-${cellIndex}`}>
+                            {value !== null && value !== undefined ? value.toString() : 'N/A'}
+                          </TableCell>
+                        ))}
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </ScrollArea>
+            </CardContent>
+          </Card>
+        </TabsContent>
+        
+        {paymentsData.length > 0 && (
+          <TabsContent value="payments">
+            <Card>
+              <CardHeader>
+                <CardTitle>Payments Data ({paymentsData.length} records)</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ScrollArea className="h-[500px]">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        {paymentsData.length > 0 && Object.keys(paymentsData[0]).map((key) => (
+                          <TableHead key={key}>{key}</TableHead>
+                        ))}
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {filterData(paymentsData).map((row, rowIndex) => (
+                        <TableRow key={rowIndex}>
+                          {Object.entries(row).map(([key, value], cellIndex) => (
+                            <TableCell key={`${rowIndex}-${cellIndex}`}>
+                              {value !== null && value !== undefined ? value.toString() : 'N/A'}
+                            </TableCell>
+                          ))}
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </ScrollArea>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        )}
+        
+        <TabsContent value="processing">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {renderExclusionReasons()}
+            {renderNewClientReasons()}
+            {renderRetentionReasons()}
+            {renderConversionReasons()}
+          </div>
+        </TabsContent>
+      </Tabs>
+    </div>
   );
 };
 
