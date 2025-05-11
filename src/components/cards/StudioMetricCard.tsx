@@ -9,7 +9,7 @@ interface StudioMetricCardProps {
   title: string;
   value: string;
   location: string;
-  metrics: {
+  metrics?: {
     label: string;
     value: string | number;
     status?: 'positive' | 'neutral' | 'negative';
@@ -22,7 +22,7 @@ const StudioMetricCard: React.FC<StudioMetricCardProps> = ({
   title,
   value,
   location,
-  metrics,
+  metrics = [], // Provide default empty array
   icon,
   tooltip,
 }) => {
@@ -58,22 +58,24 @@ const StudioMetricCard: React.FC<StudioMetricCardProps> = ({
           </div>
         </div>
         
-        <div className="grid grid-cols-2 gap-2 mt-4">
-          {metrics.map((metric, index) => (
-            <div key={index} className="flex flex-col">
-              <span className="text-xs text-muted-foreground">
-                {metric.label}
-              </span>
-              <span className={`text-sm font-medium ${
-                metric.status === 'positive' ? 'text-green-600' : 
-                metric.status === 'negative' ? 'text-red-600' : 
-                'text-amber-600'
-              }`}>
-                {metric.value}
-              </span>
-            </div>
-          ))}
-        </div>
+        {metrics.length > 0 && (
+          <div className="grid grid-cols-2 gap-2 mt-4">
+            {metrics.map((metric, index) => (
+              <div key={index} className="flex flex-col">
+                <span className="text-xs text-muted-foreground">
+                  {metric.label}
+                </span>
+                <span className={`text-sm font-medium ${
+                  metric.status === 'positive' ? 'text-green-600' : 
+                  metric.status === 'negative' ? 'text-red-600' : 
+                  'text-amber-600'
+                }`}>
+                  {metric.value}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
       </CardContent>
     </Card>
   );

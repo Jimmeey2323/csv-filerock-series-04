@@ -121,19 +121,19 @@ const DrillDownAnalytics: React.FC<DrillDownAnalyticsProps> = ({
                 <TableRow key={`${client.email}-${idx}`}>
                   <TableCell className="font-medium">{client.name || client.customerName || 'N/A'}</TableCell>
                   <TableCell>{client.email || 'N/A'}</TableCell>
-                  <TableCell>{client.firstVisit || 'N/A'}</TableCell>
+                  <TableCell>{client.firstVisit || client.date || 'N/A'}</TableCell>
                   {title.includes('Converted') && (
                     <>
                       <TableCell>{client.firstPurchaseDate || client.purchaseDate || 'N/A'}</TableCell>
-                      <TableCell>{client.firstPurchaseItem || client.purchaseItem || 'N/A'}</TableCell>
-                      <TableCell>{client.purchaseValue ? `₹${client.purchaseValue}` : 'N/A'}</TableCell>
+                      <TableCell>{client.firstPurchaseItem || client.purchaseItem || client.membershipType || 'N/A'}</TableCell>
+                      <TableCell>{client.purchaseValue || client.value ? `₹${client.purchaseValue || client.value}` : 'N/A'}</TableCell>
                     </>
                   )}
                   {title.includes('Retained') && (
                     <>
-                      <TableCell>{client.visitsPostTrial || client.totalVisitsPostTrial || '0'}</TableCell>
+                      <TableCell>{client.visitsPostTrial || client.visitCount || client.totalVisitsPostTrial || '0'}</TableCell>
                       <TableCell>{client.firstVisitPostTrial || 'N/A'}</TableCell>
-                      <TableCell>{client.membershipUsed || 'N/A'}</TableCell>
+                      <TableCell>{client.membershipUsed || client.membershipType || 'N/A'}</TableCell>
                     </>
                   )}
                   <TableCell>
@@ -166,7 +166,7 @@ const DrillDownAnalytics: React.FC<DrillDownAnalyticsProps> = ({
   ];
 
   // Convert revenue data format for RevenueChart
-  const revenueChartData = data.revenueByWeek ? data.revenueByWeek : [];
+  const revenueChartData = data.revenueByWeek || [];
 
   // Create properly formatted ConversionRateData
   const conversionRateData = {
