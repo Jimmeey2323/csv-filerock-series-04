@@ -1,4 +1,3 @@
-
 import React, { useState, useCallback, useEffect } from 'react';
 import { toast } from 'sonner';
 import FileUploader from '@/components/FileUploader';
@@ -9,6 +8,7 @@ import ResultsTable from '@/components/ResultsTable';
 import RawDataView from '@/components/RawDataView';
 import { parseCSV, categorizeFiles, getFileTypes } from '@/utils/csvParser';
 import { processData, ProcessedTeacherData, ProcessingProgress } from '@/utils/dataProcessor';
+import { deduplicateClientsByEmail } from '@/utils/deduplication';
 import Logo from '@/components/Logo';
 import AIInsights from '@/components/AIInsights';
 import { 
@@ -234,12 +234,15 @@ const Index = () => {
       setTeachers(result.teachers);
       setPeriods(result.periods);
       
-      // Update raw data processing results
+      // Deduplicate excluded records before updating raw data
+      const deduplicatedExcluded = deduplicateClientsByEmail(result.excludedRecords || []);
+      
+      // Update raw data processing results with deduplicated excluded records
       setRawData(prev => ({
         ...prev,
         processingResults: {
           included: result.includedRecords || [],
-          excluded: result.excludedRecords || [],
+          excluded: deduplicatedExcluded,
           newClients: result.newClientRecords || [],
           convertedClients: result.convertedClientRecords || [],
           retainedClients: result.retainedClientRecords || []

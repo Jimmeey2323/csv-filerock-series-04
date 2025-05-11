@@ -139,6 +139,22 @@ const RawDataView: React.FC<RawDataProps> = ({
     return client['First visit at'] || client.firstVisit || client.date || '';
   };
 
+  // Remove duplicate exclusion records by email
+  const getUniqueExcluded = () => {
+    const seen = new Set();
+    return processingResults.excluded.filter(item => {
+      const email = getClientEmail(item);
+      if (email && !seen.has(email)) {
+        seen.add(email);
+        return true;
+      }
+      return false;
+    });
+  };
+
+  // Get unique excluded records
+  const uniqueExcludedRecords = getUniqueExcluded();
+
   const renderProcessingTab = () => {
     return (
       <div className="space-y-6">
@@ -151,7 +167,7 @@ const RawDataView: React.FC<RawDataProps> = ({
               <div className="grid grid-cols-4 gap-4">
                 <div className="bg-muted/30 rounded-lg p-4">
                   <div className="text-sm text-muted-foreground">Total Records</div>
-                  <div className="text-2xl font-semibold">{processingResults.included.length + processingResults.excluded.length}</div>
+                  <div className="text-2xl font-semibold">{processingResults.included.length + uniqueExcludedRecords.length}</div>
                 </div>
                 <div className="bg-muted/30 rounded-lg p-4">
                   <div className="text-sm text-muted-foreground">Included</div>
@@ -159,7 +175,7 @@ const RawDataView: React.FC<RawDataProps> = ({
                 </div>
                 <div className="bg-muted/30 rounded-lg p-4">
                   <div className="text-sm text-muted-foreground">Excluded</div>
-                  <div className="text-2xl font-semibold">{processingResults.excluded.length}</div>
+                  <div className="text-2xl font-semibold">{uniqueExcludedRecords.length}</div>
                 </div>
                 <div className="bg-muted/30 rounded-lg p-4">
                   <div className="text-sm text-muted-foreground">Conversion Rate</div>
@@ -180,7 +196,7 @@ const RawDataView: React.FC<RawDataProps> = ({
             <CardContent>
               <ScrollArea className="h-[180px]">
                 <div className="space-y-2">
-                  {processingResults.excluded.map((item, index) => (
+                  {uniqueExcludedRecords.map((item, index) => (
                     <div key={index} className="flex items-start border-b py-2">
                       <Badge variant="outline" className="mr-2 mt-0.5">#{index + 1}</Badge>
                       <div>
