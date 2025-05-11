@@ -14,7 +14,7 @@ const Logo: React.FC<LogoProps> = ({
     lg: 'h-12 w-auto'
   };
   return <div className={cn("flex items-center", className)}>
-      <img src="https://i.imgur.com/9mOm7gP.png" alt="Studio Analytics" className={cn(sizesMap[size], "mr-2")} />
+      <img src="https://i.imgur.com/9mOm7gP.png" alt="Studio Analytics" className="w-[50px] mr-4" />
       <span className="text-4xl font-semibold text-indigo-800 text-left">PERFORMANCE ANALYTICS</span>
     </div>;
 };
