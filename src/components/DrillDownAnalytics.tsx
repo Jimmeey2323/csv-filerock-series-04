@@ -93,36 +93,56 @@ const DrillDownAnalytics: React.FC<DrillDownAnalyticsProps> = ({
           <ScrollArea className="flex-1">
             <div className="px-1">
               <TabsContent value="overview" className="m-0 space-y-4">
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                   <StudioMetricCard 
                     title="New Clients" 
                     value={data.newClients.toString()} 
+                    location={data.location}
                     icon="user"
                     tooltip="Number of new clients acquired"
+                    metrics={[
+                      { label: "Trial Sessions", value: data.trials || 0, status: "neutral" },
+                      { label: "Referrals", value: data.referrals || 0, status: "positive" }
+                    ]}
                   />
                   <StudioMetricCard 
                     title="Conversion Rate" 
                     value={`${data.conversionRate.toFixed(1)}%`} 
+                    location={data.location}
                     prevValue="8.5%"
                     changeType={data.conversionRate > 10 ? "positive" : "negative"}
                     icon="arrowUpCircle"
                     tooltip="Percentage of clients who converted from trial to paid"
+                    metrics={[
+                      { label: "Converted", value: data.convertedClients || 0, status: "positive" },
+                      { label: "Trials", value: data.trials || 0, status: "neutral" }
+                    ]}
                   />
                   <StudioMetricCard 
                     title="Retention Rate" 
-                    value={`${data.retentionRate.toFixed(1)}%`} 
+                    value={`${data.retentionRate.toFixed(1)}%`}
+                    location={data.location} 
                     prevValue="45.0%"
                     changeType={data.retentionRate > 50 ? "positive" : "negative"}
                     icon="repeat"
                     tooltip="Percentage of clients who returned after initial visit"
+                    metrics={[
+                      { label: "Retained", value: data.retainedClients || 0, status: "positive" },
+                      { label: "Churn", value: data.newClients - data.retainedClients, status: "negative" }
+                    ]}
                   />
                   <StudioMetricCard 
                     title="Total Revenue" 
-                    value={`₹${data.totalRevenue.toLocaleString()}`} 
+                    value={`₹${data.totalRevenue.toLocaleString()}`}
+                    location={data.location}
                     prevValue={`₹${(data.totalRevenue * 0.8).toLocaleString()}`}
                     changeType="positive"
                     icon="wallet"
                     tooltip="Total revenue generated"
+                    metrics={[
+                      { label: "Avg. Ticket", value: `₹${(data.totalRevenue / data.convertedClients || 0).toFixed(0)}`, status: "neutral" },
+                      { label: "Memberships", value: data.memberships || 0, status: "positive" }
+                    ]}
                   />
                 </div>
                 
@@ -133,11 +153,13 @@ const DrillDownAnalytics: React.FC<DrillDownAnalyticsProps> = ({
                     </CardHeader>
                     <CardContent className="h-[250px]">
                       <ClientSourceChart 
-                        trials={data.trials}
-                        referrals={data.referrals}
-                        hosted={data.hosted}
-                        influencer={data.influencerSignups}
-                        others={data.others}
+                        data={[
+                          { name: 'Trials', value: data.trials || 0 },
+                          { name: 'Referrals', value: data.referrals || 0 },
+                          { name: 'Hosted', value: data.hosted || 0 },
+                          { name: 'Influencer', value: data.influencerSignups || 0 },
+                          { name: 'Others', value: data.others || 0 }
+                        ]}
                       />
                     </CardContent>
                   </Card>
@@ -148,8 +170,10 @@ const DrillDownAnalytics: React.FC<DrillDownAnalyticsProps> = ({
                     </CardHeader>
                     <CardContent className="h-[250px]">
                       <ConversionRatesChart 
-                        conversionRate={data.conversionRate}
-                        retentionRate={data.retentionRate}
+                        data={[
+                          { name: 'Conversion Rate', value: data.conversionRate || 0 },
+                          { name: 'Retention Rate', value: data.retentionRate || 0 }
+                        ]}
                       />
                     </CardContent>
                   </Card>
@@ -188,6 +212,7 @@ const DrillDownAnalytics: React.FC<DrillDownAnalyticsProps> = ({
                         <PerformanceMetricCard
                           title="Conversion Rate"
                           value={`${data.conversionRate.toFixed(1)}%`}
+                          icon={<BarChart className="h-4 w-4 text-amber-500" />}
                           status={data.conversionRate > 10 ? "positive" : "negative"}
                           tooltip="Percentage of clients who converted from trial to paid"
                         />
@@ -200,9 +225,9 @@ const DrillDownAnalytics: React.FC<DrillDownAnalyticsProps> = ({
                           </CardHeader>
                           <CardContent className="h-[200px]">
                             <ConversionRatesChart 
-                              conversionRate={data.conversionRate}
-                              retentionRate={0}
-                              showRetention={false}
+                              data={[
+                                { name: 'Conversion Rate', value: data.conversionRate || 0 }
+                              ]}
                             />
                           </CardContent>
                         </Card>
@@ -235,6 +260,7 @@ const DrillDownAnalytics: React.FC<DrillDownAnalyticsProps> = ({
                         <PerformanceMetricCard
                           title="Retention Rate"
                           value={`${data.retentionRate.toFixed(1)}%`}
+                          icon={<BarChart className="h-4 w-4 text-amber-500" />}
                           status={data.retentionRate > 50 ? "positive" : "negative"}
                           tooltip="Percentage of clients who returned after initial visit"
                         />
@@ -247,9 +273,9 @@ const DrillDownAnalytics: React.FC<DrillDownAnalyticsProps> = ({
                           </CardHeader>
                           <CardContent className="h-[200px]">
                             <ConversionRatesChart 
-                              conversionRate={0}
-                              retentionRate={data.retentionRate}
-                              showConversion={false}
+                              data={[
+                                { name: 'Retention Rate', value: data.retentionRate || 0 }
+                              ]}
                             />
                           </CardContent>
                         </Card>
@@ -283,10 +309,10 @@ const DrillDownAnalytics: React.FC<DrillDownAnalyticsProps> = ({
                                   
                                   <div className="grid grid-cols-2 gap-1 mt-2 text-xs">
                                     <div>First Visit:</div>
-                                    <div className="font-medium">{formatClientValue(client.firstVisitDate)}</div>
+                                    <div className="font-medium">{formatClientValue(client.visitDate)}</div>
                                     
                                     <div>Source:</div>
-                                    <div className="font-medium">{formatClientValue(client.source)}</div>
+                                    <div className="font-medium">{formatClientValue(client.sourceType)}</div>
                                   </div>
                                 </div>
                               ))}
@@ -312,13 +338,13 @@ const DrillDownAnalytics: React.FC<DrillDownAnalyticsProps> = ({
                                   
                                   <div className="grid grid-cols-2 gap-1 mt-2 text-xs">
                                     <div>First Visit:</div>
-                                    <div className="font-medium">{formatClientValue(client.firstVisitDate)}</div>
+                                    <div className="font-medium">{formatClientValue(client.visitDate)}</div>
                                     
                                     <div>Return Visits:</div>
                                     <div className="font-medium">{formatClientValue(client.visitCount)}</div>
                                     
                                     <div>Last Visit:</div>
-                                    <div className="font-medium">{formatClientValue(client.lastVisitDate)}</div>
+                                    <div className="font-medium">{formatClientValue(client.lastVisit)}</div>
                                   </div>
                                 </div>
                               ))}
@@ -344,16 +370,16 @@ const DrillDownAnalytics: React.FC<DrillDownAnalyticsProps> = ({
                                   
                                   <div className="grid grid-cols-2 gap-1 mt-2 text-xs">
                                     <div>First Visit:</div>
-                                    <div className="font-medium">{formatClientValue(client.firstVisitDate)}</div>
+                                    <div className="font-medium">{formatClientValue(client.visitDate)}</div>
                                     
                                     <div>First Purchase:</div>
-                                    <div className="font-medium">{formatClientValue(client.firstPurchaseDate)}</div>
+                                    <div className="font-medium">{formatClientValue(client.purchaseDate)}</div>
                                     
                                     <div>Purchase Value:</div>
-                                    <div className="font-medium">{formatClientValue(client.purchaseValue)}</div>
+                                    <div className="font-medium">{formatClientValue(client.amount)}</div>
                                     
                                     <div>First Purchase Item:</div>
-                                    <div className="font-medium">{formatClientValue(client.firstPurchaseItem)}</div>
+                                    <div className="font-medium">{formatClientValue(client.itemName)}</div>
                                   </div>
                                 </div>
                               ))}
