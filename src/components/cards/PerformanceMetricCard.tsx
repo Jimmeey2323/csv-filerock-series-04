@@ -38,7 +38,13 @@ const PerformanceMetricCard: React.FC<PerformanceMetricCardProps> = ({
   trend,
   onCustomClick,
   onClick,
+  teacherName,
+  totalRevenue,
 }) => {
+  // Generate a default value from teacherName and totalRevenue if not provided directly
+  const displayValue = value || (totalRevenue ? `₹${totalRevenue.toLocaleString()}` : '0');
+  const displayTitle = title || (teacherName ? `${teacherName}` : 'Performance');
+
   const getStatusColor = () => {
     if (!status) return '';
     if (status === 'positive') return 'text-green-500';
@@ -63,7 +69,7 @@ const PerformanceMetricCard: React.FC<PerformanceMetricCardProps> = ({
         <div className="flex items-center justify-between">
           <div>
             <div className="flex items-center gap-1 text-sm font-medium text-muted-foreground">
-              {title}
+              {displayTitle}
               {tooltip && (
                 <TooltipProvider>
                   <Tooltip>
@@ -78,7 +84,7 @@ const PerformanceMetricCard: React.FC<PerformanceMetricCardProps> = ({
               )}
             </div>
             <div className={`text-2xl font-bold mt-1 ${getStatusColor()}`}>
-              {value}
+              {displayValue}
               {secondaryValue && (
                 <span className="ml-2 text-sm font-normal text-muted-foreground">
                   ({secondaryValue})

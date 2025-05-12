@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '@/components/ui/table';
@@ -405,6 +406,8 @@ const ResultsTable: React.FC<ResultsTableProps> = ({
         {sortedData.map((row, index) => (
           <PerformanceMetricCard
             key={index}
+            title={row.teacherName}
+            value={`₹${row.totalRevenue.toLocaleString()}`}
             teacherName={row.teacherName}
             location={row.location}
             newClients={row.newClients}
@@ -432,6 +435,8 @@ const ResultsTable: React.FC<ResultsTableProps> = ({
                 .map((row, index) => (
                   <StudioMetricCard
                     key={index}
+                    title={row.teacherName}
+                    value={`₹${row.totalRevenue.toLocaleString()}`}
                     teacherName={row.teacherName}
                     location={row.location}
                     newClients={row.newClients}
