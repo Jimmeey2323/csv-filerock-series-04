@@ -45,6 +45,19 @@ const RawDataView: React.FC<RawDataProps> = ({
     );
   };
 
+  // Helper function to deduplicate records by email
+  const deduplicateByEmail = (records: any[]) => {
+    const seen = new Set();
+    return records.filter(item => {
+      const email = item['Email'] || item.email || '';
+      if (email && !seen.has(email)) {
+        seen.add(email);
+        return true;
+      }
+      return false;
+    });
+  };
+
   const renderDataTable = (data: any[], type: string) => {
     if (!data || data.length === 0) return <p className="text-center py-8">No data available</p>;
     
@@ -139,21 +152,8 @@ const RawDataView: React.FC<RawDataProps> = ({
     return client['First visit at'] || client.firstVisit || client.date || '';
   };
 
-  // Remove duplicate exclusion records by email
-  const getUniqueExcluded = () => {
-    const seen = new Set();
-    return processingResults.excluded.filter(item => {
-      const email = getClientEmail(item);
-      if (email && !seen.has(email)) {
-        seen.add(email);
-        return true;
-      }
-      return false;
-    });
-  };
-
-  // Get unique excluded records
-  const uniqueExcludedRecords = getUniqueExcluded();
+  // Deduplicate exclusion records by email
+  const uniqueExcludedRecords = deduplicateByEmail(processingResults.excluded);
 
   const renderProcessingTab = () => {
     return (

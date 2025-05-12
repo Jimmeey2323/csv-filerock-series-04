@@ -260,15 +260,12 @@ const Index = () => {
       setTeachers(result.teachers);
       setPeriods(result.periods);
 
-      // Deduplicate excluded records before updating raw data
-      const deduplicatedExcluded = deduplicateClientsByEmail(result.excludedRecords || []);
-
-      // Update raw data processing results with deduplicated excluded records
+      // Update raw data processing results with the results from processing
       setRawData(prev => ({
         ...prev,
         processingResults: {
           included: result.includedRecords || [],
-          excluded: deduplicatedExcluded,
+          excluded: result.excludedRecords || [],
           newClients: result.newClientRecords || [],
           convertedClients: result.convertedClientRecords || [],
           retainedClients: result.retainedClientRecords || []

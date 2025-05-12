@@ -235,12 +235,28 @@ export const processData = (
             teachers.forEach(teacher => {
               locations.forEach(location => {
                 periods.forEach(period => {
-                  // Get new clients for this teacher, location, and period
+                  // First, identify excluded records based on membership type or first visit class name
+                  enrichedNewData.forEach(record => {
+                    const membershipPattern = matchesPattern(record['Membership used'] || '', "friends|family|staff");
+                    const firstVisitPattern = matchesPattern(record['First visit'] || '', "friends|family|staff");
+                    
+                    if (membershipPattern || firstVisitPattern) {
+                      excludedRecords.push({
+                        ...record,
+                        reason: membershipPattern 
+                          ? "Friends, family, or staff membership" 
+                          : "Friends, family, or staff class type"
+                      });
+                    }
+                  });
+                  
+                  // Get new clients for this teacher, location, and period - now with improved exclusion logic
                   const teacherNewClients = enrichedNewData.filter(record => 
                     record['Teacher'] === teacher &&
                     record['First visit location'] === location &&
                     getMonthYearFromDate(record['First visit at']) === period &&
-                    !matchesPattern(record['Membership used'] || '', "friends|family|staff")
+                    !matchesPattern(record['Membership used'] || '', "friends|family|staff") &&
+                    !matchesPattern(record['First visit'] || '', "friends|family|staff")
                   );
                   
                   if (teacherNewClients.length === 0) return; // Skip if no data
@@ -256,16 +272,6 @@ export const processData = (
                     newClientRecords.push({
                       ...client,
                       reason: "First time visitor"
-                    });
-                  });
-                  
-                  // Add excluded records
-                  enrichedNewData.filter(record => 
-                    matchesPattern(record['Membership used'] || '', "friends|family|staff")
-                  ).forEach(record => {
-                    excludedRecords.push({
-                      ...record,
-                      reason: "Friends, family, or staff membership"
                     });
                   });
                   
