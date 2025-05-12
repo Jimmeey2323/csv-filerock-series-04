@@ -15,7 +15,7 @@ const Logo: React.FC<LogoProps> = ({
   };
   return <div className={cn("flex items-center", className)}>
       <img src="https://i.imgur.com/9mOm7gP.png" alt="Studio Analytics" className="w-[50px] mr-4" />
-      <span className="font-semibold text-indigo-800 text-left text-4xl">PERFORMANCE ANALYTICS</span>
+      <span className="font-semibold text-indigo-800 text-left text-4xl mb-0">Data Analytics</span>
     </div>;
 };
 export default Logo;
