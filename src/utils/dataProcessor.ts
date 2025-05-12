@@ -29,6 +29,11 @@ export interface ProcessedTeacherData {
   influencerSignups?: number;
   others?: number;
   
+  // Conversion rates for different client sources
+  trialToMembershipConversion?: number;
+  referralConversionRate?: number;
+  influencerConversionRate?: number;
+  
   // Revenue time series
   revenueByWeek?: { week: string, revenue: number }[];
   
