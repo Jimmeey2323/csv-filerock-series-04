@@ -1,130 +1,130 @@
 
-import React, { useState, useEffect } from 'react';
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
-import { motion } from 'framer-motion';
-
-interface ClientSourceData {
-  source: string;
-  count: number;
-}
+import React from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip, Sector } from 'recharts';
+import { useToast } from '@/hooks/use-toast';
 
 interface ClientSourceChartProps {
-  data: ClientSourceData[];
+  data: { source: string; count: number }[];
 }
 
-const ClientSourceChart: React.FC<ClientSourceChartProps> = ({ data }) => {
-  const [activeIndex, setActiveIndex] = useState<number | null>(null);
-  const [animatedData, setAnimatedData] = useState<ClientSourceData[]>([]);
+const COLORS = ['#4f46e5', '#3b82f6', '#60a5fa', '#93c5fd', '#bfdbfe', '#EC4899', '#8B5CF6', '#10B981'];
 
-  useEffect(() => {
-    // Set initial zero count for animation
-    const initialData = data.map(item => ({ ...item, count: 0 }));
-    setAnimatedData(initialData);
-    
-    // Animate to actual values after a short delay
-    const timer = setTimeout(() => {
-      setAnimatedData(data);
-    }, 500);
-    
-    return () => clearTimeout(timer);
-  }, [data]);
-
-  // Color scheme
-  const COLORS = [
-    '#8B5CF6', // Purple
-    '#F97316', // Orange
-    '#10B981', // Green
-    '#EC4899', // Pink
-    '#3B82F6'  // Blue
-  ];
-
-  // Sort data by count for better visual representation
-  const sortedData = [...data].sort((a, b) => b.count - a.count);
-
-  // Calculate total
-  const total = sortedData.reduce((sum, item) => sum + item.count, 0);
-
-  const handlePieClick = (data: any, index: number) => {
-    setActiveIndex(index === activeIndex ? null : index);
-  };
-
-  const customTooltip = ({ active, payload }: any) => {
-    if (active && payload && payload.length) {
-      const item = payload[0].payload;
-      return (
-        <div className="bg-white p-3 border rounded-md shadow-md">
-          <p className="font-medium">{item.source}</p>
-          <p className="text-primary">{item.count} clients ({((item.count / total) * 100).toFixed(1)}%)</p>
-        </div>
-      );
-    }
-    return null;
-  };
+const renderActiveShape = (props: any) => {
+  const RADIAN = Math.PI / 180;
+  const { cx, cy, midAngle, innerRadius, outerRadius, startAngle, endAngle, fill, payload, percent, value } = props;
+  const sin = Math.sin(-RADIAN * midAngle);
+  const cos = Math.cos(-RADIAN * midAngle);
+  const sx = cx + (outerRadius + 10) * cos;
+  const sy = cy + (outerRadius + 10) * sin;
+  const mx = cx + (outerRadius + 30) * cos;
+  const my = cy + (outerRadius + 30) * sin;
+  const ex = mx + (cos >= 0 ? 1 : -1) * 22;
+  const ey = my;
+  const textAnchor = cos >= 0 ? 'start' : 'end';
 
   return (
-    <motion.div 
-      className="w-full h-[300px]"
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5 }}
-    >
-      <ResponsiveContainer width="100%" height="100%">
-        <PieChart>
-          <Pie
-            data={animatedData}
-            cx="50%"
-            cy="50%"
-            innerRadius={60}
-            outerRadius={80}
-            paddingAngle={5}
-            dataKey="count"
-            nameKey="source"
-            onClick={handlePieClick}
-            animationBegin={0}
-            animationDuration={1000}
-            isAnimationActive={true}
-          >
-            {animatedData.map((entry, index) => (
-              <Cell
-                key={`cell-${index}`}
-                fill={COLORS[index % COLORS.length]}
-                stroke="#fff"
-                strokeWidth={2}
-                style={{
-                  filter: activeIndex === index ? 'drop-shadow(0 0 8px rgba(0, 0, 0, 0.3))' : 'none',
-                  transform: activeIndex === index ? 'scale(1.1)' : 'scale(1)',
-                  transformOrigin: '50% 50%',
-                  transition: 'transform 0.3s, filter 0.3s'
-                }}
-              />
-            ))}
-          </Pie>
-          <Tooltip content={customTooltip} />
-          <Legend
-            layout="horizontal"
-            verticalAlign="bottom"
-            align="center"
-            formatter={(value, entry, index) => (
-              <span className="text-sm">
-                {value} ({((animatedData[index]?.count || 0) / total * 100).toFixed(1)}%)
-              </span>
-            )}
-          />
-        </PieChart>
-      </ResponsiveContainer>
-      
-      {total > 0 && (
-        <motion.div 
-          className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-center"
-          initial={{ opacity: 0, scale: 0.8 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ delay: 0.5, duration: 0.3 }}
-        >
-          <div className="text-3xl font-bold text-primary">{total}</div>
-          <div className="text-xs text-muted-foreground">Total Clients</div>
-        </motion.div>
-      )}
-    </motion.div>
+    <g>
+      <Sector
+        cx={cx}
+        cy={cy}
+        innerRadius={innerRadius}
+        outerRadius={outerRadius}
+        startAngle={startAngle}
+        endAngle={endAngle}
+        fill={fill}
+        opacity={0.8}
+      />
+      <Sector
+        cx={cx}
+        cy={cy}
+        startAngle={startAngle}
+        endAngle={endAngle}
+        innerRadius={outerRadius + 6}
+        outerRadius={outerRadius + 10}
+        fill={fill}
+      />
+      <path d={`M${sx},${sy}L${mx},${my}L${ex},${ey}`} stroke={fill} fill="none" />
+      <circle cx={ex} cy={ey} r={2} fill={fill} stroke="none" />
+      <text x={ex + (cos >= 0 ? 1 : -1) * 12} y={ey} dy={5} textAnchor={textAnchor} fill="#333" fontSize={13}>
+        {`${payload.source}`}
+      </text>
+      <text x={ex + (cos >= 0 ? 1 : -1) * 12} y={ey} dy={25} textAnchor={textAnchor} fill="#333" fontSize={13}>
+        {`${value} clients (${(percent * 100).toFixed(0)}%)`}
+      </text>
+    </g>
+  );
+};
+
+const ClientSourceChart: React.FC<ClientSourceChartProps> = ({ data }) => {
+  const { toast } = useToast();
+  const [activeIndex, setActiveIndex] = React.useState(0);
+
+  if (!data || data.length === 0 || data.every(item => item.count === 0)) {
+    return (
+      <Card className="w-full h-[350px] animate-fade-in">
+        <CardHeader>
+          <CardTitle className="text-lg font-medium">Client Sources</CardTitle>
+        </CardHeader>
+        <CardContent className="flex items-center justify-center h-[250px]">
+          <p className="text-muted-foreground">No client source data available</p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // Filter out zero values
+  const filteredData = data.filter(item => item.count > 0);
+
+  const onPieEnter = (_: any, index: number) => {
+    setActiveIndex(index);
+  };
+
+  const onPieClick = (data: any) => {
+    toast({
+      title: "Client Source Details",
+      description: `${data.name}: ${data.value} clients (${(data.percent * 100).toFixed(0)}%)`,
+    });
+  };
+
+  const totalClients = filteredData.reduce((sum, item) => sum + item.count, 0);
+
+  return (
+    <Card className="w-full h-[350px] animate-fade-in bg-white/60 backdrop-blur-sm transition-all duration-300 hover:shadow-md">
+      <CardHeader className="pb-2">
+        <CardTitle className="text-lg font-medium flex justify-between items-center">
+          <span>Client Acquisition Sources</span>
+          <span className="text-sm font-normal text-muted-foreground">{totalClients} total clients</span>
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        <ResponsiveContainer width="100%" height={250}>
+          <PieChart>
+            <Pie
+              activeIndex={activeIndex}
+              activeShape={renderActiveShape}
+              data={filteredData}
+              cx="50%"
+              cy="50%"
+              innerRadius={60}
+              outerRadius={80}
+              fill="#8884d8"
+              dataKey="count"
+              onMouseEnter={onPieEnter}
+              onClick={onPieClick}
+            >
+              {filteredData.map((entry, index) => (
+                <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+              ))}
+            </Pie>
+            <Tooltip 
+              formatter={(value, name, props) => [`${value} clients`, props.payload.source]}
+              contentStyle={{ backgroundColor: 'rgba(255, 255, 255, 0.95)', borderRadius: '8px', boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)' }}
+            />
+          </PieChart>
+        </ResponsiveContainer>
+      </CardContent>
+    </Card>
   );
 };
 

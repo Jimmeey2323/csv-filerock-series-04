@@ -16,7 +16,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { ChevronDown, ChevronUp, FileText, Table, BarChart } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { motion } from 'framer-motion';
 
 // Local storage keys
 const STORAGE_KEYS = {
@@ -66,22 +65,6 @@ const storageUtils = {
         console.error(`Error clearing storage for key ${key}:`, error);
       }
     });
-  }
-};
-
-// Animation variants
-const fadeIn = {
-  hidden: { opacity: 0, y: 20 },
-  visible: { opacity: 1, y: 0, transition: { duration: 0.6 } }
-};
-
-const staggerContainer = {
-  hidden: { opacity: 0 },
-  visible: {
-    opacity: 1,
-    transition: {
-      staggerChildren: 0.1
-    }
   }
 };
 
@@ -325,13 +308,7 @@ const Index = () => {
 
     // Filter by teacher
     if (newFilters.teacher && newFilters.teacher !== 'all-teachers') {
-      // Check if it's a comma-separated list (from quick filters)
-      if (newFilters.teacher.includes(',')) {
-        const teacherNames = newFilters.teacher.split(',');
-        filtered = filtered.filter(item => teacherNames.includes(item.teacherName));
-      } else {
-        filtered = filtered.filter(item => item.teacherName === newFilters.teacher);
-      }
+      filtered = filtered.filter(item => item.teacherName === newFilters.teacher);
     }
 
     // Filter by period
@@ -386,8 +363,7 @@ const Index = () => {
     toast.success('Application reset. You can upload new files');
   }, []);
 
-  return (
-    <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white">
+  return <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white">
       <header className="border-b bg-white/80 backdrop-blur-sm sticky top-0 z-50">
         <div className="container flex justify-between items-center py-3 bg-neutral-50">
           <Logo size="md" />
@@ -396,17 +372,9 @@ const Index = () => {
       </header>
       
       <main id="container" className="container py-8 transition-opacity duration-500 opacity-0">
-        {!resultsVisible ? (
-          <motion.div 
-            variants={staggerContainer}
-            initial="hidden"
-            animate="visible"
-          >
-            <motion.div 
-              className="space-y-6 mb-10"
-              variants={fadeIn}
-            >
-              <div className="flex flex-col items-center text-center space-y-4">
+        {!resultsVisible ? <>
+            <div className="space-y-6 mb-10">
+              <div className="flex flex-col items-center text-center space-y-4 animate-fade-in">
                 <div className="inline-flex items-center justify-center h-16 w-16 rounded-full bg-primary/10 text-primary mb-2">
                   <div className="h-8 w-8 rounded-full bg-primary animate-pulse-soft" />
                 </div>
@@ -415,26 +383,14 @@ const Index = () => {
                   Upload, process, and analyze your CSV files to gain insights into studio performance, teacher effectiveness, and client trends.
                 </p>
               </div>
-            </motion.div>
+            </div>
 
-            <motion.div 
-              className="grid grid-cols-1 gap-8 max-w-3xl mx-auto"
-              variants={fadeIn}
-            >
+            <div className="grid grid-cols-1 gap-8 max-w-3xl mx-auto">
               <FileUploader onFilesAdded={handleFilesAdded} accept=".csv" maxFiles={10} />
               
-              {files.length > 0 && (
-                <FileList files={files} onRemove={handleRemoveFile} onProcessFiles={handleProcessFiles} fileTypes={getFileTypes()} />
-              )}
-            </motion.div>
-          </motion.div>
-        ) : (
-          <motion.div 
-            className="space-y-6"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-          >
+              {files.length > 0 && <FileList files={files} onRemove={handleRemoveFile} onProcessFiles={handleProcessFiles} fileTypes={getFileTypes()} />}
+            </div>
+          </> : <div className="space-y-6 animate-fade-in">
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-2xl font-semibold">Performance Analytics</h2>
               <div className="flex space-x-4">
@@ -442,20 +398,15 @@ const Index = () => {
                   Reset data
                 </button>
                 <button onClick={() => {
-                  setResultsVisible(false);
-                }} className="text-sm text-primary hover:underline">
+              setResultsVisible(false);
+            }} className="text-sm text-primary hover:underline">
                   Process new files
                 </button>
               </div>
             </div>
             
             <Collapsible open={isInsightsOpen} onOpenChange={setIsInsightsOpen} className="w-full space-y-2">
-              <motion.div 
-                className="flex items-center justify-between"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.2 }}
-              >
+              <div className="flex items-center justify-between">
                 <h3 className="text-lg font-semibold">AI Insights & Recommendations</h3>
                 <CollapsibleTrigger asChild>
                   <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
@@ -463,7 +414,7 @@ const Index = () => {
                     <span className="sr-only">Toggle insights</span>
                   </Button>
                 </CollapsibleTrigger>
-              </motion.div>
+              </div>
               <CollapsibleContent className="space-y-2">
                 <AIInsights data={filteredData} isFiltered={hasActiveFilters} />
               </CollapsibleContent>
@@ -482,30 +433,18 @@ const Index = () => {
               </TabsList>
               
               <TabsContent value="analytics" className="mt-0">
-                <motion.div 
-                  className="space-y-6"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ duration: 0.4 }}
-                >
+                <div className="space-y-6">
                   <FilterBar locations={locations} teachers={teachers} periods={periods} activeViewMode={viewMode} activeDataMode={dataMode} onViewModeChange={setViewMode} onDataModeChange={setDataMode} onFilterChange={handleFilterChange} />
                   
                   <ResultsTable data={filteredData} locations={locations} isLoading={false} viewMode={viewMode} dataMode={dataMode} onFilterChange={handleFilterChange} />
-                </motion.div>
+                </div>
               </TabsContent>
               
               <TabsContent value="raw-data" className="mt-0">
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ duration: 0.4 }}
-                >
-                  <RawDataView newClientData={rawData.newClientData} bookingsData={rawData.bookingsData} paymentsData={rawData.paymentsData} processingResults={rawData.processingResults} />
-                </motion.div>
+                <RawDataView newClientData={rawData.newClientData} bookingsData={rawData.bookingsData} paymentsData={rawData.paymentsData} processingResults={rawData.processingResults} />
               </TabsContent>
             </Tabs>
-          </motion.div>
-        )}
+          </div>}
       </main>
 
       {/* Processing Loader */}
@@ -516,8 +455,6 @@ const Index = () => {
           Studio Stats Analytics Dashboard • {new Date().getFullYear()}
         </div>
       </footer>
-    </div>
-  );
+    </div>;
 };
-
 export default Index;

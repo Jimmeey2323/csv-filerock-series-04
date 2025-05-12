@@ -5,27 +5,17 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { Info } from 'lucide-react';
 
 interface PerformanceMetricCardProps {
-  title?: string;
+  title: string;
   value: string;
   secondaryValue?: string;
-  icon?: React.ReactNode;
+  icon: React.ReactNode;
   status?: 'positive' | 'neutral' | 'negative';
   tooltip?: string;
   trend?: {
     value: number;
     label?: string;
   };
-  onCustomClick?: (e: React.MouseEvent) => void;
-  // Add missing properties from ResultsTable
-  teacherName?: string;
-  location?: string;
-  newClients?: number;
-  retainedClients?: number;
-  convertedClients?: number;
-  conversionRate?: number;
-  retentionRate?: number;
-  totalRevenue?: number;
-  onClick?: () => void;
+  onCustomClick?: (e: React.MouseEvent) => void; // Added this prop
 }
 
 const PerformanceMetricCard: React.FC<PerformanceMetricCardProps> = ({
@@ -36,15 +26,8 @@ const PerformanceMetricCard: React.FC<PerformanceMetricCardProps> = ({
   status,
   tooltip,
   trend,
-  onCustomClick,
-  onClick,
-  teacherName,
-  totalRevenue,
+  onCustomClick
 }) => {
-  // Generate a default value from teacherName and totalRevenue if not provided directly
-  const displayValue = value || (totalRevenue ? `₹${totalRevenue.toLocaleString()}` : '0');
-  const displayTitle = title || (teacherName ? `${teacherName}` : 'Performance');
-
   const getStatusColor = () => {
     if (!status) return '';
     if (status === 'positive') return 'text-green-500';
@@ -52,24 +35,16 @@ const PerformanceMetricCard: React.FC<PerformanceMetricCardProps> = ({
     return 'text-red-500';
   };
 
-  const handleClick = (e: React.MouseEvent) => {
-    if (onCustomClick) {
-      onCustomClick(e);
-    } else if (onClick) {
-      onClick();
-    }
-  };
-
   return (
     <Card 
-      className="card-hover bg-white/60 backdrop-blur-sm cursor-pointer"
-      onClick={handleClick}
+      className="card-hover bg-white/60 backdrop-blur-sm"
+      onClick={onCustomClick} // Add the click handler
     >
       <CardContent className="pt-6">
         <div className="flex items-center justify-between">
           <div>
             <div className="flex items-center gap-1 text-sm font-medium text-muted-foreground">
-              {displayTitle}
+              {title}
               {tooltip && (
                 <TooltipProvider>
                   <Tooltip>
@@ -84,7 +59,7 @@ const PerformanceMetricCard: React.FC<PerformanceMetricCardProps> = ({
               )}
             </div>
             <div className={`text-2xl font-bold mt-1 ${getStatusColor()}`}>
-              {displayValue}
+              {value}
               {secondaryValue && (
                 <span className="ml-2 text-sm font-normal text-muted-foreground">
                   ({secondaryValue})
