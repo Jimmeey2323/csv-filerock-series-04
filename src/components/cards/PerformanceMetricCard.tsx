@@ -6,7 +6,7 @@ import { Info } from 'lucide-react';
 
 interface PerformanceMetricCardProps {
   title: string;
-  value: string;
+  value: string | number;
   secondaryValue?: string;
   icon: React.ReactNode;
   status?: 'positive' | 'neutral' | 'negative';
@@ -15,7 +15,7 @@ interface PerformanceMetricCardProps {
     value: number;
     label?: string;
   };
-  onCustomClick?: (e: React.MouseEvent) => void; // Added this prop
+  onCustomClick?: (e: React.MouseEvent) => void;
 }
 
 const PerformanceMetricCard: React.FC<PerformanceMetricCardProps> = ({
@@ -35,10 +35,15 @@ const PerformanceMetricCard: React.FC<PerformanceMetricCardProps> = ({
     return 'text-red-500';
   };
 
+  // Safely display the value by ensuring it's a string
+  const displayValue = value !== undefined && value !== null 
+    ? String(value)
+    : 'N/A';
+
   return (
     <Card 
       className="card-hover bg-white/60 backdrop-blur-sm"
-      onClick={onCustomClick} // Add the click handler
+      onClick={onCustomClick}
     >
       <CardContent className="pt-6">
         <div className="flex items-center justify-between">
@@ -59,14 +64,14 @@ const PerformanceMetricCard: React.FC<PerformanceMetricCardProps> = ({
               )}
             </div>
             <div className={`text-2xl font-bold mt-1 ${getStatusColor()}`}>
-              {value}
+              {displayValue}
               {secondaryValue && (
                 <span className="ml-2 text-sm font-normal text-muted-foreground">
                   ({secondaryValue})
                 </span>
               )}
             </div>
-            {trend && (
+            {trend && trend.value !== undefined && (
               <div className={`text-xs mt-1 ${trend.value >= 0 ? 'text-green-500' : 'text-red-500'}`}>
                 {trend.value >= 0 ? '↑' : '↓'} {Math.abs(trend.value).toFixed(1)}%
                 {trend.label && <span className="ml-1 text-muted-foreground">{trend.label}</span>}

@@ -30,17 +30,30 @@ const RevenueChart: React.FC<RevenueChartProps> = ({ data }) => {
   // Format dates to be more readable and sort them
   const formattedData = data.map(item => {
     console.log(`Formatting date: ${item.week} with revenue: ${item.revenue}`);
+    
+    // Ensure revenue is a valid number
+    const safeRevenue = typeof item.revenue === 'number' && !isNaN(item.revenue) 
+      ? item.revenue 
+      : 0;
+      
     return {
       ...item,
-      weekLabel: new Date(item.week).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+      revenue: safeRevenue,
+      weekLabel: item.week ? new Date(item.week).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : 'Unknown'
     };
   });
 
   // Sort data by date
-  const sortedData = [...formattedData].sort((a, b) => new Date(a.week).getTime() - new Date(b.week).getTime());
+  const sortedData = [...formattedData].sort((a, b) => {
+    if (!a.week) return -1;
+    if (!b.week) return 1;
+    return new Date(a.week).getTime() - new Date(b.week).getTime();
+  });
 
-  // Calculate total revenue for the title
-  const totalRevenue = sortedData.reduce((sum, item) => sum + item.revenue, 0);
+  // Calculate total revenue safely
+  const totalRevenue = sortedData.reduce((sum, item) => {
+    return sum + (typeof item.revenue === 'number' ? item.revenue : 0);
+  }, 0);
   
   console.log("Revenue chart processed data:", sortedData);
   console.log("Total revenue for chart:", totalRevenue);
@@ -86,4 +99,3 @@ const RevenueChart: React.FC<RevenueChartProps> = ({ data }) => {
 };
 
 export default RevenueChart;
-

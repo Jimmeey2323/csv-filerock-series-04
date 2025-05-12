@@ -7,7 +7,7 @@ import { Info } from 'lucide-react';
 
 interface StudioMetricCardProps {
   title: string;
-  value: string;
+  value: string | number;
   location: string;
   metrics?: {
     label: string;
@@ -26,6 +26,11 @@ const StudioMetricCard: React.FC<StudioMetricCardProps> = ({
   icon,
   tooltip,
 }) => {
+  // Safely display the value by ensuring it's a string
+  const displayValue = value !== undefined && value !== null 
+    ? String(value)
+    : 'N/A';
+
   return (
     <Card className="card-hover bg-white/60 backdrop-blur-sm">
       <CardContent className="pt-6">
@@ -47,7 +52,7 @@ const StudioMetricCard: React.FC<StudioMetricCardProps> = ({
               )}
             </div>
             <div className="text-2xl font-bold mt-1">
-              {value}
+              {displayValue}
             </div>
             <div className="text-xs font-medium text-muted-foreground mt-1">
               {location}
@@ -58,22 +63,29 @@ const StudioMetricCard: React.FC<StudioMetricCardProps> = ({
           </div>
         </div>
         
-        {metrics.length > 0 && (
+        {metrics && metrics.length > 0 && (
           <div className="grid grid-cols-2 gap-2 mt-4">
-            {metrics.map((metric, index) => (
-              <div key={index} className="flex flex-col">
-                <span className="text-xs text-muted-foreground">
-                  {metric.label}
-                </span>
-                <span className={`text-sm font-medium ${
-                  metric.status === 'positive' ? 'text-green-600' : 
-                  metric.status === 'negative' ? 'text-red-600' : 
-                  'text-amber-600'
-                }`}>
-                  {metric.value}
-                </span>
-              </div>
-            ))}
+            {metrics.map((metric, index) => {
+              // Safely convert metric value to string
+              const metricDisplayValue = metric.value !== undefined && metric.value !== null 
+                ? String(metric.value)
+                : 'N/A';
+                
+              return (
+                <div key={index} className="flex flex-col">
+                  <span className="text-xs text-muted-foreground">
+                    {metric.label}
+                  </span>
+                  <span className={`text-sm font-medium ${
+                    metric.status === 'positive' ? 'text-green-600' : 
+                    metric.status === 'negative' ? 'text-red-600' : 
+                    'text-amber-600'
+                  }`}>
+                    {metricDisplayValue}
+                  </span>
+                </div>
+              );
+            })}
           </div>
         )}
       </CardContent>
