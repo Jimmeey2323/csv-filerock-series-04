@@ -287,7 +287,7 @@ const ResultsTable: React.FC<ResultsTableProps> = ({
                       handleRowClick(totalsRow, 'conversion');
                     }}
                   >
-                    {totals.conversionRate.toFixed(1)}%
+                    {typeof totals.conversionRate === 'number' ? totals.conversionRate.toFixed(1) : '0.0'}%
                   </TableCell>
                   <TableCell 
                     className={cn(
@@ -299,7 +299,7 @@ const ResultsTable: React.FC<ResultsTableProps> = ({
                       handleRowClick(totalsRow, 'retention');
                     }}
                   >
-                    {totals.retentionRate.toFixed(1)}%
+                    {typeof totals.retentionRate === 'number' ? totals.retentionRate.toFixed(1) : '0.0'}%
                   </TableCell>
                   <TableCell className="font-medium">
                     ₹{totals.totalRevenue.toLocaleString()}
@@ -351,7 +351,7 @@ const ResultsTable: React.FC<ResultsTableProps> = ({
                         handleRowClick(row, 'conversion');
                       }}
                     >
-                      {row.conversionRate.toFixed(1)}%
+                      {typeof row.conversionRate === 'number' ? row.conversionRate.toFixed(1) : '0.0'}%
                     </TableCell>
                     <TableCell 
                       className={cn(
@@ -362,7 +362,7 @@ const ResultsTable: React.FC<ResultsTableProps> = ({
                         handleRowClick(row, 'retention');
                       }}
                     >
-                      {row.retentionRate.toFixed(1)}%
+                      {typeof row.retentionRate === 'number' ? row.retentionRate.toFixed(1) : '0.0'}%
                     </TableCell>
                     <TableCell className="font-medium">
                       ₹{row.totalRevenue.toLocaleString()}

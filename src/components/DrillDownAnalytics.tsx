@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -188,8 +187,8 @@ const DrillDownAnalytics: React.FC<DrillDownAnalyticsProps> = ({
   // Create properly formatted ConversionRateData
   const conversionRateData = {
     name: 'Current Period',
-    conversion: data.conversionRate,
-    retention: data.retentionRate,
+    conversion: typeof data.conversionRate === 'number' ? data.conversionRate : 0,
+    retention: typeof data.retentionRate === 'number' ? data.retentionRate : 0,
     trial: data.trials || 0,
     referral: data.referrals || 0,
     influencer: data.influencerSignups || 0
@@ -248,7 +247,7 @@ const DrillDownAnalytics: React.FC<DrillDownAnalyticsProps> = ({
                         <span className="text-2xl font-bold">
                           {data.retainedClients} 
                           <Badge className="ml-2" variant={data.retentionRate > 50 ? "success" : "destructive"}>
-                            {data.retentionRate.toFixed(1)}%
+                            {typeof data.retentionRate === 'number' ? data.retentionRate.toFixed(1) : '0.0'}%
                           </Badge>
                         </span>
                       </div>
@@ -257,7 +256,7 @@ const DrillDownAnalytics: React.FC<DrillDownAnalyticsProps> = ({
                         <span className="text-2xl font-bold">
                           {data.convertedClients}
                           <Badge className="ml-2" variant={data.conversionRate > 10 ? "success" : "destructive"}>
-                            {data.conversionRate.toFixed(1)}%
+                            {typeof data.conversionRate === 'number' ? data.conversionRate.toFixed(1) : '0.0'}%
                           </Badge>
                         </span>
                       </div>
@@ -309,7 +308,9 @@ const DrillDownAnalytics: React.FC<DrillDownAnalyticsProps> = ({
                   <div className="flex space-x-4">
                     <div className="flex-1 p-4 border border-muted/40 rounded-lg text-center bg-muted/10 hover:bg-muted/20 transition-colors">
                       <h3 className="text-lg font-medium">Conversion Rate</h3>
-                      <p className="text-3xl font-bold text-primary mt-2">{data.conversionRate.toFixed(1)}%</p>
+                      <p className="text-3xl font-bold text-primary mt-2">
+                        {typeof data.conversionRate === 'number' ? data.conversionRate.toFixed(1) : '0.0'}%
+                      </p>
                       <p className="text-sm text-muted-foreground mt-1">
                         {data.conversionRate > 10 ? 'Above average' : 'Below average'}
                       </p>
@@ -323,9 +324,10 @@ const DrillDownAnalytics: React.FC<DrillDownAnalyticsProps> = ({
                     </div>
                     <div className="flex-1 p-4 border border-muted/40 rounded-lg text-center bg-muted/10 hover:bg-muted/20 transition-colors">
                       <h3 className="text-lg font-medium">Avg. Revenue</h3>
-                      <p className="text-3xl font-bold mt-2">₹{data.averageRevenuePerClient.toLocaleString(undefined, {
-                        maximumFractionDigits: 0
-                      })}</p>
+                      <p className="text-3xl font-bold mt-2">₹{typeof data.averageRevenuePerClient === 'number' ? 
+                        data.averageRevenuePerClient.toLocaleString(undefined, {
+                          maximumFractionDigits: 0
+                        }) : '0'}</p>
                       <p className="text-sm text-muted-foreground mt-1">
                         per converted client
                       </p>
@@ -349,7 +351,9 @@ const DrillDownAnalytics: React.FC<DrillDownAnalyticsProps> = ({
                   <div className="flex space-x-4">
                     <div className="flex-1 p-4 border border-muted/40 rounded-lg text-center bg-muted/10 hover:bg-muted/20 transition-colors">
                       <h3 className="text-lg font-medium">Retention Rate</h3>
-                      <p className="text-3xl font-bold text-primary mt-2">{data.retentionRate.toFixed(1)}%</p>
+                      <p className="text-3xl font-bold text-primary mt-2">
+                        {typeof data.retentionRate === 'number' ? data.retentionRate.toFixed(1) : '0.0'}%
+                      </p>
                       <p className="text-sm text-muted-foreground mt-1">
                         {data.retentionRate > 50 ? 'Above average' : 'Below average'}
                       </p>
