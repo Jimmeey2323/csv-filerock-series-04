@@ -10,9 +10,8 @@ import PerformanceMetricCard from './cards/PerformanceMetricCard';
 import DrillDownAnalytics from './DrillDownAnalytics';
 import ClientDetailsModal from './ClientDetailsModal';
 import { ProcessedTeacherData } from '@/utils/dataProcessor';
-import { convertCamelToTitle } from '@/lib/utils';
-import { ChevronDown, ArrowUp, ArrowDown, Filter } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { ChevronDown, ArrowUp, ArrowDown, Filter } from 'lucide-react';
 import QuickFilterButtons from './QuickFilterButtons';
 
 interface ResultsTableProps {
@@ -199,13 +198,24 @@ const ResultsTable: React.FC<ResultsTableProps> = ({
       // Other required fields with sensible defaults
       noShowRate: 0,
       lateCancellationRate: 0,
-      averageRevenuePerClient: totals.totalRevenue / (totals.convertedClients || 1),
+      averageRevenuePerClient: totals.totalRevenue && totals.convertedClients ? 
+        totals.totalRevenue / (totals.convertedClients || 1) : 0,
     };
     
     return totalRow as ProcessedTeacherData;
   };
   
   const totalsRow = generateTotalsRow();
+
+  // Safe formatter function to handle potentially undefined values
+  const safeFormat = (value: any, formatter: (val: any) => string) => {
+    return value !== undefined ? formatter(value) : 'N/A';
+  };
+
+  // Safe toLocaleString wrapper
+  const safeToLocaleString = (value: any) => {
+    return typeof value === 'number' ? value.toLocaleString() : '0';
+  };
 
   // Render table
   if (viewMode === 'table') {
@@ -257,7 +267,7 @@ const ResultsTable: React.FC<ResultsTableProps> = ({
                       handleClientDetailsClick(totalsRow, 'new');
                     }}
                   >
-                    {totals.newClients}
+                    {totals.newClients || 0}
                   </TableCell>
                   <TableCell 
                     className="cursor-pointer hover:text-primary transition-colors"
@@ -266,7 +276,7 @@ const ResultsTable: React.FC<ResultsTableProps> = ({
                       handleClientDetailsClick(totalsRow, 'retained');
                     }}
                   >
-                    {totals.retainedClients}
+                    {totals.retainedClients || 0}
                   </TableCell>
                   <TableCell 
                     className="cursor-pointer hover:text-primary transition-colors"
@@ -275,7 +285,7 @@ const ResultsTable: React.FC<ResultsTableProps> = ({
                       handleClientDetailsClick(totalsRow, 'converted');
                     }}
                   >
-                    {totals.convertedClients}
+                    {totals.convertedClients || 0}
                   </TableCell>
                   <TableCell 
                     className={cn(
@@ -302,7 +312,7 @@ const ResultsTable: React.FC<ResultsTableProps> = ({
                     {typeof totals.retentionRate === 'number' ? totals.retentionRate.toFixed(1) : '0.0'}%
                   </TableCell>
                   <TableCell className="font-medium">
-                    ₹{totals.totalRevenue.toLocaleString()}
+                    ₹{typeof totals.totalRevenue === 'number' ? totals.totalRevenue.toLocaleString() : '0'}
                   </TableCell>
                 </TableRow>
                 
@@ -365,7 +375,7 @@ const ResultsTable: React.FC<ResultsTableProps> = ({
                       {typeof row.retentionRate === 'number' ? row.retentionRate.toFixed(1) : '0.0'}%
                     </TableCell>
                     <TableCell className="font-medium">
-                      ₹{row.totalRevenue.toLocaleString()}
+                      ₹{typeof row.totalRevenue === 'number' ? row.totalRevenue.toLocaleString() : '0'}
                     </TableCell>
                   </TableRow>
                 ))}
@@ -407,7 +417,7 @@ const ResultsTable: React.FC<ResultsTableProps> = ({
           <PerformanceMetricCard
             key={index}
             title={row.teacherName}
-            value={`₹${row.totalRevenue.toLocaleString()}`}
+            value={`₹${typeof row.totalRevenue === 'number' ? row.totalRevenue.toLocaleString() : '0'}`}
             teacherName={row.teacherName}
             location={row.location}
             newClients={row.newClients}
@@ -436,7 +446,7 @@ const ResultsTable: React.FC<ResultsTableProps> = ({
                   <StudioMetricCard
                     key={index}
                     title={row.teacherName}
-                    value={`₹${row.totalRevenue.toLocaleString()}`}
+                    value={`₹${typeof row.totalRevenue === 'number' ? row.totalRevenue.toLocaleString() : '0'}`}
                     teacherName={row.teacherName}
                     location={row.location}
                     newClients={row.newClients}
