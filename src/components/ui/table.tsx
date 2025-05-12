@@ -5,9 +5,9 @@ import { cn } from "@/lib/utils"
 
 const Table = React.forwardRef<
   HTMLTableElement,
-  React.HTMLAttributes<HTMLTableElement>
->(({ className, ...props }, ref) => (
-  <div className="relative w-full overflow-auto">
+  React.HTMLAttributes<HTMLTableElement> & { maxHeight?: string }
+>(({ className, maxHeight, ...props }, ref) => (
+  <div className={`relative w-full overflow-auto ${maxHeight ? `max-h-[${maxHeight}]` : ""}`}>
     <table
       ref={ref}
       className={cn("w-full caption-bottom text-sm", className)}
@@ -39,12 +39,13 @@ TableBody.displayName = "TableBody"
 
 const TableFooter = React.forwardRef<
   HTMLTableSectionElement,
-  React.HTMLAttributes<HTMLTableSectionElement>
->(({ className, ...props }, ref) => (
+  React.HTMLAttributes<HTMLTableSectionElement> & { isClickable?: boolean }
+>(({ className, isClickable = false, ...props }, ref) => (
   <tfoot
     ref={ref}
     className={cn(
       "sticky bottom-0 z-10 bg-primary text-primary-foreground font-medium [&>tr]:last:border-b-0",
+      isClickable && "cursor-pointer hover:bg-primary-dark transition-colors",
       className
     )}
     {...props}

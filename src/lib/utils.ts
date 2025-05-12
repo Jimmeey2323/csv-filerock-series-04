@@ -29,6 +29,17 @@ export function safeToLocaleString(value: any, fallback: string = 'N/A'): string
 }
 
 /**
+ * Safely formats a number as currency without decimals
+ * Returns a fallback value if the input is not a valid number.
+ */
+export function safeFormatCurrency(value: any, currency: string = '₹', fallback: string = 'N/A'): string {
+  if (value === undefined || value === null || isNaN(Number(value))) {
+    return fallback;
+  }
+  return `${currency}${Number(value).toLocaleString(undefined, { maximumFractionDigits: 0 })}`;
+}
+
+/**
  * Converts a camelCase string to Title Case
  */
 export function convertCamelToTitle(camelCase: string): string {

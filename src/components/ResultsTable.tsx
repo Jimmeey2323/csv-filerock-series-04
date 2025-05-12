@@ -1,3 +1,4 @@
+
 import React, { useMemo, useState, useCallback } from 'react';
 import {
   Table,
@@ -26,7 +27,8 @@ import {
   Calendar,
   BarChart,
   PieChart,
-  ListFilter
+  ListFilter,
+  Check
 } from 'lucide-react';
 import PerformanceMetricCard from '@/components/cards/PerformanceMetricCard';
 import RevenueChart from '@/components/charts/RevenueChart';
@@ -44,6 +46,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { ProcessedTeacherData } from '@/utils/dataProcessor';
+import { safeToFixed, safeFormatCurrency } from '@/lib/utils';
 
 interface ResultsTableProps {
   data: ProcessedTeacherData[];
@@ -69,7 +72,7 @@ const ResultsTable: React.FC<ResultsTableProps> = ({
   const [clientType, setClientType] = useState<'new' | 'retained' | 'converted'>('new');
   const [isDrillDownOpen, setIsDrillDownOpen] = useState(false);
   const [drillDownData, setDrillDownData] = useState<ProcessedTeacherData | null>(null);
-  const [drillDownType, setDrillDownType] = useState<'teacher' | 'studio' | 'location' | 'period'>('teacher');
+  const [drillDownType, setDrillDownType] = useState<'teacher' | 'studio' | 'location' | 'period' | 'totals'>('teacher');
   const [drillDownMetricType, setDrillDownMetricType] = useState<'conversion' | 'retention' | 'all'>('all');
   
   // State for advanced table options
@@ -110,6 +113,89 @@ const ResultsTable: React.FC<ResultsTableProps> = ({
     setDrillDownType(dataMode === 'teacher' ? 'teacher' : 'studio');
     setDrillDownMetricType('all');
     setIsDrillDownOpen(true);
+  };
+  
+  const handleTotalsRowClick = () => {
+    // Create a mock totals data object with aggregated data for drill-down
+    const totalsData: ProcessedTeacherData = {
+      ...getAggregatedTotals(),
+      teacherName: 'All Teachers',
+      location: 'All Locations',
+      period: 'All Periods',
+      // Add the necessary client details
+      newClientDetails: getAllClientDetails('new'),
+      convertedClientDetails: getAllClientDetails('converted'),
+      retainedClientDetails: getAllClientDetails('retained')
+    };
+    
+    setDrillDownData(totalsData);
+    setDrillDownType('totals');
+    setDrillDownMetricType('all');
+    setIsDrillDownOpen(true);
+  };
+  
+  // Get all client details from all data items
+  const getAllClientDetails = (type: 'new' | 'retained' | 'converted') => {
+    let allClients: any[] = [];
+    data.forEach(item => {
+      const clientsField = type === 'new' 
+        ? 'newClientDetails' 
+        : type === 'converted' 
+          ? 'convertedClientDetails' 
+          : 'retainedClientDetails';
+      
+      if (item[clientsField] && Array.isArray(item[clientsField])) {
+        allClients = [...allClients, ...item[clientsField]];
+      }
+    });
+    return allClients;
+  };
+  
+  // Get a complete aggregated totals object
+  const getAggregatedTotals = () => {
+    const aggregated = displayData.reduce((acc, item) => {
+      // Add all numeric values
+      Object.keys(item).forEach(key => {
+        if (typeof item[key] === 'number' && !isNaN(item[key])) {
+          acc[key] = (acc[key] || 0) + item[key];
+        }
+      });
+      
+      // Special handling for revenue by week
+      if (item.revenueByWeek && Array.isArray(item.revenueByWeek)) {
+        if (!acc.revenueByWeek) {
+          acc.revenueByWeek = [];
+        }
+        
+        item.revenueByWeek.forEach(weekData => {
+          const existingWeekIndex = acc.revenueByWeek.findIndex(w => w.week === weekData.week);
+          if (existingWeekIndex >= 0) {
+            acc.revenueByWeek[existingWeekIndex].revenue += weekData.revenue;
+          } else {
+            acc.revenueByWeek.push({ ...weekData });
+          }
+        });
+      }
+      
+      return acc;
+    }, {} as any);
+    
+    // Calculate averages for rate fields
+    if (aggregated.retainedClients > 0) {
+      aggregated.retentionRate = totals.retentionRateSum / totals.retainedClients;
+    }
+    
+    if (aggregated.convertedClients > 0) {
+      aggregated.conversionRate = totals.conversionRateSum / totals.convertedClients;
+    }
+    
+    if (aggregated.newClients > 0) {
+      aggregated.noShowRate = totals.noShowRateSum / totals.newClients;
+      aggregated.lateCancellationRate = totals.lateCancellationRateSum / totals.newClients;
+      aggregated.averageRevenuePerClient = aggregated.totalRevenue / aggregated.newClients;
+    }
+    
+    return aggregated;
   };
   
   const handleMetricClick = (item: ProcessedTeacherData, metricType: 'conversion' | 'retention') => {
@@ -174,12 +260,12 @@ const ResultsTable: React.FC<ResultsTableProps> = ({
         newClients: acc.newClients + item.newClients,
         retainedClients: acc.retainedClients + item.retainedClients,
         convertedClients: acc.convertedClients + item.convertedClients,
-        totalRevenue: acc.totalRevenue + item.totalRevenue,
+        totalRevenue: acc.totalRevenue + (item.totalRevenue || 0),
         // Calculate averaged percentages correctly by summing the products
-        retentionRateSum: acc.retentionRateSum + (item.retentionRate * item.retainedClients),
-        conversionRateSum: acc.conversionRateSum + (item.conversionRate * item.convertedClients),
-        noShowRateSum: acc.noShowRateSum + (item.noShowRate * item.newClients),
-        lateCancellationRateSum: acc.lateCancellationRateSum + (item.lateCancellationRate * item.newClients),
+        retentionRateSum: acc.retentionRateSum + ((item.retentionRate || 0) * item.retainedClients),
+        conversionRateSum: acc.conversionRateSum + ((item.conversionRate || 0) * item.convertedClients),
+        noShowRateSum: acc.noShowRateSum + ((item.noShowRate || 0) * item.newClients),
+        lateCancellationRateSum: acc.lateCancellationRateSum + ((item.lateCancellationRate || 0) * item.newClients),
       };
     }, {
       newClients: 0,
@@ -222,24 +308,34 @@ const ResultsTable: React.FC<ResultsTableProps> = ({
     if (!selectedData) return [];
 
     switch (type) {
-      case 'new': return selectedData.newClientDetails;
-      case 'retained': return selectedData.retainedClientDetails;
-      case 'converted': return selectedData.convertedClientDetails;
+      case 'new': return selectedData.newClientDetails || [];
+      case 'retained': return selectedData.retainedClientDetails || [];
+      case 'converted': return selectedData.convertedClientDetails || [];
       default: return [];
     }
   };
 
   if (isLoading) {
-    return <p>Loading...</p>;
+    return (
+      <div className="flex items-center justify-center h-40">
+        <div className="animate-pulse-soft h-10 w-10 rounded-full bg-primary/20"></div>
+        <p className="ml-4 text-muted-foreground">Loading data...</p>
+      </div>
+    );
   }
 
   if (data.length === 0) {
-    return <p>No data available.</p>;
+    return (
+      <div className="text-center py-10 bg-muted/10 rounded-lg border border-dashed animate-fade-in">
+        <FileText className="h-10 w-10 text-muted-foreground mx-auto mb-2" />
+        <p className="text-muted-foreground">No data available. Please upload files to process.</p>
+      </div>
+    );
   }
   
   // Components for different views
   const renderTableView = () => (
-    <Card className="bg-white shadow-sm rounded-lg overflow-hidden">
+    <Card className="bg-white shadow-sm rounded-lg overflow-hidden animate-fade-in">
       <CardHeader className="bg-muted/20 pb-2">
         <CardTitle className="text-lg flex justify-between items-center">
           <span>Performance Data</span>
@@ -314,11 +410,13 @@ const ResultsTable: React.FC<ResultsTableProps> = ({
               </TableRow>
             </TableHeader>
             <TableBody>
-              {displayData.map((item) => (
+              {displayData.map((item, idx) => (
                 <TableRow 
                   key={`${item.teacherName}-${item.location}-${item.period}`}
                   isClickable={true}
                   onClick={() => handleRowClick(item)}
+                  className="animate-fade-in"
+                  style={{ animationDelay: `${idx * 30}ms` }}
                 >
                   {visibleColumns.includes('teacherName') && (
                     <TableCell className="font-medium">{dataMode === 'teacher' ? item.teacherName : item.location}</TableCell>
@@ -338,11 +436,12 @@ const ResultsTable: React.FC<ResultsTableProps> = ({
                   {visibleColumns.includes('retentionRate') && (
                     <TableCell className="text-center">
                       <Badge 
-                        variant={item.retentionRate > 50 ? "outline" : "destructive"} 
-                        className="cursor-pointer hover:bg-muted"
+                        variant={item.retentionRate > 50 ? "success" : "destructive"} 
+                        className="cursor-pointer hover:bg-muted flex items-center gap-1 animate-scale-in"
                         onClick={(e) => handleMetricClick(item, 'retention')}
                       >
-                        {item.retentionRate.toFixed(1)}%
+                        {item.retentionRate > 50 ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
+                        {safeToFixed(item.retentionRate, 1)}%
                       </Badge>
                     </TableCell>
                   )}
@@ -352,16 +451,17 @@ const ResultsTable: React.FC<ResultsTableProps> = ({
                   {visibleColumns.includes('conversionRate') && (
                     <TableCell className="text-center">
                       <Badge 
-                        variant={item.conversionRate > 10 ? "outline" : "destructive"} 
-                        className="cursor-pointer hover:bg-muted"
+                        variant={item.conversionRate > 10 ? "success" : "destructive"} 
+                        className="cursor-pointer hover:bg-muted flex items-center gap-1 animate-scale-in"
                         onClick={(e) => handleMetricClick(item, 'conversion')}
                       >
-                        {item.conversionRate.toFixed(1)}%
+                        {item.conversionRate > 10 ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
+                        {safeToFixed(item.conversionRate, 1)}%
                       </Badge>
                     </TableCell>
                   )}
                   {visibleColumns.includes('totalRevenue') && (
-                    <TableCell className="text-center">₹{item.totalRevenue.toLocaleString()}</TableCell>
+                    <TableCell className="text-center">{safeFormatCurrency(item.totalRevenue)}</TableCell>
                   )}
                   {visibleColumns.includes('trials') && (
                     <TableCell className="text-center">{item.trials}</TableCell>
@@ -380,14 +480,24 @@ const ResultsTable: React.FC<ResultsTableProps> = ({
                   )}
                   {visibleColumns.includes('averageRevenuePerClient') && (
                     <TableCell className="text-center">
-                      ₹{item.averageRevenuePerClient.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                      {safeFormatCurrency(item.averageRevenuePerClient)}
                     </TableCell>
                   )}
                   {visibleColumns.includes('noShowRate') && (
-                    <TableCell className="text-center">{item.noShowRate.toFixed(1)}%</TableCell>
+                    <TableCell className="text-center">
+                      <span className="flex items-center justify-center gap-1">
+                        {item.noShowRate < 10 ? <TrendingDown className="h-3 w-3 text-green-500" /> : <TrendingUp className="h-3 w-3 text-red-500" />}
+                        {safeToFixed(item.noShowRate, 1)}%
+                      </span>
+                    </TableCell>
                   )}
                   {visibleColumns.includes('lateCancellationRate') && (
-                    <TableCell className="text-center">{item.lateCancellationRate.toFixed(1)}%</TableCell>
+                    <TableCell className="text-center">
+                      <span className="flex items-center justify-center gap-1">
+                        {item.lateCancellationRate < 10 ? <TrendingDown className="h-3 w-3 text-green-500" /> : <TrendingUp className="h-3 w-3 text-red-500" />}
+                        {safeToFixed(item.lateCancellationRate, 1)}%
+                      </span>
+                    </TableCell>
                   )}
                   <TableCell>
                     <DropdownMenu>
@@ -434,7 +544,11 @@ const ResultsTable: React.FC<ResultsTableProps> = ({
                 </TableRow>
               ))}
             </TableBody>
-            <TableFooter className="bg-primary text-primary-foreground">
+            <TableFooter 
+              className="bg-primary text-primary-foreground hover:bg-primary-dark cursor-pointer animate-fade-in"
+              onClick={handleTotalsRowClick}
+              isClickable={true}
+            >
               <TableRow>
                 {visibleColumns.includes('teacherName') && (
                   <TableCell className="font-bold">TOTALS</TableCell>
@@ -452,58 +566,86 @@ const ResultsTable: React.FC<ResultsTableProps> = ({
                   <TableCell className="text-center font-bold">{totals.retainedClients}</TableCell>
                 )}
                 {visibleColumns.includes('retentionRate') && (
-                  <TableCell className="text-center font-bold">{avgRetentionRate.toFixed(1)}%</TableCell>
+                  <TableCell className="text-center font-bold">
+                    <span className="flex items-center justify-center gap-1">
+                      {avgRetentionRate > 50 ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
+                      {safeToFixed(avgRetentionRate, 1)}%
+                    </span>
+                  </TableCell>
                 )}
                 {visibleColumns.includes('convertedClients') && (
                   <TableCell className="text-center font-bold">{totals.convertedClients}</TableCell>
                 )}
                 {visibleColumns.includes('conversionRate') && (
-                  <TableCell className="text-center font-bold">{avgConversionRate.toFixed(1)}%</TableCell>
+                  <TableCell className="text-center font-bold">
+                    <span className="flex items-center justify-center gap-1">
+                      {avgConversionRate > 10 ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
+                      {safeToFixed(avgConversionRate, 1)}%
+                    </span>
+                  </TableCell>
                 )}
                 {visibleColumns.includes('totalRevenue') && (
-                  <TableCell className="text-center font-bold">₹{totals.totalRevenue.toLocaleString()}</TableCell>
+                  <TableCell className="text-center font-bold">{safeFormatCurrency(totals.totalRevenue)}</TableCell>
                 )}
                 {visibleColumns.includes('trials') && (
                   <TableCell className="text-center font-bold">
-                    {displayData.reduce((sum, item) => sum + item.trials, 0)}
+                    {displayData.reduce((sum, item) => sum + (item.trials || 0), 0)}
                   </TableCell>
                 )}
                 {visibleColumns.includes('referrals') && (
                   <TableCell className="text-center font-bold">
-                    {displayData.reduce((sum, item) => sum + item.referrals, 0)}
+                    {displayData.reduce((sum, item) => sum + (item.referrals || 0), 0)}
                   </TableCell>
                 )}
                 {visibleColumns.includes('hosted') && (
                   <TableCell className="text-center font-bold">
-                    {displayData.reduce((sum, item) => sum + item.hosted, 0)}
+                    {displayData.reduce((sum, item) => sum + (item.hosted || 0), 0)}
                   </TableCell>
                 )}
                 {visibleColumns.includes('influencerSignups') && (
                   <TableCell className="text-center font-bold">
-                    {displayData.reduce((sum, item) => sum + item.influencerSignups, 0)}
+                    {displayData.reduce((sum, item) => sum + (item.influencerSignups || 0), 0)}
                   </TableCell>
                 )}
                 {visibleColumns.includes('others') && (
                   <TableCell className="text-center font-bold">
-                    {displayData.reduce((sum, item) => sum + item.others, 0)}
+                    {displayData.reduce((sum, item) => sum + (item.others || 0), 0)}
                   </TableCell>
                 )}
                 {visibleColumns.includes('averageRevenuePerClient') && (
                   <TableCell className="text-center font-bold">
-                    ₹{(totals.totalRevenue / totals.newClients).toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                    {safeFormatCurrency(totals.newClients > 0 ? totals.totalRevenue / totals.newClients : 0)}
                   </TableCell>
                 )}
                 {visibleColumns.includes('noShowRate') && (
                   <TableCell className="text-center font-bold">
-                    {avgNoShowRate.toFixed(1)}%
+                    <span className="flex items-center justify-center gap-1">
+                      {avgNoShowRate < 10 ? <TrendingDown className="h-3 w-3" /> : <TrendingUp className="h-3 w-3" />}
+                      {safeToFixed(avgNoShowRate, 1)}%
+                    </span>
                   </TableCell>
                 )}
                 {visibleColumns.includes('lateCancellationRate') && (
                   <TableCell className="text-center font-bold">
-                    {avgLateCancellationRate.toFixed(1)}%
+                    <span className="flex items-center justify-center gap-1">
+                      {avgLateCancellationRate < 10 ? <TrendingDown className="h-3 w-3" /> : <TrendingUp className="h-3 w-3" />}
+                      {safeToFixed(avgLateCancellationRate, 1)}%
+                    </span>
                   </TableCell>
                 )}
-                <TableCell></TableCell>
+                <TableCell className="text-right pr-4">
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    className="text-primary-foreground hover:text-white"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleTotalsRowClick();
+                    }}
+                  >
+                    View Details
+                  </Button>
+                </TableCell>
               </TableRow>
             </TableFooter>
           </Table>
@@ -514,10 +656,11 @@ const ResultsTable: React.FC<ResultsTableProps> = ({
   
   const renderCards = () => (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-      {displayData.map((item) => (
+      {displayData.map((item, idx) => (
         <Card 
           key={`${item.teacherName}-${item.location}-${item.period}`} 
-          className="bg-white/70 backdrop-blur-sm hover:shadow-md cursor-pointer transition-all"
+          className="bg-white/70 backdrop-blur-sm hover:shadow-md cursor-pointer transition-all animate-fade-in hover:-translate-y-1 duration-300"
+          style={{ animationDelay: `${idx * 50}ms` }}
           onClick={() => handleRowClick(item)}
         >
           <CardHeader>
@@ -583,11 +726,12 @@ const ResultsTable: React.FC<ResultsTableProps> = ({
                 value={item.newClients.toString()}
                 icon={<User2 className="h-4 w-4 text-blue-500" />}
                 tooltip="Number of new clients acquired"
+                isAnimated={true}
               />
               <PerformanceMetricCard
                 title="Retained Clients"
                 value={item.retainedClients.toString()}
-                secondaryValue={`${item.retentionRate.toFixed(1)}%`}
+                secondaryValue={`${safeToFixed(item.retentionRate, 1)}%`}
                 icon={<Users2 className="h-4 w-4 text-green-500" />}
                 status={item.retentionRate > 50 ? 'positive' : item.retentionRate < 30 ? 'negative' : 'neutral'}
                 tooltip="Number of clients retained"
@@ -595,11 +739,12 @@ const ResultsTable: React.FC<ResultsTableProps> = ({
                   e.stopPropagation();
                   handleMetricClick(item, 'retention');
                 }}
+                isAnimated={true}
               />
               <PerformanceMetricCard
                 title="Converted Clients"
                 value={item.convertedClients.toString()}
-                secondaryValue={`${item.conversionRate.toFixed(1)}%`}
+                secondaryValue={`${safeToFixed(item.conversionRate, 1)}%`}
                 icon={<Sparkles className="h-4 w-4 text-purple-500" />}
                 status={item.conversionRate > 10 ? 'positive' : item.conversionRate < 5 ? 'negative' : 'neutral'}
                 tooltip="Number of clients converted"
@@ -607,26 +752,95 @@ const ResultsTable: React.FC<ResultsTableProps> = ({
                   e.stopPropagation();
                   handleMetricClick(item, 'conversion');
                 }}
+                isAnimated={true}
               />
               <PerformanceMetricCard
                 title="Total Revenue"
-                value={`₹${item.totalRevenue.toLocaleString()}`}
+                value={safeFormatCurrency(item.totalRevenue)}
                 icon={<DollarSign className="h-4 w-4 text-amber-500" />}
                 tooltip="Total revenue generated"
+                isAnimated={true}
               />
             </div>
           </CardContent>
         </Card>
       ))}
+      
+      {/* Totals card */}
+      <Card 
+        className="bg-gradient-to-br from-primary/10 to-primary/5 border-primary/20 backdrop-blur-sm hover:shadow-md cursor-pointer transition-all duration-300 hover:-translate-y-1 col-span-full animate-fade-in"
+        style={{ animationDelay: `${displayData.length * 50 + 100}ms` }}
+        onClick={handleTotalsRowClick}
+      >
+        <CardHeader>
+          <CardTitle className="flex items-center justify-between">
+            <div>
+              <p className="text-lg font-semibold">Aggregate Totals</p>
+              <p className="text-sm text-muted-foreground">
+                All Teachers - All Locations - All Periods
+              </p>
+            </div>
+            <Button 
+              size="sm" 
+              variant="outline"
+              className="animate-pulse-soft"
+              onClick={(e) => {
+                e.stopPropagation();
+                handleTotalsRowClick();
+              }}
+            >
+              <LayoutDashboard className="mr-2 h-4 w-4" />
+              View Details
+            </Button>
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <PerformanceMetricCard
+              title="New Clients"
+              value={totals.newClients.toString()}
+              icon={<User2 className="h-4 w-4 text-blue-500" />}
+              tooltip="Total number of new clients acquired"
+              isAnimated={true}
+            />
+            <PerformanceMetricCard
+              title="Retained Clients"
+              value={totals.retainedClients.toString()}
+              secondaryValue={`${safeToFixed(avgRetentionRate, 1)}%`}
+              icon={<Users2 className="h-4 w-4 text-green-500" />}
+              status={avgRetentionRate > 50 ? 'positive' : avgRetentionRate < 30 ? 'negative' : 'neutral'}
+              tooltip="Total number of clients retained"
+              isAnimated={true}
+            />
+            <PerformanceMetricCard
+              title="Converted Clients"
+              value={totals.convertedClients.toString()}
+              secondaryValue={`${safeToFixed(avgConversionRate, 1)}%`}
+              icon={<Sparkles className="h-4 w-4 text-purple-500" />}
+              status={avgConversionRate > 10 ? 'positive' : avgConversionRate < 5 ? 'negative' : 'neutral'}
+              tooltip="Total number of clients converted"
+              isAnimated={true}
+            />
+            <PerformanceMetricCard
+              title="Total Revenue"
+              value={safeFormatCurrency(totals.totalRevenue)}
+              icon={<DollarSign className="h-4 w-4 text-amber-500" />}
+              tooltip="Total revenue generated"
+              isAnimated={true}
+            />
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 
   const renderDetailed = () => (
     <div className="grid grid-cols-1 gap-6">
-      {displayData.map((item) => (
+      {displayData.map((item, idx) => (
         <Card 
           key={`${item.teacherName}-${item.location}-${item.period}`} 
-          className="bg-white/70 backdrop-blur-sm hover:shadow-md cursor-pointer transition-all"
+          className="bg-white/70 backdrop-blur-sm hover:shadow-md cursor-pointer transition-all animate-fade-in"
+          style={{ animationDelay: `${idx * 100}ms` }}
           onClick={() => handleRowClick(item)}
         >
           <CardHeader>
@@ -688,36 +902,42 @@ const ResultsTable: React.FC<ResultsTableProps> = ({
                   value={item.newClients.toString()}
                   icon={<User2 className="h-4 w-4 text-blue-500" />}
                   tooltip="Number of new clients acquired"
+                  isAnimated={true}
                 />
                 <PerformanceMetricCard
                   title="Trials"
                   value={item.trials.toString()}
                   icon={<FileText className="h-4 w-4 text-gray-500" />}
                   tooltip="Number of trial clients"
+                  isAnimated={true}
                 />
                 <PerformanceMetricCard
                   title="Referrals"
                   value={item.referrals.toString()}
                   icon={<Users2 className="h-4 w-4 text-sky-500" />}
                   tooltip="Number of clients from referrals"
+                  isAnimated={true}
                 />
                 <PerformanceMetricCard
                   title="Hosted Events"
                   value={item.hosted.toString()}
                   icon={<LayoutDashboard className="h-4 w-4 text-orange-500" />}
                   tooltip="Number of clients from hosted events"
+                  isAnimated={true}
                 />
                 <PerformanceMetricCard
                   title="Influencer Signups"
                   value={item.influencerSignups.toString()}
                   icon={<TrendingUp className="h-4 w-4 text-pink-500" />}
                   tooltip="Number of clients from influencer signups"
+                  isAnimated={true}
                 />
                 <PerformanceMetricCard
                   title="Others"
                   value={item.others.toString()}
                   icon={<MoreHorizontal className="h-4 w-4 text-zinc-500" />}
                   tooltip="Number of clients from other sources"
+                  isAnimated={true}
                 />
               </div>
             </div>
@@ -727,7 +947,7 @@ const ResultsTable: React.FC<ResultsTableProps> = ({
                 <PerformanceMetricCard
                   title="Retained Clients"
                   value={item.retainedClients.toString()}
-                  secondaryValue={`${item.retentionRate.toFixed(1)}%`}
+                  secondaryValue={`${safeToFixed(item.retentionRate, 1)}%`}
                   icon={<Users2 className="h-4 w-4 text-green-500" />}
                   status={item.retentionRate > 50 ? 'positive' : item.retentionRate < 30 ? 'negative' : 'neutral'}
                   tooltip="Number of clients retained"
@@ -735,11 +955,12 @@ const ResultsTable: React.FC<ResultsTableProps> = ({
                     e.stopPropagation();
                     handleMetricClick(item, 'retention');
                   }}
+                  isAnimated={true}
                 />
                 <PerformanceMetricCard
                   title="Converted Clients"
                   value={item.convertedClients.toString()}
-                  secondaryValue={`${item.conversionRate.toFixed(1)}%`}
+                  secondaryValue={`${safeToFixed(item.conversionRate, 1)}%`}
                   icon={<Sparkles className="h-4 w-4 text-purple-500" />}
                   status={item.conversionRate > 10 ? 'positive' : item.conversionRate < 5 ? 'negative' : 'neutral'}
                   tooltip="Number of clients converted"
@@ -747,30 +968,37 @@ const ResultsTable: React.FC<ResultsTableProps> = ({
                     e.stopPropagation();
                     handleMetricClick(item, 'conversion');
                   }}
+                  isAnimated={true}
                 />
                 <PerformanceMetricCard
                   title="Total Revenue"
-                  value={`₹${item.totalRevenue.toLocaleString()}`}
+                  value={safeFormatCurrency(item.totalRevenue)}
                   icon={<DollarSign className="h-4 w-4 text-amber-500" />}
                   tooltip="Total revenue generated"
+                  isAnimated={true}
                 />
                 <PerformanceMetricCard
                   title="Avg. Revenue/Client"
-                  value={`₹${item.averageRevenuePerClient.toLocaleString(undefined, { maximumFractionDigits: 0 })}`}
+                  value={safeFormatCurrency(item.averageRevenuePerClient)}
                   icon={<Percent className="h-4 w-4 text-teal-500" />}
                   tooltip="Average revenue per client"
+                  isAnimated={true}
                 />
                 <PerformanceMetricCard
                   title="No Show Rate"
-                  value={`${item.noShowRate.toFixed(1)}%`}
-                  icon={<TrendingDown className="h-4 w-4 text-red-500" />}
+                  value={`${safeToFixed(item.noShowRate, 1)}%`}
+                  icon={item.noShowRate < 10 ? <TrendingDown className="h-4 w-4 text-green-500" /> : <TrendingUp className="h-4 w-4 text-red-500" />}
                   tooltip="No show rate"
+                  status={item.noShowRate < 10 ? 'positive' : 'negative'}
+                  isAnimated={true}
                 />
                 <PerformanceMetricCard
                   title="Late Cancellation Rate"
-                  value={`${item.lateCancellationRate.toFixed(1)}%`}
-                  icon={<TrendingDown className="h-4 w-4 text-orange-500" />}
+                  value={`${safeToFixed(item.lateCancellationRate, 1)}%`}
+                  icon={item.lateCancellationRate < 5 ? <TrendingDown className="h-4 w-4 text-green-500" /> : <TrendingUp className="h-4 w-4 text-red-500" />}
                   tooltip="Late cancellation rate"
+                  status={item.lateCancellationRate < 5 ? 'positive' : 'negative'}
+                  isAnimated={true}
                 />
               </div>
             </div>
@@ -781,18 +1009,150 @@ const ResultsTable: React.FC<ResultsTableProps> = ({
           </CardContent>
         </Card>
       ))}
+      
+      {/* Totals detailed card */}
+      <Card 
+        className="bg-gradient-to-br from-primary/10 to-primary/5 border-primary/20 backdrop-blur-sm hover:shadow-md cursor-pointer transition-all animate-fade-in"
+        style={{ animationDelay: `${displayData.length * 100 + 200}ms` }}
+        onClick={handleTotalsRowClick}
+      >
+        <CardHeader>
+          <CardTitle className="flex items-center justify-between">
+            <div>
+              <p className="text-lg font-semibold">Aggregate Totals</p>
+              <p className="text-sm text-muted-foreground">
+                All Teachers - All Locations - All Periods
+              </p>
+            </div>
+            <Button 
+              size="sm" 
+              variant="outline"
+              className="animate-pulse-soft"
+              onClick={(e) => {
+                e.stopPropagation();
+                handleTotalsRowClick();
+              }}
+            >
+              <LayoutDashboard className="mr-2 h-4 w-4" />
+              View Detailed Analytics
+            </Button>
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div>
+            <h3 className="text-md font-semibold mb-2">Performance Summary</h3>
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+              <PerformanceMetricCard
+                title="New Clients"
+                value={totals.newClients.toString()}
+                icon={<User2 className="h-4 w-4 text-blue-500" />}
+                tooltip="Total number of new clients"
+                isAnimated={true}
+              />
+              <PerformanceMetricCard
+                title="Retained Clients"
+                value={totals.retainedClients.toString()}
+                secondaryValue={`${safeToFixed(avgRetentionRate, 1)}%`}
+                icon={<Users2 className="h-4 w-4 text-green-500" />}
+                status={avgRetentionRate > 50 ? 'positive' : avgRetentionRate < 30 ? 'negative' : 'neutral'}
+                tooltip="Total clients retained"
+                isAnimated={true}
+              />
+              <PerformanceMetricCard
+                title="Converted Clients"
+                value={totals.convertedClients.toString()}
+                secondaryValue={`${safeToFixed(avgConversionRate, 1)}%`}
+                icon={<Sparkles className="h-4 w-4 text-purple-500" />}
+                status={avgConversionRate > 10 ? 'positive' : avgConversionRate < 5 ? 'negative' : 'neutral'}
+                tooltip="Total clients converted"
+                isAnimated={true}
+              />
+              <PerformanceMetricCard
+                title="Total Revenue"
+                value={safeFormatCurrency(totals.totalRevenue)}
+                icon={<DollarSign className="h-4 w-4 text-amber-500" />}
+                tooltip="Total revenue generated"
+                isAnimated={true}
+              />
+              <PerformanceMetricCard
+                title="Avg. Revenue/Client"
+                value={safeFormatCurrency(totals.newClients > 0 ? totals.totalRevenue / totals.newClients : 0)}
+                icon={<Percent className="h-4 w-4 text-teal-500" />}
+                tooltip="Average revenue per client"
+                isAnimated={true}
+              />
+              <PerformanceMetricCard
+                title="No Show Rate"
+                value={`${safeToFixed(avgNoShowRate, 1)}%`}
+                icon={avgNoShowRate < 10 ? <TrendingDown className="h-4 w-4 text-green-500" /> : <TrendingUp className="h-4 w-4 text-red-500" />}
+                tooltip="Average no show rate"
+                status={avgNoShowRate < 10 ? 'positive' : 'negative'}
+                isAnimated={true}
+              />
+            </div>
+          </div>
+          <div>
+            <h3 className="text-md font-semibold mb-2">Client Source Summary</h3>
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+              <PerformanceMetricCard
+                title="Trials"
+                value={displayData.reduce((sum, item) => sum + (item.trials || 0), 0).toString()}
+                icon={<FileText className="h-4 w-4 text-gray-500" />}
+                tooltip="Total trial clients"
+                isAnimated={true}
+              />
+              <PerformanceMetricCard
+                title="Referrals"
+                value={displayData.reduce((sum, item) => sum + (item.referrals || 0), 0).toString()}
+                icon={<Users2 className="h-4 w-4 text-sky-500" />}
+                tooltip="Total referral clients"
+                isAnimated={true}
+              />
+              <PerformanceMetricCard
+                title="Hosted Events"
+                value={displayData.reduce((sum, item) => sum + (item.hosted || 0), 0).toString()}
+                icon={<LayoutDashboard className="h-4 w-4 text-orange-500" />}
+                tooltip="Total hosted event clients"
+                isAnimated={true}
+              />
+              <PerformanceMetricCard
+                title="Influencer Signups"
+                value={displayData.reduce((sum, item) => sum + (item.influencerSignups || 0), 0).toString()}
+                icon={<TrendingUp className="h-4 w-4 text-pink-500" />}
+                tooltip="Total influencer signup clients"
+                isAnimated={true}
+              />
+              <PerformanceMetricCard
+                title="Others"
+                value={displayData.reduce((sum, item) => sum + (item.others || 0), 0).toString()}
+                icon={<MoreHorizontal className="h-4 w-4 text-zinc-500" />}
+                tooltip="Other client sources"
+                isAnimated={true}
+              />
+              <PerformanceMetricCard
+                title="Late Cancellation Rate"
+                value={`${safeToFixed(avgLateCancellationRate, 1)}%`}
+                icon={avgLateCancellationRate < 5 ? <TrendingDown className="h-4 w-4 text-green-500" /> : <TrendingUp className="h-4 w-4 text-red-500" />}
+                tooltip="Average late cancellation rate"
+                status={avgLateCancellationRate < 5 ? 'positive' : 'negative'}
+                isAnimated={true}
+              />
+            </div>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
   
   const renderAnalytics = () => (
     <div className="space-y-6">
-      <Card>
+      <Card className="animate-fade-in">
         <CardHeader>
           <CardTitle>Performance Analytics Dashboard</CardTitle>
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <Card>
+            <Card className="animate-fade-in" style={{ animationDelay: '100ms' }}>
               <CardHeader className="py-2">
                 <CardTitle className="text-sm font-medium">Total New Clients</CardTitle>
               </CardHeader>
@@ -801,36 +1161,42 @@ const ResultsTable: React.FC<ResultsTableProps> = ({
                 <p className="text-xs text-muted-foreground">Across all teachers/studios</p>
               </CardContent>
             </Card>
-            <Card>
+            <Card className="animate-fade-in" style={{ animationDelay: '200ms' }}>
               <CardHeader className="py-2">
                 <CardTitle className="text-sm font-medium">Avg. Retention Rate</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{avgRetentionRate.toFixed(1)}%</div>
+                <div className="text-2xl font-bold flex items-center">
+                  {avgRetentionRate > 50 ? <TrendingUp className="h-4 w-4 mr-2 text-green-500" /> : <TrendingDown className="h-4 w-4 mr-2 text-red-500" />}
+                  {safeToFixed(avgRetentionRate, 1)}%
+                </div>
                 <p className="text-xs text-muted-foreground">Weighted average</p>
               </CardContent>
             </Card>
-            <Card>
+            <Card className="animate-fade-in" style={{ animationDelay: '300ms' }}>
               <CardHeader className="py-2">
                 <CardTitle className="text-sm font-medium">Avg. Conversion Rate</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{avgConversionRate.toFixed(1)}%</div>
+                <div className="text-2xl font-bold flex items-center">
+                  {avgConversionRate > 10 ? <TrendingUp className="h-4 w-4 mr-2 text-green-500" /> : <TrendingDown className="h-4 w-4 mr-2 text-red-500" />}
+                  {safeToFixed(avgConversionRate, 1)}%
+                </div>
                 <p className="text-xs text-muted-foreground">Weighted average</p>
               </CardContent>
             </Card>
-            <Card>
+            <Card className="animate-fade-in" style={{ animationDelay: '400ms' }}>
               <CardHeader className="py-2">
                 <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">₹{totals.totalRevenue.toLocaleString()}</div>
+                <div className="text-2xl font-bold">{safeFormatCurrency(totals.totalRevenue)}</div>
                 <p className="text-xs text-muted-foreground">Across all data</p>
               </CardContent>
             </Card>
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-fade-in" style={{ animationDelay: '500ms' }}>
             <Card>
               <CardHeader>
                 <CardTitle className="text-lg">Performance Comparison</CardTitle>
@@ -857,13 +1223,18 @@ const ResultsTable: React.FC<ResultsTableProps> = ({
               </CardContent>
             </Card>
           </div>
+          
+          <Button className="w-full animate-scale-in" onClick={handleTotalsRowClick}>
+            <LayoutDashboard className="mr-2 h-4 w-4" />
+            View Detailed Analytics
+          </Button>
         </CardContent>
       </Card>
     </div>
   );
   
   const renderCalendarView = () => (
-    <Card>
+    <Card className="animate-fade-in">
       <CardHeader>
         <CardTitle>Calendar View</CardTitle>
       </CardHeader>
@@ -877,7 +1248,7 @@ const ResultsTable: React.FC<ResultsTableProps> = ({
   );
   
   const renderTrendsView = () => (
-    <Card>
+    <Card className="animate-fade-in">
       <CardHeader>
         <CardTitle>Performance Trends</CardTitle>
       </CardHeader>
