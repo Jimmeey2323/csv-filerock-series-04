@@ -1,4 +1,3 @@
-
 import React, { useState, useCallback, useEffect } from 'react';
 import { toast } from 'sonner';
 import FileUploader from '@/components/FileUploader';
@@ -219,12 +218,14 @@ const Index = () => {
       progress: 0,
       currentStep: 'Starting processing...'
     });
+    
     try {
       // Parse CSV files
       updateProgress({
         progress: 10,
         currentStep: 'Parsing CSV files...'
       });
+      
       const newFileResult = await parseCSV(categorized.new);
       const bookingsFileResult = await parseCSV(categorized.bookings);
 
@@ -237,10 +238,10 @@ const Index = () => {
       }
 
       // Save raw data for the Raw Data View
-      setRawData({
-        newClientData: newFileResult.data,
-        bookingsData: bookingsFileResult.data,
-        paymentsData: salesFileResult.data,
+      const initialRawData = {
+        newClientData: newFileResult.data || [],
+        bookingsData: bookingsFileResult.data || [],
+        paymentsData: salesFileResult.data || [],
         processingResults: {
           included: [],
           excluded: [],
@@ -248,17 +249,29 @@ const Index = () => {
           convertedClients: [],
           retainedClients: []
         }
-      });
+      };
+      
+      setRawData(initialRawData);
 
       // Process data
-      const result = await processData(newFileResult.data, bookingsFileResult.data, salesFileResult.data, updateProgress);
+      updateProgress({
+        progress: 30,
+        currentStep: 'Processing data...'
+      });
+      
+      const result = await processData(
+        newFileResult.data || [], 
+        bookingsFileResult.data || [], 
+        salesFileResult.data || [], 
+        updateProgress
+      );
 
       // Update state with processed data
-      setProcessedData(result.processedData);
-      setFilteredData(result.processedData);
-      setLocations(result.locations);
-      setTeachers(result.teachers);
-      setPeriods(result.periods);
+      setProcessedData(result.processedData || []);
+      setFilteredData(result.processedData || []);
+      setLocations(result.locations || []);
+      setTeachers(result.teachers || []);
+      setPeriods(result.periods || []);
 
       // Update raw data processing results with the results from processing
       setRawData(prev => ({
@@ -441,7 +454,18 @@ const Index = () => {
               </TabsContent>
               
               <TabsContent value="raw-data" className="mt-0">
-                <RawDataView newClientData={rawData.newClientData} bookingsData={rawData.bookingsData} paymentsData={rawData.paymentsData} processingResults={rawData.processingResults} />
+                <RawDataView 
+                  newClientData={rawData.newClientData || []} 
+                  bookingsData={rawData.bookingsData || []} 
+                  paymentsData={rawData.paymentsData || []} 
+                  processingResults={rawData.processingResults || {
+                    included: [],
+                    excluded: [],
+                    newClients: [],
+                    convertedClients: [],
+                    retainedClients: []
+                  }} 
+                />
               </TabsContent>
             </Tabs>
           </div>}

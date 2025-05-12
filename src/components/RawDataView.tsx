@@ -13,7 +13,8 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Search, FileText, Filter } from 'lucide-react';
+import { Search, FileText, Filter, AlertTriangle } from 'lucide-react';
+import { safeFormatCurrency } from '@/lib/utils';
 
 interface RawDataProps {
   newClientData: any[];
@@ -37,6 +38,7 @@ const RawDataView: React.FC<RawDataProps> = ({
   const [searchTerm, setSearchTerm] = useState('');
   
   const filterData = (data: any[]) => {
+    if (!data || !Array.isArray(data)) return [];
     if (!searchTerm) return data;
     return data.filter(item => 
       Object.values(item).some(val => 
@@ -47,6 +49,7 @@ const RawDataView: React.FC<RawDataProps> = ({
 
   // Helper function to deduplicate records by email
   const deduplicateByEmail = (records: any[]) => {
+    if (!records || !Array.isArray(records)) return [];
     const seen = new Set();
     return records.filter(item => {
       const email = item['Email'] || item.email || '';
@@ -59,7 +62,17 @@ const RawDataView: React.FC<RawDataProps> = ({
   };
 
   const renderDataTable = (data: any[], type: string) => {
-    if (!data || data.length === 0) return <p className="text-center py-8">No data available</p>;
+    if (!data || !Array.isArray(data) || data.length === 0) {
+      return (
+        <div className="flex flex-col items-center justify-center py-10 text-center animate-fade-in">
+          <AlertTriangle className="h-12 w-12 text-muted-foreground mb-4 opacity-50" />
+          <p className="text-xl font-medium mb-2">No {type} Data Available</p>
+          <p className="text-muted-foreground max-w-md">
+            No {type.toLowerCase()} data was found. Please ensure you've uploaded the correct CSV files.
+          </p>
+        </div>
+      );
+    }
     
     const filteredData = filterData(data);
     const columns = Object.keys(filteredData[0] || {});
@@ -96,10 +109,14 @@ const RawDataView: React.FC<RawDataProps> = ({
               </TableHeader>
               <TableBody>
                 {filteredData.map((row, rowIndex) => (
-                  <TableRow key={rowIndex}>
+                  <TableRow key={rowIndex} className="animate-fade-in" style={{ animationDelay: `${rowIndex * 30}ms` }}>
                     {columns.map((column) => (
                       <TableCell key={`${rowIndex}-${column}`}>
-                        {row[column] !== undefined ? row[column].toString() : ''}
+                        {column.toLowerCase().includes('date') && row[column] ? 
+                          row[column].toString() : 
+                        column.toLowerCase().includes('value') || column.toLowerCase().includes('revenue') || column.toLowerCase().includes('price') ?
+                          safeFormatCurrency(row[column]) :
+                          row[column] !== undefined ? row[column].toString() : ''}
                       </TableCell>
                     ))}
                     
@@ -130,6 +147,7 @@ const RawDataView: React.FC<RawDataProps> = ({
 
   // Helper function to format client name
   const formatClientName = (client: any) => {
+    if (!client) return 'Unknown';
     if (client['First name'] && client['Last name']) {
       return `${client['First name']} ${client['Last name']}`;
     } else if (client.name) {
@@ -144,20 +162,46 @@ const RawDataView: React.FC<RawDataProps> = ({
 
   // Helper to get email
   const getClientEmail = (client: any) => {
+    if (!client) return '';
     return client['Email'] || client.email || '';
   };
 
   // Helper to get dates
   const getFirstVisitDate = (client: any) => {
+    if (!client) return '';
     return client['First visit at'] || client.firstVisit || client.date || '';
   };
 
+  // Helper to get first purchase date
+  const getFirstPurchaseDate = (client: any) => {
+    if (!client) return '';
+    return client['First purchase date'] || client.purchaseDate || client.saleDate || client.firstPurchaseDate || '';
+  };
+
   // Deduplicate exclusion records by email
-  const uniqueExcludedRecords = deduplicateByEmail(processingResults.excluded);
+  const uniqueExcludedRecords = deduplicateByEmail(processingResults.excluded || []);
+  const hasProcessingData = processingResults && 
+    ((processingResults.included && processingResults.included.length > 0) || 
+     (processingResults.excluded && processingResults.excluded.length > 0) ||
+     (processingResults.newClients && processingResults.newClients.length > 0) ||
+     (processingResults.convertedClients && processingResults.convertedClients.length > 0) ||
+     (processingResults.retainedClients && processingResults.retainedClients.length > 0));
 
   const renderProcessingTab = () => {
+    if (!hasProcessingData) {
+      return (
+        <div className="flex flex-col items-center justify-center py-10 text-center">
+          <AlertTriangle className="h-12 w-12 text-muted-foreground mb-4 opacity-50" />
+          <p className="text-xl font-medium mb-2">No Processing Data Available</p>
+          <p className="text-muted-foreground max-w-md">
+            No processed data was found. Please ensure you've processed your CSV files correctly.
+          </p>
+        </div>
+      );
+    }
+
     return (
-      <div className="space-y-6">
+      <div className="space-y-6 animate-fade-in">
         <div className="grid grid-cols-1 gap-4">
           <Card className="shadow-sm">
             <CardHeader>
@@ -165,23 +209,25 @@ const RawDataView: React.FC<RawDataProps> = ({
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-4 gap-4">
-                <div className="bg-muted/30 rounded-lg p-4">
+                <div className="bg-muted/30 rounded-lg p-4 animate-scale-in" style={{ animationDelay: '100ms' }}>
                   <div className="text-sm text-muted-foreground">Total Records</div>
-                  <div className="text-2xl font-semibold">{processingResults.included.length + uniqueExcludedRecords.length}</div>
+                  <div className="text-2xl font-semibold">
+                    {(processingResults.included?.length || 0) + (uniqueExcludedRecords?.length || 0)}
+                  </div>
                 </div>
-                <div className="bg-muted/30 rounded-lg p-4">
+                <div className="bg-muted/30 rounded-lg p-4 animate-scale-in" style={{ animationDelay: '200ms' }}>
                   <div className="text-sm text-muted-foreground">Included</div>
-                  <div className="text-2xl font-semibold">{processingResults.included.length}</div>
+                  <div className="text-2xl font-semibold">{processingResults.included?.length || 0}</div>
                 </div>
-                <div className="bg-muted/30 rounded-lg p-4">
+                <div className="bg-muted/30 rounded-lg p-4 animate-scale-in" style={{ animationDelay: '300ms' }}>
                   <div className="text-sm text-muted-foreground">Excluded</div>
-                  <div className="text-2xl font-semibold">{uniqueExcludedRecords.length}</div>
+                  <div className="text-2xl font-semibold">{uniqueExcludedRecords?.length || 0}</div>
                 </div>
-                <div className="bg-muted/30 rounded-lg p-4">
+                <div className="bg-muted/30 rounded-lg p-4 animate-scale-in" style={{ animationDelay: '400ms' }}>
                   <div className="text-sm text-muted-foreground">Conversion Rate</div>
                   <div className="text-2xl font-semibold">
-                    {processingResults.newClients.length > 0 
-                      ? `${((processingResults.convertedClients.length / processingResults.newClients.length) * 100).toFixed(1)}%`
+                    {processingResults.newClients && processingResults.newClients.length > 0 && processingResults.convertedClients
+                      ? `${(((processingResults.convertedClients.length || 0) / (processingResults.newClients.length || 1)) * 100).toFixed(1)}%`
                       : '0%'}
                   </div>
                 </div>
@@ -195,19 +241,23 @@ const RawDataView: React.FC<RawDataProps> = ({
             </CardHeader>
             <CardContent>
               <ScrollArea className="h-[180px]">
-                <div className="space-y-2">
-                  {uniqueExcludedRecords.map((item, index) => (
-                    <div key={index} className="flex items-start border-b py-2">
-                      <Badge variant="outline" className="mr-2 mt-0.5">#{index + 1}</Badge>
-                      <div>
-                        <p className="font-medium">{formatClientName(item)}</p>
-                        <p className="text-sm text-muted-foreground">{item.reason || 'No reason specified'}</p>
-                        <p className="text-xs text-muted-foreground">{getClientEmail(item)}</p>
-                        <p className="text-xs text-muted-foreground">{getFirstVisitDate(item)}</p>
+                {uniqueExcludedRecords.length > 0 ? (
+                  <div className="space-y-2">
+                    {uniqueExcludedRecords.map((item, index) => (
+                      <div key={index} className="flex items-start border-b py-2 animate-fade-in" style={{ animationDelay: `${index * 50}ms` }}>
+                        <Badge variant="outline" className="mr-2 mt-0.5">#{index + 1}</Badge>
+                        <div>
+                          <p className="font-medium">{formatClientName(item)}</p>
+                          <p className="text-sm text-muted-foreground">{item.reason || 'No reason specified'}</p>
+                          <p className="text-xs text-muted-foreground">{getClientEmail(item)}</p>
+                          <p className="text-xs text-muted-foreground">First visit: {getFirstVisitDate(item)}</p>
+                        </div>
                       </div>
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-center py-4 text-muted-foreground">No exclusions found</p>
+                )}
               </ScrollArea>
             </CardContent>
           </Card>
@@ -220,20 +270,24 @@ const RawDataView: React.FC<RawDataProps> = ({
             </CardHeader>
             <CardContent>
               <ScrollArea className="h-[240px]">
-                <div className="space-y-2">
-                  {processingResults.newClients.map((item, index) => (
-                    <div key={index} className="flex items-start border-b py-2">
-                      <Badge variant="default" className="mr-2 mt-0.5">#{index + 1}</Badge>
-                      <div>
-                        <p className="font-medium">{formatClientName(item)}</p>
-                        <p className="text-sm text-muted-foreground">{item.reason || 'First time visitor'}</p>
-                        <p className="text-xs text-muted-foreground">{getClientEmail(item)}</p>
-                        <p className="text-xs text-muted-foreground">{getFirstVisitDate(item)}</p>
-                        <p className="text-xs text-muted-foreground">Membership: {item['Membership used'] || 'N/A'}</p>
+                {processingResults.newClients && processingResults.newClients.length > 0 ? (
+                  <div className="space-y-2">
+                    {processingResults.newClients.map((item, index) => (
+                      <div key={index} className="flex items-start border-b py-2 animate-fade-in" style={{ animationDelay: `${index * 50}ms` }}>
+                        <Badge variant="default" className="mr-2 mt-0.5">#{index + 1}</Badge>
+                        <div>
+                          <p className="font-medium">{formatClientName(item)}</p>
+                          <p className="text-sm text-muted-foreground">{item.reason || 'First time visitor'}</p>
+                          <p className="text-xs text-muted-foreground">Email: {getClientEmail(item)}</p>
+                          <p className="text-xs text-muted-foreground">First visit: {getFirstVisitDate(item)}</p>
+                          <p className="text-xs text-muted-foreground">Membership: {item['Membership used'] || 'N/A'}</p>
+                        </div>
                       </div>
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-center py-4 text-muted-foreground">No new clients found</p>
+                )}
               </ScrollArea>
             </CardContent>
           </Card>
@@ -251,40 +305,48 @@ const RawDataView: React.FC<RawDataProps> = ({
                   </TabsList>
                   
                   <TabsContent value="converted">
-                    <div className="space-y-2 pt-2">
-                      {processingResults.convertedClients.map((item, index) => (
-                        <div key={index} className="flex items-start border-b py-2">
-                          <Badge variant="success" className="mr-2 mt-0.5">#{index + 1}</Badge>
-                          <div>
-                            <p className="font-medium">{formatClientName(item)}</p>
-                            <p className="text-sm text-muted-foreground">{item.reason || 'Purchased membership'}</p>
-                            <p className="text-xs text-muted-foreground">Email: {getClientEmail(item)}</p>
-                            <p className="text-xs text-muted-foreground">First visit: {item['First visit at'] || item.firstVisit || 'N/A'}</p>
-                            <p className="text-xs text-muted-foreground">First purchase: {item.saleDate || item.purchaseDate || 'N/A'}</p>
-                            <p className="text-xs text-muted-foreground">Purchase item: {item.item || item.purchaseItem || 'N/A'}</p>
-                            <p className="text-xs text-muted-foreground">Value: {item.saleValue ? `₹${item.saleValue}` : 'N/A'}</p>
+                    {processingResults.convertedClients && processingResults.convertedClients.length > 0 ? (
+                      <div className="space-y-2 pt-2">
+                        {processingResults.convertedClients.map((item, index) => (
+                          <div key={index} className="flex items-start border-b py-2 animate-fade-in" style={{ animationDelay: `${index * 50}ms` }}>
+                            <Badge variant="success" className="mr-2 mt-0.5">#{index + 1}</Badge>
+                            <div>
+                              <p className="font-medium">{formatClientName(item)}</p>
+                              <p className="text-sm text-muted-foreground">{item.reason || 'Purchased membership'}</p>
+                              <p className="text-xs text-muted-foreground">Email: {getClientEmail(item)}</p>
+                              <p className="text-xs text-muted-foreground">First visit: {getFirstVisitDate(item)}</p>
+                              <p className="text-xs text-muted-foreground">First purchase: {getFirstPurchaseDate(item)}</p>
+                              <p className="text-xs text-muted-foreground">Purchase item: {item.item || item.purchaseItem || 'N/A'}</p>
+                              <p className="text-xs text-muted-foreground">Value: {item.saleValue ? safeFormatCurrency(item.saleValue) : 'N/A'}</p>
+                            </div>
                           </div>
-                        </div>
-                      ))}
-                    </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-center py-4 text-muted-foreground">No converted clients found</p>
+                    )}
                   </TabsContent>
                   
                   <TabsContent value="retained">
-                    <div className="space-y-2 pt-2">
-                      {processingResults.retainedClients.map((item, index) => (
-                        <div key={index} className="flex items-start border-b py-2">
-                          <Badge variant="outline" className="mr-2 mt-0.5">#{index + 1}</Badge>
-                          <div>
-                            <p className="font-medium">{formatClientName(item)}</p>
-                            <p className="text-sm text-muted-foreground">{item.reason || 'Multiple visits'}</p>
-                            <p className="text-xs text-muted-foreground">Email: {getClientEmail(item)}</p>
-                            <p className="text-xs text-muted-foreground">First visit: {item['First visit at'] || item.firstVisit || 'N/A'}</p>
-                            <p className="text-xs text-muted-foreground">Visits: {item.visitsCount || 'N/A'}</p>
-                            <p className="text-xs text-muted-foreground">Membership: {item['Membership used'] || 'N/A'}</p>
+                    {processingResults.retainedClients && processingResults.retainedClients.length > 0 ? (
+                      <div className="space-y-2 pt-2">
+                        {processingResults.retainedClients.map((item, index) => (
+                          <div key={index} className="flex items-start border-b py-2 animate-fade-in" style={{ animationDelay: `${index * 50}ms` }}>
+                            <Badge variant="outline" className="mr-2 mt-0.5">#{index + 1}</Badge>
+                            <div>
+                              <p className="font-medium">{formatClientName(item)}</p>
+                              <p className="text-sm text-muted-foreground">{item.reason || 'Multiple visits'}</p>
+                              <p className="text-xs text-muted-foreground">Email: {getClientEmail(item)}</p>
+                              <p className="text-xs text-muted-foreground">First visit: {getFirstVisitDate(item)}</p>
+                              <p className="text-xs text-muted-foreground">Visits: {item.visitsCount || 'N/A'}</p>
+                              <p className="text-xs text-muted-foreground">Membership: {item['Membership used'] || 'N/A'}</p>
+                            </div>
                           </div>
-                        </div>
-                      ))}
-                    </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-center py-4 text-muted-foreground">No retained clients found</p>
+                    )}
                   </TabsContent>
                 </Tabs>
               </ScrollArea>
@@ -321,11 +383,11 @@ const RawDataView: React.FC<RawDataProps> = ({
       </TabsContent>
       
       <TabsContent value="new">
-        {renderDataTable(newClientData, 'New Client')}
+        {renderDataTable(newClientData || [], 'New Client')}
       </TabsContent>
       
       <TabsContent value="bookings">
-        {renderDataTable(bookingsData, 'Bookings')}
+        {renderDataTable(bookingsData || [], 'Bookings')}
       </TabsContent>
       
       <TabsContent value="payments">
