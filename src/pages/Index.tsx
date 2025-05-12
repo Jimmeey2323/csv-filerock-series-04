@@ -23,8 +23,50 @@ const STORAGE_KEYS = {
   LOCATIONS: 'studio-stats-locations',
   TEACHERS: 'studio-stats-teachers',
   PERIODS: 'studio-stats-periods',
-  RAW_DATA: 'studio-stats-raw-data'
+  // We'll use session storage for raw data due to its potentially large size
+  HAS_RAW_DATA: 'studio-stats-has-raw-data'
 };
+
+// Storage utilities
+const storageUtils = {
+  // Save data to localStorage with error handling
+  saveToStorage: (key: string, data: any) => {
+    try {
+      localStorage.setItem(key, JSON.stringify(data));
+      return true;
+    } catch (error) {
+      console.error(`Error saving to storage for key ${key}:`, error);
+      // If it's a QuotaExceededError, notify the user
+      if (error instanceof DOMException && error.name === 'QuotaExceededError') {
+        toast.error('Storage limit exceeded. Some data might not be saved between sessions.');
+      }
+      return false;
+    }
+  },
+  
+  // Load data from localStorage with error handling
+  loadFromStorage: (key: string) => {
+    try {
+      const data = localStorage.getItem(key);
+      return data ? JSON.parse(data) : null;
+    } catch (error) {
+      console.error(`Error loading from storage for key ${key}:`, error);
+      return null;
+    }
+  },
+  
+  // Clear specific localStorage keys
+  clearStorage: (keys: string[]) => {
+    keys.forEach(key => {
+      try {
+        localStorage.removeItem(key);
+      } catch (error) {
+        console.error(`Error clearing storage for key ${key}:`, error);
+      }
+    });
+  }
+};
+
 const Index = () => {
   const [files, setFiles] = useState<File[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -61,52 +103,57 @@ const Index = () => {
 
   // Load saved data from localStorage on component mount
   useEffect(() => {
-    const savedProcessedData = localStorage.getItem(STORAGE_KEYS.PROCESSED_DATA);
-    const savedFilteredData = localStorage.getItem(STORAGE_KEYS.FILTERED_DATA);
-    const savedLocations = localStorage.getItem(STORAGE_KEYS.LOCATIONS);
-    const savedTeachers = localStorage.getItem(STORAGE_KEYS.TEACHERS);
-    const savedPeriods = localStorage.getItem(STORAGE_KEYS.PERIODS);
-    const savedRawData = localStorage.getItem(STORAGE_KEYS.RAW_DATA);
+    const savedProcessedData = storageUtils.loadFromStorage(STORAGE_KEYS.PROCESSED_DATA);
+    const savedFilteredData = storageUtils.loadFromStorage(STORAGE_KEYS.FILTERED_DATA);
+    const savedLocations = storageUtils.loadFromStorage(STORAGE_KEYS.LOCATIONS);
+    const savedTeachers = storageUtils.loadFromStorage(STORAGE_KEYS.TEACHERS);
+    const savedPeriods = storageUtils.loadFromStorage(STORAGE_KEYS.PERIODS);
+    const hasRawData = localStorage.getItem(STORAGE_KEYS.HAS_RAW_DATA) === 'true';
+    
     if (savedProcessedData) {
-      setProcessedData(JSON.parse(savedProcessedData));
+      setProcessedData(savedProcessedData);
       setResultsVisible(true);
     }
     if (savedFilteredData) {
-      setFilteredData(JSON.parse(savedFilteredData));
+      setFilteredData(savedFilteredData);
     }
     if (savedLocations) {
-      setLocations(JSON.parse(savedLocations));
+      setLocations(savedLocations);
     }
     if (savedTeachers) {
-      setTeachers(JSON.parse(savedTeachers));
+      setTeachers(savedTeachers);
     }
     if (savedPeriods) {
-      setPeriods(JSON.parse(savedPeriods));
+      setPeriods(savedPeriods);
     }
-    if (savedRawData) {
-      setRawData(JSON.parse(savedRawData));
+    
+    // If we have processed results but no raw data available, show a notice
+    if (savedProcessedData && savedProcessedData.length > 0 && hasRawData) {
+      setResultsVisible(true);
     }
   }, []);
 
-  // Save data to localStorage whenever it changes
+  // Save processed data, filtered data, and metadata to localStorage when they change
   useEffect(() => {
     if (processedData.length > 0) {
-      localStorage.setItem(STORAGE_KEYS.PROCESSED_DATA, JSON.stringify(processedData));
+      storageUtils.saveToStorage(STORAGE_KEYS.PROCESSED_DATA, processedData);
     }
     if (filteredData.length > 0) {
-      localStorage.setItem(STORAGE_KEYS.FILTERED_DATA, JSON.stringify(filteredData));
+      storageUtils.saveToStorage(STORAGE_KEYS.FILTERED_DATA, filteredData);
     }
     if (locations.length > 0) {
-      localStorage.setItem(STORAGE_KEYS.LOCATIONS, JSON.stringify(locations));
+      storageUtils.saveToStorage(STORAGE_KEYS.LOCATIONS, locations);
     }
     if (teachers.length > 0) {
-      localStorage.setItem(STORAGE_KEYS.TEACHERS, JSON.stringify(teachers));
+      storageUtils.saveToStorage(STORAGE_KEYS.TEACHERS, teachers);
     }
     if (periods.length > 0) {
-      localStorage.setItem(STORAGE_KEYS.PERIODS, JSON.stringify(periods));
+      storageUtils.saveToStorage(STORAGE_KEYS.PERIODS, periods);
     }
+    
+    // Set a flag that we have raw data, but don't store the actual raw data
     if (rawData.newClientData.length > 0 || rawData.bookingsData.length > 0) {
-      localStorage.setItem(STORAGE_KEYS.RAW_DATA, JSON.stringify(rawData));
+      localStorage.setItem(STORAGE_KEYS.HAS_RAW_DATA, 'true');
     }
   }, [processedData, filteredData, locations, teachers, periods, rawData]);
 
@@ -164,7 +211,8 @@ const Index = () => {
     });
 
     // Clear localStorage when processing new files
-    Object.values(STORAGE_KEYS).forEach(key => localStorage.removeItem(key));
+    storageUtils.clearStorage(Object.values(STORAGE_KEYS));
+    
     setIsProcessing(true);
     updateProgress({
       progress: 0,
@@ -292,7 +340,7 @@ const Index = () => {
   // Clear saved data and reset to upload screen
   const handleResetApp = useCallback(() => {
     // Clear localStorage
-    Object.values(STORAGE_KEYS).forEach(key => localStorage.removeItem(key));
+    storageUtils.clearStorage(Object.values(STORAGE_KEYS));
 
     // Reset state
     setResultsVisible(false);
@@ -316,6 +364,7 @@ const Index = () => {
     });
     toast.success('Application reset. You can upload new files');
   }, []);
+
   return <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white">
       <header className="border-b bg-white/80 backdrop-blur-sm sticky top-0 z-50">
         <div className="container flex justify-between items-center py-3 bg-neutral-50">
