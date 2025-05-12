@@ -1,47 +1,17 @@
-
 import React from 'react';
-import { 
-  Dialog, 
-  DialogContent, 
-  DialogHeader, 
-  DialogTitle,
-  DialogDescription,
-  DialogFooter
-} from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-  TableFooter
-} from '@/components/ui/table';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from '@/components/ui/table';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { ProcessedTeacherData } from '@/utils/dataProcessor';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { 
-  BarChart as BarChartIcon,
-  LineChart as LineChartIcon,
-  LayoutDashboard,
-  ListFilter,
-  Table as TableIcon,
-  PieChart as PieChartIcon,
-  UserRound,
-  DollarSign,
-  Percent,
-  Calendar,
-  ArrowUpDown,
-  Users
-} from 'lucide-react';
+import { BarChart as BarChartIcon, LineChart as LineChartIcon, LayoutDashboard, ListFilter, Table as TableIcon, PieChart as PieChartIcon, UserRound, DollarSign, Percent, Calendar, ArrowUpDown, Users } from 'lucide-react';
 import RevenueChart from '@/components/charts/RevenueChart';
 import ConversionRatesChart from '@/components/charts/ConversionRatesChart';
 import ClientSourceChart from '@/components/charts/ClientSourceChart';
-
 interface DrillDownAnalyticsProps {
   isOpen: boolean;
   onClose: () => void;
@@ -49,7 +19,6 @@ interface DrillDownAnalyticsProps {
   type: 'teacher' | 'studio' | 'location' | 'period';
   metricType?: 'conversion' | 'retention' | 'all';
 }
-
 const DrillDownAnalytics: React.FC<DrillDownAnalyticsProps> = ({
   isOpen,
   onClose,
@@ -69,22 +38,24 @@ const DrillDownAnalytics: React.FC<DrillDownAnalyticsProps> = ({
       setActiveTab('overview');
     }
   }, [metricType]);
-
   if (!data) return null;
 
   // Format label based on type
   const getEntityLabel = () => {
     switch (type) {
-      case 'teacher': return `Teacher: ${data.teacherName}`;
-      case 'studio': return `Studio: All Studios`;
-      case 'location': return `Location: ${data.location}`;
-      case 'period': return `Period: ${data.period}`;
-      default: return data.teacherName;
+      case 'teacher':
+        return `Teacher: ${data.teacherName}`;
+      case 'studio':
+        return `Studio: All Studios`;
+      case 'location':
+        return `Location: ${data.location}`;
+      case 'period':
+        return `Period: ${data.period}`;
+      default:
+        return data.teacherName;
     }
   };
-
-  const renderClientTable = (clients: any[], title: string) => (
-    <Card className="w-full">
+  const renderClientTable = (clients: any[], title: string) => <Card className="w-full">
       <CardHeader className="pb-2">
         <CardTitle className="text-lg">{title}</CardTitle>
         <CardDescription>
@@ -99,71 +70,63 @@ const DrillDownAnalytics: React.FC<DrillDownAnalyticsProps> = ({
                 <TableHead>Name</TableHead>
                 <TableHead>Email</TableHead>
                 <TableHead>First Visit</TableHead>
-                {title.includes('Converted') && (
-                  <>
+                {title.includes('Converted') && <>
                     <TableHead>First Purchase Date</TableHead>
                     <TableHead>First Purchase Item</TableHead>
                     <TableHead>Purchase Value</TableHead>
-                  </>
-                )}
-                {title.includes('Retained') && (
-                  <>
+                  </>}
+                {title.includes('Retained') && <>
                     <TableHead>Total Visits Post Trial</TableHead>
                     <TableHead>First Visit Post Trial</TableHead>
                     <TableHead>Membership Used</TableHead>
-                  </>
-                )}
+                  </>}
                 <TableHead>Status</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {clients.map((client, idx) => (
-                <TableRow key={`${client.email}-${idx}`}>
+              {clients.map((client, idx) => <TableRow key={`${client.email}-${idx}`}>
                   <TableCell className="font-medium">{client.name || client.customerName || 'N/A'}</TableCell>
                   <TableCell>{client.email || 'N/A'}</TableCell>
                   <TableCell>{client.firstVisit || client.date || 'N/A'}</TableCell>
-                  {title.includes('Converted') && (
-                    <>
+                  {title.includes('Converted') && <>
                       <TableCell>{client.firstPurchaseDate || client.purchaseDate || 'N/A'}</TableCell>
                       <TableCell>{client.firstPurchaseItem || client.purchaseItem || client.membershipType || 'N/A'}</TableCell>
                       <TableCell>{client.purchaseValue || client.value ? `₹${client.purchaseValue || client.value}` : 'N/A'}</TableCell>
-                    </>
-                  )}
-                  {title.includes('Retained') && (
-                    <>
+                    </>}
+                  {title.includes('Retained') && <>
                       <TableCell>{client.visitsPostTrial || client.visitCount || client.totalVisitsPostTrial || '0'}</TableCell>
                       <TableCell>{client.firstVisitPostTrial || 'N/A'}</TableCell>
                       <TableCell>{client.membershipUsed || client.membershipType || 'N/A'}</TableCell>
-                    </>
-                  )}
+                    </>}
                   <TableCell>
-                    <Badge 
-                      variant={
-                        title.includes('Converted') ? 'success' : 
-                        title.includes('Retained') ? 'outline' : 'default'
-                      }
-                    >
-                      {title.includes('Converted') ? 'Converted' : 
-                       title.includes('Retained') ? 'Retained' : 'New'}
+                    <Badge variant={title.includes('Converted') ? 'success' : title.includes('Retained') ? 'outline' : 'default'}>
+                      {title.includes('Converted') ? 'Converted' : title.includes('Retained') ? 'Retained' : 'New'}
                     </Badge>
                   </TableCell>
-                </TableRow>
-              ))}
+                </TableRow>)}
             </TableBody>
           </Table>
         </ScrollArea>
       </CardContent>
-    </Card>
-  );
+    </Card>;
 
   // Create properly formatted data for ClientSourceChart
-  const clientSourceData = [
-    { source: 'Trials', count: data.trials || 0 },
-    { source: 'Referrals', count: data.referrals || 0 },
-    { source: 'Hosted', count: data.hosted || 0 },
-    { source: 'Influencer', count: data.influencerSignups || 0 },
-    { source: 'Others', count: data.others || 0 }
-  ];
+  const clientSourceData = [{
+    source: 'Trials',
+    count: data.trials || 0
+  }, {
+    source: 'Referrals',
+    count: data.referrals || 0
+  }, {
+    source: 'Hosted',
+    count: data.hosted || 0
+  }, {
+    source: 'Influencer',
+    count: data.influencerSignups || 0
+  }, {
+    source: 'Others',
+    count: data.others || 0
+  }];
 
   // Convert revenue data format for RevenueChart
   const revenueChartData = data.revenueByWeek || [];
@@ -177,9 +140,7 @@ const DrillDownAnalytics: React.FC<DrillDownAnalyticsProps> = ({
     referral: data.referrals || 0,
     influencer: data.influencerSignups || 0
   };
-
-  return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
+  return <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-5xl h-[80vh] p-0">
         <DialogHeader className="sticky top-0 z-10 bg-background pt-6 px-6 shadow-sm">
           <DialogTitle className="text-2xl">{getEntityLabel()} Analytics</DialogTitle>
@@ -298,16 +259,16 @@ const DrillDownAnalytics: React.FC<DrillDownAnalyticsProps> = ({
                     </div>
                     <div className="flex-1 p-4 border border-muted/40 rounded-lg text-center bg-muted/10">
                       <h3 className="text-lg font-medium">Avg. Revenue</h3>
-                      <p className="text-3xl font-bold mt-2">₹{data.averageRevenuePerClient.toLocaleString(undefined, { maximumFractionDigits: 0 })}</p>
+                      <p className="text-3xl font-bold mt-2">₹{data.averageRevenuePerClient.toLocaleString(undefined, {
+                        maximumFractionDigits: 0
+                      })}</p>
                       <p className="text-sm text-muted-foreground mt-1">
                         per converted client
                       </p>
                     </div>
                   </div>
                   
-                  {data.convertedClientDetails && data.convertedClientDetails.length > 0 && (
-                    renderClientTable(data.convertedClientDetails, "Converted Clients")
-                  )}
+                  {data.convertedClientDetails && data.convertedClientDetails.length > 0 && renderClientTable(data.convertedClientDetails, "Converted Clients")}
                 </CardContent>
               </Card>
             </TabsContent>
@@ -345,9 +306,7 @@ const DrillDownAnalytics: React.FC<DrillDownAnalyticsProps> = ({
                     </div>
                   </div>
                   
-                  {data.retainedClientDetails && data.retainedClientDetails.length > 0 && (
-                    renderClientTable(data.retainedClientDetails, "Retained Clients")
-                  )}
+                  {data.retainedClientDetails && data.retainedClientDetails.length > 0 && renderClientTable(data.retainedClientDetails, "Retained Clients")}
                 </CardContent>
               </Card>
             </TabsContent>
@@ -368,20 +327,14 @@ const DrillDownAnalytics: React.FC<DrillDownAnalyticsProps> = ({
                     </div>
                     <div className="p-4 border border-muted/40 rounded-lg text-center bg-muted/10">
                       <h3 className="text-lg font-medium">Revenue per Client</h3>
-                      <p className="text-3xl font-bold mt-2">₹{data.averageRevenuePerClient.toLocaleString(undefined, { maximumFractionDigits: 0 })}</p>
+                      <p className="text-3xl font-bold mt-2">₹{data.averageRevenuePerClient.toLocaleString(undefined, {
+                        maximumFractionDigits: 0
+                      })}</p>
                     </div>
                     <div className="p-4 border border-muted/40 rounded-lg text-center bg-muted/10">
                       <h3 className="text-lg font-medium">Revenue Trend</h3>
                       <p className="text-3xl font-bold flex items-center justify-center gap-2 mt-2">
-                        {data.revenueByWeek && data.revenueByWeek.length > 1 ? 
-                         (data.revenueByWeek[data.revenueByWeek.length - 1].revenue > 
-                         data.revenueByWeek[data.revenueByWeek.length - 2].revenue ? (
-                          <span className="text-green-500">Increasing</span>
-                         ) : (
-                          <span className="text-red-500">Decreasing</span>
-                         )) : (
-                           <span>Not enough data</span>
-                         )} 
+                        {data.revenueByWeek && data.revenueByWeek.length > 1 ? data.revenueByWeek[data.revenueByWeek.length - 1].revenue > data.revenueByWeek[data.revenueByWeek.length - 2].revenue ? <span className="text-green-500">Increasing</span> : <span className="text-red-500">Decreasing</span> : <span>Not enough data</span>} 
                       </p>
                     </div>
                   </div>
@@ -449,12 +402,10 @@ const DrillDownAnalytics: React.FC<DrillDownAnalyticsProps> = ({
           </Tabs>
         </div>
         
-        <DialogFooter className="sticky bottom-0 bg-background p-6 border-t">
+        <DialogFooter className="sticky bottom--96 bg-background p-6 border-t">
           <Button onClick={onClose}>Close</Button>
         </DialogFooter>
       </DialogContent>
-    </Dialog>
-  );
+    </Dialog>;
 };
-
 export default DrillDownAnalytics;
