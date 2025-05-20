@@ -2,9 +2,8 @@
 import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Lightbulb, TrendingDown, TrendingUp, AlertTriangle, BarChart2, Award, Calendar, Percent, Users, DollarSign, Check } from 'lucide-react';
+import { Lightbulb, TrendingDown, TrendingUp, AlertTriangle, BarChart2, Award } from 'lucide-react';
 import { ProcessedTeacherData } from '@/utils/dataProcessor';
-import { safeToFixed, safeFormatCurrency } from '@/lib/utils';
 
 interface AIInsightsProps {
   data: ProcessedTeacherData[];
@@ -100,7 +99,7 @@ const AIInsights: React.FC<AIInsightsProps> = ({ data, isFiltered }) => {
       });
     } else {
       newInsights.push({
-        message: `Your studios acquired ${totalNewClients} new clients overall, with a ${safeToFixed(overallRetentionRate, 1)}% retention rate.`,
+        message: `Your studios acquired ${totalNewClients} new clients overall, with a ${overallRetentionRate.toFixed(1)}% retention rate.`,
         type: 'info'
       });
     }
@@ -108,14 +107,14 @@ const AIInsights: React.FC<AIInsightsProps> = ({ data, isFiltered }) => {
     // Success insights
     if (topTeacher && topTeacher.conversionRate > 0) {
       newInsights.push({
-        message: `${topTeacher.teacherName} is your top-performing teacher with a ${safeToFixed(topTeacher.conversionRate, 1)}% conversion rate.`,
+        message: `${topTeacher.teacherName} is your top-performing teacher with a ${topTeacher.conversionRate.toFixed(1)}% conversion rate.`,
         type: 'success'
       });
     }
     
     if (topLocation && topLocation.retentionRate > 0) {
       newInsights.push({
-        message: `${topLocation.location} has the highest client retention at ${safeToFixed(topLocation.retentionRate, 1)}%.`,
+        message: `${topLocation.location} has the highest client retention at ${topLocation.retentionRate.toFixed(1)}%.`,
         type: 'success'
       });
     }
@@ -135,7 +134,7 @@ const AIInsights: React.FC<AIInsightsProps> = ({ data, isFiltered }) => {
     // Trend insights
     if (topSource && topSource.conversionRate > 0) {
       newInsights.push({
-        message: `${topSource.source} is your most effective client acquisition channel with ${safeToFixed(topSource.conversionRate, 1)}% conversion.`,
+        message: `${topSource.source} is your most effective client acquisition channel with ${topSource.conversionRate.toFixed(1)}% conversion.`,
         type: 'trend'
       });
     }
@@ -143,20 +142,20 @@ const AIInsights: React.FC<AIInsightsProps> = ({ data, isFiltered }) => {
     const avgRevenuePerClient = totalConvertedClients ? totalRevenue / totalConvertedClients : 0;
     
     newInsights.push({
-      message: `Average revenue per converted client: ${safeFormatCurrency(avgRevenuePerClient)}.`,
+      message: `Average revenue per converted client: ₹${avgRevenuePerClient.toLocaleString(undefined, {maximumFractionDigits: 0})}.`,
       type: 'trend'
     });
     
     if (totalRevenue > 0) {
       newInsights.push({
-        message: `Total revenue across all teachers: ${safeFormatCurrency(totalRevenue)}.`,
+        message: `Total revenue across all teachers: ₹${totalRevenue.toLocaleString(undefined, {maximumFractionDigits: 0})}.`,
         type: 'success'
       });
     }
     
     if (totalConvertedClients > 0) {
       newInsights.push({
-        message: `Converted ${totalConvertedClients} clients with an overall conversion rate of ${safeToFixed(overallConversionRate, 1)}%.`,
+        message: `Converted ${totalConvertedClients} clients with an overall conversion rate of ${overallConversionRate.toFixed(1)}%.`,
         type: 'info'
       });
     }
@@ -177,11 +176,11 @@ const AIInsights: React.FC<AIInsightsProps> = ({ data, isFiltered }) => {
 
   const getBadge = (type: string) => {
     switch (type) {
-      case 'info': return <Badge variant="info" className="flex items-center gap-1"><Users className="h-3 w-3" /> Insight</Badge>;
-      case 'success': return <Badge variant="success" className="flex items-center gap-1"><Check className="h-3 w-3" /> Performance</Badge>;
-      case 'warning': return <Badge variant="warning" className="flex items-center gap-1"><AlertTriangle className="h-3 w-3" /> Opportunity</Badge>;
-      case 'trend': return <Badge variant="purple" className="flex items-center gap-1"><TrendingUp className="h-3 w-3" /> Trend</Badge>;
-      default: return <Badge className="flex items-center gap-1"><Lightbulb className="h-3 w-3" /> Insight</Badge>;
+      case 'info': return <Badge variant="info">Insight</Badge>;
+      case 'success': return <Badge variant="success">Performance</Badge>;
+      case 'warning': return <Badge variant="warning">Opportunity</Badge>;
+      case 'trend': return <Badge variant="purple">Trend</Badge>;
+      default: return <Badge>Insight</Badge>;
     }
   };
 
@@ -192,9 +191,7 @@ const AIInsights: React.FC<AIInsightsProps> = ({ data, isFiltered }) => {
           <Award className="h-5 w-5 text-primary" />
           <CardTitle className="text-lg font-medium">AI-Driven Insights</CardTitle>
         </div>
-        <Badge variant="premium" className="text-xs px-2.5 py-0.5 flex items-center gap-1">
-          <Percent className="h-3 w-3" /> Premium
-        </Badge>
+        <Badge variant="premium" className="text-xs px-2.5 py-0.5">Premium</Badge>
       </CardHeader>
       <CardContent>
         {loading ? (
@@ -212,12 +209,11 @@ const AIInsights: React.FC<AIInsightsProps> = ({ data, isFiltered }) => {
             {insights.map((insight, index) => (
               <div
                 key={index}
-                className={`p-3 rounded-lg border flex items-start gap-3 hover:shadow-md transition-all duration-200 animate-fade-in 
+                className={`p-3 rounded-lg border flex items-start gap-3 hover:shadow-md transition-all duration-200 
                   ${insight.type === 'info' ? 'bg-blue-50 border-blue-200' : 
                     insight.type === 'success' ? 'bg-green-50 border-green-200' : 
                     insight.type === 'warning' ? 'bg-amber-50 border-amber-200' :
                     'bg-purple-50 border-purple-200'}`}
-                style={{ animationDelay: `${index * 100}ms` }}
               >
                 <div className="mt-0.5">
                   {getIcon(insight.type)}
@@ -233,6 +229,6 @@ const AIInsights: React.FC<AIInsightsProps> = ({ data, isFiltered }) => {
       </CardContent>
     </Card>
   );
-}; 
+};
 
 export default AIInsights;

@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect, useRef } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { toast } from 'sonner';
 import FileUploader from '@/components/FileUploader';
 import FileList from '@/components/FileList';
@@ -23,8 +23,8 @@ const STORAGE_KEYS = {
   LOCATIONS: 'studio-stats-locations',
   TEACHERS: 'studio-stats-teachers',
   PERIODS: 'studio-stats-periods',
-  RAW_DATA: 'studio-stats-raw-data',
-  PROCESSING_RESULTS: 'studio-stats-processing-results'
+  // We'll use session storage for raw data due to its potentially large size
+  HAS_RAW_DATA: 'studio-stats-has-raw-data'
 };
 
 // Storage utilities
@@ -100,9 +100,6 @@ const Index = () => {
     period: '',
     search: ''
   });
-  
-  // Refs to maintain persistence of raw data
-  const rawDataRef = useRef(rawData);
 
   // Load saved data from localStorage on component mount
   useEffect(() => {
@@ -111,8 +108,7 @@ const Index = () => {
     const savedLocations = storageUtils.loadFromStorage(STORAGE_KEYS.LOCATIONS);
     const savedTeachers = storageUtils.loadFromStorage(STORAGE_KEYS.TEACHERS);
     const savedPeriods = storageUtils.loadFromStorage(STORAGE_KEYS.PERIODS);
-    const savedRawData = storageUtils.loadFromStorage(STORAGE_KEYS.RAW_DATA);
-    const savedProcessingResults = storageUtils.loadFromStorage(STORAGE_KEYS.PROCESSING_RESULTS);
+    const hasRawData = localStorage.getItem(STORAGE_KEYS.HAS_RAW_DATA) === 'true';
     
     if (savedProcessedData) {
       setProcessedData(savedProcessedData);
@@ -131,30 +127,8 @@ const Index = () => {
       setPeriods(savedPeriods);
     }
     
-    // Load raw data if available
-    if (savedRawData) {
-      const newRawData = {
-        ...rawData,
-        newClientData: savedRawData.newClientData || [],
-        bookingsData: savedRawData.bookingsData || [],
-        paymentsData: savedRawData.paymentsData || []
-      };
-      setRawData(newRawData);
-      rawDataRef.current = newRawData;
-    }
-    
-    // Load processing results if available
-    if (savedProcessingResults) {
-      const updatedRawData = {
-        ...rawDataRef.current,
-        processingResults: savedProcessingResults
-      };
-      setRawData(updatedRawData);
-      rawDataRef.current = updatedRawData;
-    }
-    
-    // If we have processed results, show the results
-    if (savedProcessedData && savedProcessedData.length > 0) {
+    // If we have processed results but no raw data available, show a notice
+    if (savedProcessedData && savedProcessedData.length > 0 && hasRawData) {
       setResultsVisible(true);
     }
   }, []);
@@ -176,41 +150,12 @@ const Index = () => {
     if (periods.length > 0) {
       storageUtils.saveToStorage(STORAGE_KEYS.PERIODS, periods);
     }
-  }, [processedData, filteredData, locations, teachers, periods]);
-  
-  // Save raw data to localStorage when it changes
-  useEffect(() => {
-    // Save raw data (client, bookings, payments)
-    if (rawData.newClientData.length > 0 || rawData.bookingsData.length > 0 || rawData.paymentsData.length > 0) {
-      const rawDataToSave = {
-        newClientData: rawData.newClientData,
-        bookingsData: rawData.bookingsData,
-        paymentsData: rawData.paymentsData
-      };
-      storageUtils.saveToStorage(STORAGE_KEYS.RAW_DATA, rawDataToSave);
-    }
     
-    // Save processing results separately
-    if (Object.values(rawData.processingResults).some(arr => arr && arr.length > 0)) {
-      storageUtils.saveToStorage(STORAGE_KEYS.PROCESSING_RESULTS, rawData.processingResults);
+    // Set a flag that we have raw data, but don't store the actual raw data
+    if (rawData.newClientData.length > 0 || rawData.bookingsData.length > 0) {
+      localStorage.setItem(STORAGE_KEYS.HAS_RAW_DATA, 'true');
     }
-    
-    // Update ref
-    rawDataRef.current = rawData;
-  }, [rawData]);
-  
-  // Keep active tab in sync with localStorage
-  useEffect(() => {
-    localStorage.setItem('studio-stats-active-tab', activeTab);
-  }, [activeTab]);
-  
-  // Load active tab from localStorage
-  useEffect(() => {
-    const savedTab = localStorage.getItem('studio-stats-active-tab');
-    if (savedTab) {
-      setActiveTab(savedTab);
-    }
-  }, []);
+  }, [processedData, filteredData, locations, teachers, periods, rawData]);
 
   // Update progress
   const updateProgress = useCallback((progressData: ProcessingProgress) => {
@@ -307,7 +252,6 @@ const Index = () => {
       };
       
       setRawData(initialRawData);
-      rawDataRef.current = initialRawData;
 
       // Process data
       updateProgress({
@@ -330,8 +274,8 @@ const Index = () => {
       setPeriods(result.periods || []);
 
       // Update raw data processing results with the results from processing
-      const updatedRawData = {
-        ...rawDataRef.current,
+      setRawData(prev => ({
+        ...prev,
         processingResults: {
           included: result.includedRecords || [],
           excluded: result.excludedRecords || [],
@@ -339,15 +283,7 @@ const Index = () => {
           convertedClients: result.convertedClientRecords || [],
           retainedClients: result.retainedClientRecords || []
         }
-      };
-      
-      setRawData(updatedRawData);
-      rawDataRef.current = updatedRawData;
-
-      // Save to localStorage
-      if (Object.values(updatedRawData.processingResults).some(arr => arr && arr.length > 0)) {
-        storageUtils.saveToStorage(STORAGE_KEYS.PROCESSING_RESULTS, updatedRawData.processingResults);
-      }
+      }));
 
       // Show success and finish processing
       setTimeout(() => {
@@ -437,18 +373,6 @@ const Index = () => {
         retainedClients: []
       }
     });
-    rawDataRef.current = {
-      newClientData: [],
-      bookingsData: [],
-      paymentsData: [],
-      processingResults: {
-        included: [],
-        excluded: [],
-        newClients: [],
-        convertedClients: [],
-        retainedClients: []
-      }
-    };
     toast.success('Application reset. You can upload new files');
   }, []);
 
@@ -467,7 +391,7 @@ const Index = () => {
                 <div className="inline-flex items-center justify-center h-16 w-16 rounded-full bg-primary/10 text-primary mb-2">
                   <div className="h-8 w-8 rounded-full bg-primary animate-pulse-soft" />
                 </div>
-                <h1 className="text-4xl font-bold tracking-tight">Performance Analytics</h1>
+                <h1 className="text-4xl font-bold tracking-tight">Studio Stats</h1>
                 <p className="text-lg text-muted-foreground max-w-2xl">
                   Upload, process, and analyze your CSV files to gain insights into studio performance, teacher effectiveness, and client trends.
                 </p>
@@ -552,7 +476,7 @@ const Index = () => {
       
       <footer className="border-t bg-white/80 backdrop-blur-sm py-4 mt-8">
         <div className="container text-center text-xs text-muted-foreground">
-          Performance Analytics Dashboard • {new Date().getFullYear()}
+          Studio Stats Analytics Dashboard • {new Date().getFullYear()}
         </div>
       </footer>
     </div>;
