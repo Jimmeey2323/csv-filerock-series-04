@@ -48,7 +48,6 @@ const ResultsTable: React.FC<ResultsTableProps> = ({
   const totalsRow: ProcessedTeacherData = useMemo(() => {
     if (!data || data.length === 0) {
       return {
-        id: 'totals',
         teacherName: 'All Teachers',
         location: 'All Locations',
         newClients: 0,
@@ -69,7 +68,8 @@ const ResultsTable: React.FC<ResultsTableProps> = ({
         totalRevenue: 0,
         averageRevenuePerClient: 0,
         period: 'All Periods',
-        revenueByWeek: []
+        revenueByWeek: [],
+        firstTimeBuyerRate: 0 // Adding the missing property
       };
     }
 
@@ -86,7 +86,6 @@ const ResultsTable: React.FC<ResultsTableProps> = ({
       acc.totalRevenue += curr.totalRevenue || 0;
       return acc;
     }, {
-      id: 'totals',
       teacherName: 'All Teachers',
       location: 'All Locations',
       newClients: 0,
@@ -108,6 +107,7 @@ const ResultsTable: React.FC<ResultsTableProps> = ({
       averageRevenuePerClient: 0,
       period: 'All Periods',
       revenueByWeek: [],
+      firstTimeBuyerRate: 0, // Adding the missing property
       newClientDetails: data.flatMap(item => item.newClientDetails || []),
       convertedClientDetails: data.flatMap(item => item.convertedClientDetails || []),
       retainedClientDetails: data.flatMap(item => item.retainedClientDetails || [])
@@ -124,6 +124,7 @@ const ResultsTable: React.FC<ResultsTableProps> = ({
     const avgLateCancellationRate = data.reduce((sum, item) => sum + (item.lateCancellationRate || 0), 0) / data.length;
     totals.noShowRate = avgNoShowRate;
     totals.lateCancellationRate = avgLateCancellationRate;
+    totals.firstTimeBuyerRate = data.reduce((sum, item) => sum + (item.firstTimeBuyerRate || 0), 0) / data.length;
 
     // Combine and normalize weekly revenue data
     const allWeeks = new Set<string>();
@@ -320,7 +321,6 @@ const ResultsTable: React.FC<ResultsTableProps> = ({
     data.forEach(item => {
       if (!locationMap.has(item.location)) {
         locationMap.set(item.location, {
-          id: item.location,
           teacherName: 'All Teachers',
           location: item.location,
           newClients: 0,
@@ -342,6 +342,7 @@ const ResultsTable: React.FC<ResultsTableProps> = ({
           averageRevenuePerClient: 0,
           period: 'All Periods',
           revenueByWeek: [],
+          firstTimeBuyerRate: 0, // Adding the missing property
           newClientDetails: [],
           convertedClientDetails: [],
           retainedClientDetails: []
@@ -564,10 +565,17 @@ const ResultsTable: React.FC<ResultsTableProps> = ({
                 {sortedData.map((item, index) => (
                   <PerformanceMetricCard 
                     key={`${item.teacherName}-${item.location}-${index}`}
-                    data={item}
-                    animationDelay={index * 100}
-                    onClick={() => handleRowClick(item, 'teacher')}
-                    onMetricClick={handleMetricClick}
+                    title={item.teacherName}
+                    value={safeFormatCurrency(item.totalRevenue)}
+                    secondaryValue={`${safeToFixed(item.conversionRate, 1)}%`}
+                    icon={<BarChart2 className="h-5 w-5" />}
+                    status={item.conversionRate > 10 ? 'positive' : item.conversionRate > 5 ? 'neutral' : 'negative'}
+                    tooltip={`Performance metrics for ${item.teacherName} at ${item.location}`}
+                    trend={{
+                      value: item.conversionRate - (totalsRow.conversionRate || 0),
+                      label: 'vs avg'
+                    }}
+                    onCustomClick={() => handleRowClick(item, 'teacher')}
                   />
                 ))}
               </div>
@@ -576,10 +584,31 @@ const ResultsTable: React.FC<ResultsTableProps> = ({
                 {studioMetrics.map((item, index) => (
                   <StudioMetricCard 
                     key={`studio-${item.location}-${index}`}
-                    data={item}
-                    animationDelay={index * 100}
-                    onClick={() => handleRowClick(item, 'location')}
-                    onMetricClick={handleMetricClick}
+                    title="Studio Performance"
+                    value={safeFormatCurrency(item.totalRevenue)}
+                    location={item.location}
+                    metrics={[
+                      {
+                        label: 'Conversion',
+                        value: `${safeToFixed(item.conversionRate, 1)}%`,
+                        status: item.conversionRate > 10 ? 'positive' : 'negative'
+                      },
+                      {
+                        label: 'Retention',
+                        value: `${safeToFixed(item.retentionRate, 1)}%`,
+                        status: item.retentionRate > 50 ? 'positive' : 'negative'
+                      },
+                      {
+                        label: 'New Clients',
+                        value: item.newClients
+                      },
+                      {
+                        label: 'Revenue/Client',
+                        value: safeFormatCurrency(item.averageRevenuePerClient)
+                      }
+                    ]}
+                    icon={<BarChart2 className="h-5 w-5" />}
+                    tooltip={`Performance metrics for ${item.location}`}
                   />
                 ))}
               </div>
