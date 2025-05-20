@@ -229,6 +229,6 @@ const AIInsights: React.FC<AIInsightsProps> = ({ data, isFiltered }) => {
       </CardContent>
     </Card>
   );
-};
+}; 
 
 export default AIInsights;
