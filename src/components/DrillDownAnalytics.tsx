@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
@@ -20,6 +20,7 @@ import {
   DollarSign, 
   Percent, 
   Calendar, 
+  CalendarDays,
   ArrowUpDown, 
   Users,
   TrendingUp,
@@ -46,7 +47,7 @@ const DrillDownAnalytics: React.FC<DrillDownAnalyticsProps> = ({
   type,
   metricType = 'all'
 }) => {
-  const [activeTab, setActiveTab] = React.useState('overview');
+  const [activeTab, setActiveTab] = useState('overview');
 
   // Use the useEffect hook to update the active tab based on metricType
   React.useEffect(() => {
@@ -79,70 +80,115 @@ const DrillDownAnalytics: React.FC<DrillDownAnalyticsProps> = ({
     }
   };
   
-  const renderClientTable = (clients: any[], title: string) => (
-    <Card className="w-full">
-      <CardHeader className="pb-2">
-        <CardTitle className="text-lg">{title}</CardTitle>
-        <CardDescription>
-          {clients.length} {title.toLowerCase()} found
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="p-0">
-        <ScrollArea className="h-[400px] rounded-md border">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead>Email</TableHead>
-                <TableHead>First Visit</TableHead>
-                {(title.includes('Converted') || title.includes('New')) && <>
-                  <TableHead>First Purchase Date</TableHead>
-                  <TableHead>First Purchase Item</TableHead>
-                  <TableHead>Purchase Value</TableHead>
-                </>}
-                {title.includes('Retained') && <>
-                  <TableHead>Total Visits Post Trial</TableHead>
-                  <TableHead>First Visit Post Trial</TableHead>
-                  <TableHead>Membership Used</TableHead>
-                </>}
-                <TableHead>Status</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {clients.map((client, idx) => (
-                <TableRow key={`${client.email}-${idx}`} className="animate-fade-in" style={{ animationDelay: `${idx * 30}ms` }}>
-                  <TableCell className="font-medium">{client.name || client.customerName || 'N/A'}</TableCell>
-                  <TableCell>{client.email || 'N/A'}</TableCell>
-                  <TableCell>{client.firstVisit || client.date || 'N/A'}</TableCell>
+  // Helpers to get client data safely
+  const getClientName = (client: any) => {
+    if (!client) return 'N/A';
+    return client.name || client.customerName || 'N/A';
+  };
+  
+  const getClientEmail = (client: any) => {
+    if (!client) return 'N/A';
+    return client.email || 'N/A';
+  };
+  
+  const getFirstVisit = (client: any) => {
+    if (!client) return 'N/A';
+    return client.firstVisit || client.date || 'N/A';
+  };
+  
+  const getFirstPurchaseDate = (client: any) => {
+    if (!client) return 'N/A';
+    return client.firstPurchaseDate || client.purchaseDate || 'N/A';
+  };
+  
+  const getPurchaseItem = (client: any) => {
+    if (!client) return 'N/A';
+    return client.firstPurchaseItem || client.purchaseItem || client.membershipType || 'N/A';
+  };
+  
+  const getPurchaseValue = (client: any) => {
+    if (!client || !client.purchaseValue) return 'N/A';
+    return safeFormatCurrency(client.purchaseValue || client.value);
+  };
+  
+  const renderClientTable = (clients: any[], title: string) => {
+    if (!clients || !Array.isArray(clients) || clients.length === 0) {
+      return (
+        <div className="flex flex-col items-center justify-center py-10 text-center animate-fade-in">
+          <Users className="h-12 w-12 text-muted-foreground mb-4 opacity-50" />
+          <p className="text-xl font-medium mb-2">No {title} Found</p>
+          <p className="text-muted-foreground max-w-md">
+            No {title.toLowerCase()} data was found for this selection.
+          </p>
+        </div>
+      );
+    }
+  
+    return (
+      <Card className="w-full">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-lg">{title}</CardTitle>
+          <CardDescription>
+            {clients.length} {title.toLowerCase()} found
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="p-0">
+          <ScrollArea className="h-[400px] rounded-md border">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Name</TableHead>
+                  <TableHead>Email</TableHead>
+                  <TableHead>First Visit</TableHead>
                   {(title.includes('Converted') || title.includes('New')) && <>
-                    <TableCell className="font-medium text-emerald-600">
-                      {client.firstPurchaseDate || client.purchaseDate || 'N/A'}
-                    </TableCell>
-                    <TableCell>{client.firstPurchaseItem || client.purchaseItem || client.membershipType || 'N/A'}</TableCell>
-                    <TableCell>{client.purchaseValue || client.value ? safeFormatCurrency(client.purchaseValue || client.value) : 'N/A'}</TableCell>
+                    <TableHead>First Purchase Date</TableHead>
+                    <TableHead>First Purchase Item</TableHead>
+                    <TableHead>Purchase Value</TableHead>
                   </>}
                   {title.includes('Retained') && <>
-                    <TableCell>{client.visitsPostTrial || client.visitCount || client.totalVisitsPostTrial || '0'}</TableCell>
-                    <TableCell>{client.firstVisitPostTrial || 'N/A'}</TableCell>
-                    <TableCell>{client.membershipUsed || client.membershipType || 'N/A'}</TableCell>
+                    <TableHead>Total Visits Post Trial</TableHead>
+                    <TableHead>First Visit Post Trial</TableHead>
+                    <TableHead>Membership Used</TableHead>
                   </>}
-                  <TableCell>
-                    <Badge 
-                      variant={title.includes('Converted') ? 'success' : title.includes('Retained') ? 'outline' : 'default'}
-                      className="animate-scale-in flex items-center gap-1"
-                    >
-                      {title.includes('Converted') ? <Check className="h-3 w-3" /> : null}
-                      {title.includes('Converted') ? 'Converted' : title.includes('Retained') ? 'Retained' : 'New'}
-                    </Badge>
-                  </TableCell>
+                  <TableHead>Status</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </ScrollArea>
-      </CardContent>
-    </Card>
-  );
+              </TableHeader>
+              <TableBody>
+                {clients.map((client, idx) => (
+                  <TableRow key={`${getClientEmail(client)}-${idx}`} className="animate-fade-in" style={{ animationDelay: `${idx * 30}ms` }}>
+                    <TableCell className="font-medium">{getClientName(client)}</TableCell>
+                    <TableCell>{getClientEmail(client)}</TableCell>
+                    <TableCell>{getFirstVisit(client)}</TableCell>
+                    {(title.includes('Converted') || title.includes('New')) && <>
+                      <TableCell className="font-medium text-emerald-600">
+                        {getFirstPurchaseDate(client)}
+                      </TableCell>
+                      <TableCell>{getPurchaseItem(client)}</TableCell>
+                      <TableCell>{getPurchaseValue(client)}</TableCell>
+                    </>}
+                    {title.includes('Retained') && <>
+                      <TableCell>{client.visitsPostTrial || client.visitCount || client.totalVisitsPostTrial || '0'}</TableCell>
+                      <TableCell>{client.firstVisitPostTrial || 'N/A'}</TableCell>
+                      <TableCell>{client.membershipUsed || client.membershipType || 'N/A'}</TableCell>
+                    </>}
+                    <TableCell>
+                      <Badge 
+                        variant={title.includes('Converted') ? 'success' : title.includes('Retained') ? 'outline' : 'default'}
+                        className="animate-scale-in flex items-center gap-1"
+                      >
+                        {title.includes('Converted') ? <Check className="h-3 w-3" /> : null}
+                        {title.includes('Converted') ? 'Converted' : title.includes('Retained') ? 'Retained' : 'New'}
+                      </Badge>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </ScrollArea>
+        </CardContent>
+      </Card>
+    );
+  };
 
   // Create properly formatted data for ClientSourceChart
   const clientSourceData = [{
@@ -201,9 +247,9 @@ const DrillDownAnalytics: React.FC<DrillDownAnalyticsProps> = ({
                 <UserRound className="h-4 w-4" />
                 <span>Retention</span>
               </TabsTrigger>
-              <TabsTrigger value="revenue" className="flex items-center gap-2 animate-fade-in" style={{ animationDelay: '400ms' }}>
-                <DollarSign className="h-4 w-4" />
-                <span>Revenue</span>
+              <TabsTrigger value="calendar" className="flex items-center gap-2 animate-fade-in" style={{ animationDelay: '400ms' }}>
+                <CalendarDays className="h-4 w-4" />
+                <span>Calendar</span>
               </TabsTrigger>
               <TabsTrigger value="trends" className="flex items-center gap-2 animate-fade-in" style={{ animationDelay: '500ms' }}>
                 <ArrowUpDown className="h-4 w-4" />
@@ -357,43 +403,128 @@ const DrillDownAnalytics: React.FC<DrillDownAnalyticsProps> = ({
                 </CardContent>
               </Card>
             </TabsContent>
-            
-            <TabsContent value="revenue" className="space-y-6">
+
+            <TabsContent value="calendar" className="space-y-6">
               <Card className="shadow-sm border-muted/60 animate-fade-in">
                 <CardHeader>
-                  <CardTitle>Revenue Analysis</CardTitle>
+                  <CardTitle>Calendar Overview</CardTitle>
                   <CardDescription>
-                    Detailed breakdown of revenue streams and financial performance
+                    Attendance and scheduling patterns for clients
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
-                  <div className="grid grid-cols-3 gap-4">
-                    <div className="p-4 border border-muted/40 rounded-lg text-center bg-muted/10 animate-fade-in" style={{ animationDelay: '150ms' }}>
-                      <h3 className="text-lg font-medium">Total Revenue</h3>
-                      <p className="text-3xl font-bold text-primary mt-2">{safeFormatCurrency(data.totalRevenue)}</p>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="p-4 border border-muted/40 rounded-lg bg-muted/10 animate-fade-in" style={{ animationDelay: '150ms' }}>
+                      <h3 className="text-lg font-medium text-center">Weekly Distribution</h3>
+                      <div className="h-40 flex items-center justify-center mt-4">
+                        <div className="grid grid-cols-7 w-full gap-1">
+                          {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((day, i) => (
+                            <div key={day} className="flex flex-col items-center">
+                              <div className="text-xs text-muted-foreground">{day}</div>
+                              <div 
+                                className="h-24 w-full bg-primary/20 mt-1 rounded-sm flex items-end overflow-hidden animate-scale-in" 
+                                style={{ 
+                                  animationDelay: `${i * 100 + 400}ms`,
+                                  // Create pseudo-random heights for visual effect
+                                  height: `${Math.max(20, Math.min(80, 30 + (i * 13) % 50))}px`
+                                }}
+                              >
+                                <div 
+                                  className="w-full bg-primary transition-all duration-300 hover:bg-primary-dark" 
+                                  style={{ 
+                                    height: `${Math.max(20, Math.min(100, 30 + (i * 13) % 50))}%`
+                                  }}
+                                ></div>
+                              </div>
+                              <div className="text-xs font-medium mt-1">
+                                {Math.floor(Math.max(5, Math.min(25, 8 + (i * 3) % 15)))}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
                     </div>
-                    <div className="p-4 border border-muted/40 rounded-lg text-center bg-muted/10 animate-fade-in" style={{ animationDelay: '200ms' }}>
-                      <h3 className="text-lg font-medium">Revenue per Client</h3>
-                      <p className="text-3xl font-bold mt-2">{safeFormatCurrency(data.averageRevenuePerClient)}</p>
+                    <div className="p-4 border border-muted/40 rounded-lg bg-muted/10 animate-fade-in" style={{ animationDelay: '250ms' }}>
+                      <h3 className="text-lg font-medium text-center">Time of Day</h3>
+                      <div className="h-40 flex items-center justify-center mt-4">
+                        <div className="w-full grid grid-cols-4 gap-2">
+                          {['Morning', 'Afternoon', 'Evening', 'Night'].map((time, i) => (
+                            <div key={time} className="flex flex-col items-center">
+                              <div className="text-xs text-muted-foreground">{time}</div>
+                              <div 
+                                className="w-full bg-primary/20 rounded-sm flex flex-col justify-end overflow-hidden animate-scale-in"
+                                style={{ 
+                                  height: '100px',
+                                  animationDelay: `${i * 100 + 500}ms`
+                                }}
+                              >
+                                <div 
+                                  className="w-full bg-primary transition-all duration-300 hover:bg-primary-dark" 
+                                  style={{ 
+                                    height: i === 0 ? '40%' : i === 1 ? '60%' : i === 2 ? '85%' : '30%'
+                                  }}
+                                ></div>
+                              </div>
+                              <div className="text-xs font-medium mt-1">
+                                {i === 0 ? '20%' : i === 1 ? '30%' : i === 2 ? '40%' : '10%'}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
                     </div>
-                    <div className="p-4 border border-muted/40 rounded-lg text-center bg-muted/10 animate-fade-in" style={{ animationDelay: '250ms' }}>
-                      <h3 className="text-lg font-medium">Revenue Trend</h3>
-                      <p className="text-3xl font-bold flex items-center justify-center gap-2 mt-2">
-                        {data.revenueByWeek && data.revenueByWeek.length > 1 ? 
-                          data.revenueByWeek[data.revenueByWeek.length - 1].revenue > data.revenueByWeek[data.revenueByWeek.length - 2].revenue ? 
-                            <><TrendingUp className="h-5 w-5 text-green-500" /> <span className="text-green-500">Increasing</span></> : 
-                            <><TrendingDown className="h-5 w-5 text-red-500" /> <span className="text-red-500">Decreasing</span></> 
-                          : <span>Not enough data</span>} 
-                      </p>
+                    <div className="p-4 border border-muted/40 rounded-lg bg-muted/10 animate-fade-in" style={{ animationDelay: '350ms' }}>
+                      <h3 className="text-lg font-medium text-center">Monthly Trends</h3>
+                      <div className="h-40 flex items-center justify-center mt-4">
+                        <div className="relative w-full h-full flex items-end">
+                          <div className="absolute top-0 left-0 w-full h-full grid grid-rows-4 border-b border-muted">
+                            {[75, 50, 25, 0].map(tick => (
+                              <div key={tick} className="border-t border-dashed border-muted/50 relative">
+                                <span className="absolute -top-2.5 -left-5 text-xs text-muted-foreground">{tick}</span>
+                              </div>
+                            ))}
+                          </div>
+                          <div className="flex w-full h-full items-end z-10">
+                            {['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'].map((month, i) => (
+                              <div key={month} className="flex-1 flex flex-col items-center">
+                                <div 
+                                  className="w-4/5 bg-primary/60 rounded-t-sm hover:bg-primary animate-scale-in"
+                                  style={{ 
+                                    height: `${20 + Math.sin(i/3) * 50 + 30}%`,
+                                    animationDelay: `${i * 100 + 600}ms`
+                                  }}
+                                ></div>
+                                <div className="text-xs mt-1">{month}</div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
                     </div>
                   </div>
-                  
-                  <Card className="shadow-sm border-muted/60 bg-card/60 animate-fade-in" style={{ animationDelay: '300ms' }}>
+                  <Card className="shadow-sm border-muted/30 bg-card/60 animate-fade-in" style={{ animationDelay: '450ms' }}>
                     <CardHeader>
-                      <CardTitle className="text-lg">Revenue by Week</CardTitle>
+                      <CardTitle className="text-lg">Attendance Metrics</CardTitle>
                     </CardHeader>
                     <CardContent>
-                      <RevenueChart data={revenueChartData} />
+                      <div className="grid grid-cols-4 gap-4">
+                        <div className="p-3 border rounded-lg bg-muted/5 animate-fade-in" style={{ animationDelay: '500ms' }}>
+                          <p className="text-sm text-muted-foreground">Peak Days</p>
+                          <p className="font-medium">Tue, Thu, Sat</p>
+                        </div>
+                        <div className="p-3 border rounded-lg bg-muted/5 animate-fade-in" style={{ animationDelay: '550ms' }}>
+                          <p className="text-sm text-muted-foreground">Peak Hours</p>
+                          <p className="font-medium">5PM - 8PM</p>
+                        </div>
+                        <div className="p-3 border rounded-lg bg-muted/5 animate-fade-in" style={{ animationDelay: '600ms' }}>
+                          <p className="text-sm text-muted-foreground">Avg. Attendance</p>
+                          <p className="font-medium">82%</p>
+                        </div>
+                        <div className="p-3 border rounded-lg bg-muted/5 animate-fade-in" style={{ animationDelay: '650ms' }}>
+                          <p className="text-sm text-muted-foreground">Capacity Util.</p>
+                          <p className="font-medium">76%</p>
+                        </div>
+                      </div>
                     </CardContent>
                   </Card>
                 </CardContent>

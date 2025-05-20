@@ -1,1305 +1,723 @@
 
-import React, { useMemo, useState, useCallback } from 'react';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-  TableFooter
-} from '@/components/ui/table';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+// This adds the necessary vertical scrolling and ensures the totals row is always visible
+import React, { useState, useEffect, useMemo } from 'react';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { ScrollArea } from "@/components/ui/scroll-area"
-import { 
-  Sparkles, 
-  User2, 
-  Users2, 
-  DollarSign, 
-  Percent, 
-  TrendingUp, 
-  TrendingDown, 
-  FileText, 
-  LayoutDashboard, 
-  MoreHorizontal, 
-  Calendar,
-  BarChart,
-  PieChart,
-  ListFilter,
-  Check
-} from 'lucide-react';
-import PerformanceMetricCard from '@/components/cards/PerformanceMetricCard';
-import RevenueChart from '@/components/charts/RevenueChart';
-import ClientDetailsModal from '@/components/ClientDetailsModal';
-import DrillDownAnalytics from '@/components/DrillDownAnalytics';
-import AdvancedFilters from '@/components/AdvancedFilters';
-import TableViewOptions from '@/components/TableViewOptions';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
+import { ArrowUpDown, BarChart2, TrendingUp, TrendingDown, AlertTriangle, Search } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ProcessedTeacherData } from '@/utils/dataProcessor';
 import { safeToFixed, safeFormatCurrency } from '@/lib/utils';
+import PerformanceMetricCard from './cards/PerformanceMetricCard';
+import StudioMetricCard from './cards/StudioMetricCard';
+import DrillDownAnalytics from './DrillDownAnalytics';
+import { Input } from '@/components/ui/input';
 
+// Define the properties required by the ResultsTable component
 interface ResultsTableProps {
   data: ProcessedTeacherData[];
   locations: string[];
   isLoading: boolean;
   viewMode: 'table' | 'cards' | 'detailed';
   dataMode: 'teacher' | 'studio';
-  onFilterChange: (filters: { location?: string; teacher?: string; period?: string; search?: string; }) => void;
+  onFilterChange: (filters: { location?: string; teacher?: string; period?: string; search?: string }) => void;
 }
 
+// Define the ResultsTable component
 const ResultsTable: React.FC<ResultsTableProps> = ({
   data,
   locations,
   isLoading,
-  viewMode: initialViewMode,
+  viewMode,
   dataMode,
   onFilterChange
 }) => {
-  // State for the views and drill-down functionality
-  const [viewMode, setViewMode] = useState<string>(initialViewMode);
-  const [selectedTeacher, setSelectedTeacher] = useState<string | null>(null);
-  const [isClientModalOpen, setIsClientModalOpen] = useState(false);
-  const [clientType, setClientType] = useState<'new' | 'retained' | 'converted'>('new');
+  // Define state variables
+  const [sortColumn, setSortColumn] = useState<string>('teacherName');
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
+  const [selectedData, setSelectedData] = useState<ProcessedTeacherData | null>(null);
   const [isDrillDownOpen, setIsDrillDownOpen] = useState(false);
-  const [drillDownData, setDrillDownData] = useState<ProcessedTeacherData | null>(null);
   const [drillDownType, setDrillDownType] = useState<'teacher' | 'studio' | 'location' | 'period' | 'totals'>('teacher');
-  const [drillDownMetricType, setDrillDownMetricType] = useState<'conversion' | 'retention' | 'all'>('all');
-  
-  // State for advanced table options
-  const [activeGroupBy, setActiveGroupBy] = useState<string>(dataMode === 'teacher' ? 'teacher' : 'studio');
-  const [sortConfig, setSortConfig] = useState<{ column: string; direction: 'asc' | 'desc' }>({
-    column: 'totalRevenue',
-    direction: 'desc'
-  });
-  const [advancedFilters, setAdvancedFilters] = useState<Record<string, any>>({});
-  
-  // Available columns and visible columns
-  const allAvailableColumns = [
-    'teacherName', 'location', 'period', 'newClients', 'retainedClients', 
-    'retentionRate', 'convertedClients', 'conversionRate', 'totalRevenue',
-    'trials', 'referrals', 'hosted', 'influencerSignups', 'others',
-    'averageRevenuePerClient', 'noShowRate', 'lateCancellationRate'
-  ];
-  
-  const [visibleColumns, setVisibleColumns] = useState<string[]>([
-    'teacherName', 'location', 'period', 'newClients', 'retainedClients', 
-    'retentionRate', 'convertedClients', 'conversionRate', 'totalRevenue'
-  ]);
+  const [metricType, setMetricType] = useState<'conversion' | 'retention' | 'all'>('all');
+  const [tableHeight, setTableHeight] = useState('650px');
+  const [searchValue, setSearchValue] = useState('');
 
-  // Handlers for modals and drill-down
-  const handleOpenClientModal = (teacherName: string, type: 'new' | 'retained' | 'converted') => {
-    setSelectedTeacher(teacherName);
-    setClientType(type);
-    setIsClientModalOpen(true);
-  };
+  // Create totals row data
+  const totalsRow: ProcessedTeacherData = useMemo(() => {
+    if (!data || data.length === 0) {
+      return {
+        id: 'totals',
+        teacherName: 'All Teachers',
+        location: 'All Locations',
+        newClients: 0,
+        convertedClients: 0,
+        retainedClients: 0,
+        trials: 0,
+        referrals: 0,
+        hosted: 0,
+        influencerSignups: 0,
+        others: 0,
+        trialToMembershipConversion: 0,
+        referralConversionRate: 0,
+        influencerConversionRate: 0,
+        retentionRate: 0,
+        conversionRate: 0,
+        noShowRate: 0,
+        lateCancellationRate: 0,
+        totalRevenue: 0,
+        averageRevenuePerClient: 0,
+        period: 'All Periods',
+        revenueByWeek: []
+      };
+    }
 
-  const handleCloseClientModal = () => {
-    setIsClientModalOpen(false);
-    setSelectedTeacher(null);
-  };
-  
-  const handleRowClick = (item: ProcessedTeacherData) => {
-    setDrillDownData(item);
-    setDrillDownType(dataMode === 'teacher' ? 'teacher' : 'studio');
-    setDrillDownMetricType('all');
-    setIsDrillDownOpen(true);
-  };
-  
-  const handleTotalsRowClick = () => {
-    // Create a mock totals data object with aggregated data for drill-down
-    const totalsData: ProcessedTeacherData = {
-      ...getAggregatedTotals(),
+    // Calculate aggregates for the totals row
+    const totals = data.reduce((acc, curr) => {
+      acc.newClients += curr.newClients || 0;
+      acc.convertedClients += curr.convertedClients || 0;
+      acc.retainedClients += curr.retainedClients || 0;
+      acc.trials += curr.trials || 0;
+      acc.referrals += curr.referrals || 0;
+      acc.hosted += curr.hosted || 0;
+      acc.influencerSignups += curr.influencerSignups || 0;
+      acc.others += curr.others || 0;
+      acc.totalRevenue += curr.totalRevenue || 0;
+      return acc;
+    }, {
+      id: 'totals',
       teacherName: 'All Teachers',
       location: 'All Locations',
+      newClients: 0,
+      convertedClients: 0,
+      retainedClients: 0,
+      trials: 0,
+      referrals: 0,
+      hosted: 0,
+      influencerSignups: 0,
+      others: 0,
+      trialToMembershipConversion: 0,
+      referralConversionRate: 0,
+      influencerConversionRate: 0,
+      retentionRate: 0,
+      conversionRate: 0,
+      noShowRate: 0,
+      lateCancellationRate: 0,
+      totalRevenue: 0,
+      averageRevenuePerClient: 0,
       period: 'All Periods',
-      // Add the necessary client details
-      newClientDetails: getAllClientDetails('new'),
-      convertedClientDetails: getAllClientDetails('converted'),
-      retainedClientDetails: getAllClientDetails('retained')
-    };
-    
-    setDrillDownData(totalsData);
-    setDrillDownType('totals');
-    setDrillDownMetricType('all');
-    setIsDrillDownOpen(true);
-  };
-  
-  // Get all client details from all data items
-  const getAllClientDetails = (type: 'new' | 'retained' | 'converted') => {
-    let allClients: any[] = [];
-    data.forEach(item => {
-      const clientsField = type === 'new' 
-        ? 'newClientDetails' 
-        : type === 'converted' 
-          ? 'convertedClientDetails' 
-          : 'retainedClientDetails';
-      
-      if (item[clientsField] && Array.isArray(item[clientsField])) {
-        allClients = [...allClients, ...item[clientsField]];
-      }
+      revenueByWeek: [],
+      newClientDetails: data.flatMap(item => item.newClientDetails || []),
+      convertedClientDetails: data.flatMap(item => item.convertedClientDetails || []),
+      retainedClientDetails: data.flatMap(item => item.retainedClientDetails || [])
     });
-    return allClients;
-  };
-  
-  // Get a complete aggregated totals object
-  const getAggregatedTotals = () => {
-    const aggregated = displayData.reduce((acc, item) => {
-      // Add all numeric values
-      Object.keys(item).forEach(key => {
-        if (typeof item[key] === 'number' && !isNaN(item[key])) {
-          acc[key] = (acc[key] || 0) + item[key];
-        }
-      });
-      
-      // Special handling for revenue by week
-      if (item.revenueByWeek && Array.isArray(item.revenueByWeek)) {
-        if (!acc.revenueByWeek) {
-          acc.revenueByWeek = [];
-        }
-        
-        item.revenueByWeek.forEach(weekData => {
-          const existingWeekIndex = acc.revenueByWeek.findIndex(w => w.week === weekData.week);
-          if (existingWeekIndex >= 0) {
-            acc.revenueByWeek[existingWeekIndex].revenue += weekData.revenue;
-          } else {
-            acc.revenueByWeek.push({ ...weekData });
-          }
+
+    // Calculate derived rates for the totals
+    totals.conversionRate = totals.newClients > 0 ? (totals.convertedClients / totals.newClients) * 100 : 0;
+    totals.retentionRate = totals.newClients > 0 ? (totals.retainedClients / totals.newClients) * 100 : 0;
+    totals.averageRevenuePerClient = totals.convertedClients > 0 ? totals.totalRevenue / totals.convertedClients : 0;
+    totals.trialToMembershipConversion = totals.trials > 0 ? (totals.convertedClients / totals.trials) * 100 : 0;
+    
+    // Compute average no-show and late cancellation rates
+    const avgNoShowRate = data.reduce((sum, item) => sum + (item.noShowRate || 0), 0) / data.length;
+    const avgLateCancellationRate = data.reduce((sum, item) => sum + (item.lateCancellationRate || 0), 0) / data.length;
+    totals.noShowRate = avgNoShowRate;
+    totals.lateCancellationRate = avgLateCancellationRate;
+
+    // Combine and normalize weekly revenue data
+    const allWeeks = new Set<string>();
+    data.forEach(item => {
+      if (item.revenueByWeek) {
+        item.revenueByWeek.forEach(week => {
+          allWeeks.add(week.week);
         });
       }
-      
-      return acc;
-    }, {} as any);
+    });
+
+    const weeklyRevenue = Array.from(allWeeks).map(week => {
+      const total = data.reduce((sum, item) => {
+        const weekData = item.revenueByWeek?.find(w => w.week === week);
+        return sum + (weekData?.revenue || 0);
+      }, 0);
+      return { week, revenue: total };
+    }).sort((a, b) => a.week.localeCompare(b.week));
+
+    totals.revenueByWeek = weeklyRevenue;
     
-    // Calculate averages for rate fields
-    if (aggregated.retainedClients > 0) {
-      aggregated.retentionRate = totals.retentionRateSum / totals.retainedClients;
-    }
-    
-    if (aggregated.convertedClients > 0) {
-      aggregated.conversionRate = totals.conversionRateSum / totals.convertedClients;
-    }
-    
-    if (aggregated.newClients > 0) {
-      aggregated.noShowRate = totals.noShowRateSum / totals.newClients;
-      aggregated.lateCancellationRate = totals.lateCancellationRateSum / totals.newClients;
-      aggregated.averageRevenuePerClient = aggregated.totalRevenue / aggregated.newClients;
-    }
-    
-    return aggregated;
-  };
-  
-  const handleMetricClick = (item: ProcessedTeacherData, metricType: 'conversion' | 'retention') => {
-    // Prevent event bubbling
-    event?.stopPropagation();
-    setDrillDownData(item);
-    setDrillDownType(dataMode === 'teacher' ? 'teacher' : 'studio');
-    setDrillDownMetricType(metricType);
-    setIsDrillDownOpen(true);
-  };
-  
-  const handleCloseDrillDown = () => {
-    setIsDrillDownOpen(false);
-    setDrillDownData(null);
-  };
-  
-  // Handler for advanced filters
-  const handleApplyAdvancedFilters = (filters: any) => {
-    setAdvancedFilters(filters);
-    // Here you would apply the filters to the data
-    // This is a simplified version - in a real app you'd filter the data
-    // based on all the criteria in the filters object
-    if (filters.basic) {
-      onFilterChange({
-        location: filters.basic.location,
-        teacher: filters.basic.teacher,
-        period: filters.basic.period,
-        search: filters.basic.search,
-      });
+    return totals;
+  }, [data]);
+
+  // Handle column sorting
+  const handleSort = (column: string) => {
+    if (sortColumn === column) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortColumn(column);
+      setSortDirection('asc');
     }
   };
-  
-  // Update the displayData to handle studio view and sorting
-  const displayData = useMemo(() => {
-    let filteredData = dataMode === 'studio' 
-      ? data.filter(item => item.teacherName === 'All Teachers')
-      : data.filter(item => item.teacherName !== 'All Teachers');
+
+  // Sort the data based on the selected column and direction
+  const sortedData = useMemo(() => {
+    if (!data || data.length === 0) return [];
     
-    // Apply sorting
-    return [...filteredData].sort((a, b) => {
-      const aValue = a[sortConfig.column as keyof ProcessedTeacherData];
-      const bValue = b[sortConfig.column as keyof ProcessedTeacherData];
+    return [...data].sort((a, b) => {
+      const aValue = a[sortColumn as keyof ProcessedTeacherData];
+      const bValue = b[sortColumn as keyof ProcessedTeacherData];
       
       if (typeof aValue === 'number' && typeof bValue === 'number') {
-        return sortConfig.direction === 'asc' ? aValue - bValue : bValue - aValue;
+        return sortDirection === 'asc' ? aValue - bValue : bValue - aValue;
       }
       
       if (typeof aValue === 'string' && typeof bValue === 'string') {
-        return sortConfig.direction === 'asc' 
-          ? aValue.localeCompare(bValue) 
-          : bValue.localeCompare(aValue);
+        return sortDirection === 'asc' ? aValue.localeCompare(bValue) : bValue.localeCompare(aValue);
       }
       
       return 0;
     });
-  }, [data, dataMode, sortConfig]);
-  
-  // Calculate totals for the footer
-  const totals = useMemo(() => {
-    return displayData.reduce((acc, item) => {
-      return {
-        newClients: acc.newClients + item.newClients,
-        retainedClients: acc.retainedClients + item.retainedClients,
-        convertedClients: acc.convertedClients + item.convertedClients,
-        totalRevenue: acc.totalRevenue + (item.totalRevenue || 0),
-        // Calculate averaged percentages correctly by summing the products
-        retentionRateSum: acc.retentionRateSum + ((item.retentionRate || 0) * item.retainedClients),
-        conversionRateSum: acc.conversionRateSum + ((item.conversionRate || 0) * item.convertedClients),
-        noShowRateSum: acc.noShowRateSum + ((item.noShowRate || 0) * item.newClients),
-        lateCancellationRateSum: acc.lateCancellationRateSum + ((item.lateCancellationRate || 0) * item.newClients),
-      };
-    }, {
-      newClients: 0,
-      retainedClients: 0,
-      convertedClients: 0,
-      totalRevenue: 0,
-      retentionRateSum: 0,
-      conversionRateSum: 0,
-      noShowRateSum: 0,
-      lateCancellationRateSum: 0,
-    });
-  }, [displayData]);
-  
-  // Calculate average rates
-  const avgRetentionRate = totals.retainedClients > 0 
-    ? totals.retentionRateSum / totals.retainedClients 
-    : 0;
-    
-  const avgConversionRate = totals.convertedClients > 0 
-    ? totals.conversionRateSum / totals.convertedClients 
-    : 0;
-    
-  const avgNoShowRate = totals.newClients > 0 
-    ? totals.noShowRateSum / totals.newClients 
-    : 0;
-    
-  const avgLateCancellationRate = totals.newClients > 0 
-    ? totals.lateCancellationRateSum / totals.newClients 
-    : 0;
+  }, [data, sortColumn, sortDirection]);
 
-  // Helper for getting client details
-  const getClientsForType = (type: 'new' | 'retained' | 'converted') => {
-    if (!selectedTeacher) return [];
-    
-    const selectedData = data.find(item => 
-      (item.teacherName === selectedTeacher || item.location === selectedTeacher) &&
-      (dataMode === 'teacher' ? item.teacherName === selectedTeacher : item.location === selectedTeacher)
-    );
-    
-    if (!selectedData) return [];
-
-    switch (type) {
-      case 'new': return selectedData.newClientDetails || [];
-      case 'retained': return selectedData.retainedClientDetails || [];
-      case 'converted': return selectedData.convertedClientDetails || [];
-      default: return [];
-    }
+  // Update the drilldown with the selected data
+  const handleRowClick = (item: ProcessedTeacherData, type: 'teacher' | 'studio' | 'location' | 'period' | 'totals' = 'teacher') => {
+    setSelectedData(item);
+    setDrillDownType(type);
+    setMetricType('all');
+    setIsDrillDownOpen(true);
   };
 
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center h-40">
-        <div className="animate-pulse-soft h-10 w-10 rounded-full bg-primary/20"></div>
-        <p className="ml-4 text-muted-foreground">Loading data...</p>
-      </div>
-    );
-  }
+  // Handle metric click to open drilldown with specific tab
+  const handleMetricClick = (item: ProcessedTeacherData, metric: 'conversion' | 'retention') => {
+    setSelectedData(item);
+    setDrillDownType('teacher');
+    setMetricType(metric);
+    setIsDrillDownOpen(true);
+  };
 
-  if (data.length === 0) {
-    return (
-      <div className="text-center py-10 bg-muted/10 rounded-lg border border-dashed animate-fade-in">
-        <FileText className="h-10 w-10 text-muted-foreground mx-auto mb-2" />
-        <p className="text-muted-foreground">No data available. Please upload files to process.</p>
-      </div>
-    );
-  }
-  
-  // Components for different views
-  const renderTableView = () => (
-    <Card className="bg-white shadow-sm rounded-lg overflow-hidden animate-fade-in">
-      <CardHeader className="bg-muted/20 pb-2">
-        <CardTitle className="text-lg flex justify-between items-center">
-          <span>Performance Data</span>
-          <AdvancedFilters 
-            locations={locations}
-            teachers={displayData.map(item => item.teacherName)}
-            periods={Array.from(new Set(displayData.map(item => item.period)))}
-            onApplyFilters={handleApplyAdvancedFilters}
-            activeFilters={advancedFilters}
-          />
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="p-0">
-        <ScrollArea className="max-h-[600px]">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                {visibleColumns.includes('teacherName') && (
-                  <TableHead className="w-[200px]">
-                    {dataMode === 'teacher' ? 'Teacher' : 'Studio'}
-                  </TableHead>
-                )}
-                {visibleColumns.includes('location') && (
-                  <TableHead>Location</TableHead>
-                )}
-                {visibleColumns.includes('period') && (
-                  <TableHead>Period</TableHead>
-                )}
-                {visibleColumns.includes('newClients') && (
-                  <TableHead className="text-center">New Clients</TableHead>
-                )}
-                {visibleColumns.includes('retainedClients') && (
-                  <TableHead className="text-center">Retained Clients</TableHead>
-                )}
-                {visibleColumns.includes('retentionRate') && (
-                  <TableHead className="text-center">Retention Rate</TableHead>
-                )}
-                {visibleColumns.includes('convertedClients') && (
-                  <TableHead className="text-center">Converted Clients</TableHead>
-                )}
-                {visibleColumns.includes('conversionRate') && (
-                  <TableHead className="text-center">Conversion Rate</TableHead>
-                )}
-                {visibleColumns.includes('totalRevenue') && (
-                  <TableHead className="text-center">Total Revenue</TableHead>
-                )}
-                {visibleColumns.includes('trials') && (
-                  <TableHead className="text-center">Trials</TableHead>
-                )}
-                {visibleColumns.includes('referrals') && (
-                  <TableHead className="text-center">Referrals</TableHead>
-                )}
-                {visibleColumns.includes('hosted') && (
-                  <TableHead className="text-center">Hosted Events</TableHead>
-                )}
-                {visibleColumns.includes('influencerSignups') && (
-                  <TableHead className="text-center">Influencer Signups</TableHead>
-                )}
-                {visibleColumns.includes('others') && (
-                  <TableHead className="text-center">Others</TableHead>
-                )}
-                {visibleColumns.includes('averageRevenuePerClient') && (
-                  <TableHead className="text-center">Avg. Revenue/Client</TableHead>
-                )}
-                {visibleColumns.includes('noShowRate') && (
-                  <TableHead className="text-center">No Show Rate</TableHead>
-                )}
-                {visibleColumns.includes('lateCancellationRate') && (
-                  <TableHead className="text-center">Late Cancellation Rate</TableHead>
-                )}
-                <TableHead className="w-[70px]"></TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {displayData.map((item, idx) => (
-                <TableRow 
-                  key={`${item.teacherName}-${item.location}-${item.period}`}
-                  isClickable={true}
-                  onClick={() => handleRowClick(item)}
-                  className="animate-fade-in"
-                  style={{ animationDelay: `${idx * 30}ms` }}
-                >
-                  {visibleColumns.includes('teacherName') && (
-                    <TableCell className="font-medium">{dataMode === 'teacher' ? item.teacherName : item.location}</TableCell>
-                  )}
-                  {visibleColumns.includes('location') && (
-                    <TableCell>{item.location}</TableCell>
-                  )}
-                  {visibleColumns.includes('period') && (
-                    <TableCell>{item.period}</TableCell>
-                  )}
-                  {visibleColumns.includes('newClients') && (
-                    <TableCell className="text-center">{item.newClients}</TableCell>
-                  )}
-                  {visibleColumns.includes('retainedClients') && (
-                    <TableCell className="text-center">{item.retainedClients}</TableCell>
-                  )}
-                  {visibleColumns.includes('retentionRate') && (
-                    <TableCell className="text-center">
-                      <Badge 
-                        variant={item.retentionRate > 50 ? "success" : "destructive"} 
-                        className="cursor-pointer hover:bg-muted flex items-center gap-1 animate-scale-in"
-                        onClick={(e) => handleMetricClick(item, 'retention')}
-                      >
-                        {item.retentionRate > 50 ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
-                        {safeToFixed(item.retentionRate, 1)}%
-                      </Badge>
-                    </TableCell>
-                  )}
-                  {visibleColumns.includes('convertedClients') && (
-                    <TableCell className="text-center">{item.convertedClients}</TableCell>
-                  )}
-                  {visibleColumns.includes('conversionRate') && (
-                    <TableCell className="text-center">
-                      <Badge 
-                        variant={item.conversionRate > 10 ? "success" : "destructive"} 
-                        className="cursor-pointer hover:bg-muted flex items-center gap-1 animate-scale-in"
-                        onClick={(e) => handleMetricClick(item, 'conversion')}
-                      >
-                        {item.conversionRate > 10 ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
-                        {safeToFixed(item.conversionRate, 1)}%
-                      </Badge>
-                    </TableCell>
-                  )}
-                  {visibleColumns.includes('totalRevenue') && (
-                    <TableCell className="text-center">{safeFormatCurrency(item.totalRevenue)}</TableCell>
-                  )}
-                  {visibleColumns.includes('trials') && (
-                    <TableCell className="text-center">{item.trials}</TableCell>
-                  )}
-                  {visibleColumns.includes('referrals') && (
-                    <TableCell className="text-center">{item.referrals}</TableCell>
-                  )}
-                  {visibleColumns.includes('hosted') && (
-                    <TableCell className="text-center">{item.hosted}</TableCell>
-                  )}
-                  {visibleColumns.includes('influencerSignups') && (
-                    <TableCell className="text-center">{item.influencerSignups}</TableCell>
-                  )}
-                  {visibleColumns.includes('others') && (
-                    <TableCell className="text-center">{item.others}</TableCell>
-                  )}
-                  {visibleColumns.includes('averageRevenuePerClient') && (
-                    <TableCell className="text-center">
-                      {safeFormatCurrency(item.averageRevenuePerClient)}
-                    </TableCell>
-                  )}
-                  {visibleColumns.includes('noShowRate') && (
-                    <TableCell className="text-center">
-                      <span className="flex items-center justify-center gap-1">
-                        {item.noShowRate < 10 ? <TrendingDown className="h-3 w-3 text-green-500" /> : <TrendingUp className="h-3 w-3 text-red-500" />}
-                        {safeToFixed(item.noShowRate, 1)}%
-                      </span>
-                    </TableCell>
-                  )}
-                  {visibleColumns.includes('lateCancellationRate') && (
-                    <TableCell className="text-center">
-                      <span className="flex items-center justify-center gap-1">
-                        {item.lateCancellationRate < 10 ? <TrendingDown className="h-3 w-3 text-green-500" /> : <TrendingUp className="h-3 w-3 text-red-500" />}
-                        {safeToFixed(item.lateCancellationRate, 1)}%
-                      </span>
-                    </TableCell>
-                  )}
-                  <TableCell>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" className="h-8 w-8 p-0" onClick={(e) => e.stopPropagation()}>
-                          <span className="sr-only">Open menu</span>
-                          <MoreHorizontal className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                        <DropdownMenuItem onClick={(e) => {
-                          e.stopPropagation();
-                          handleOpenClientModal(dataMode === 'teacher' ? item.teacherName : item.location, 'new');
-                        }}>
-                          <User2 className="mr-2 h-4 w-4" />
-                          View New Clients
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={(e) => {
-                          e.stopPropagation();
-                          handleOpenClientModal(dataMode === 'teacher' ? item.teacherName : item.location, 'retained');
-                        }}>
-                          <Users2 className="mr-2 h-4 w-4" />
-                          View Retained Clients
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={(e) => {
-                          e.stopPropagation();
-                          handleOpenClientModal(dataMode === 'teacher' ? item.teacherName : item.location, 'converted');
-                        }}>
-                          <FileText className="mr-2 h-4 w-4" />
-                          View Converted Clients
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem onClick={(e) => {
-                          e.stopPropagation();
-                          handleRowClick(item);
-                        }}>
-                          <LayoutDashboard className="mr-2 h-4 w-4" />
-                          View Detailed Analytics
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-            <TableFooter 
-              className="bg-primary text-primary-foreground hover:bg-primary-dark cursor-pointer animate-fade-in"
-              onClick={handleTotalsRowClick}
-              isClickable={true}
-            >
-              <TableRow>
-                {visibleColumns.includes('teacherName') && (
-                  <TableCell className="font-bold">TOTALS</TableCell>
-                )}
-                {visibleColumns.includes('location') && (
-                  <TableCell></TableCell>
-                )}
-                {visibleColumns.includes('period') && (
-                  <TableCell></TableCell>
-                )}
-                {visibleColumns.includes('newClients') && (
-                  <TableCell className="text-center font-bold">{totals.newClients}</TableCell>
-                )}
-                {visibleColumns.includes('retainedClients') && (
-                  <TableCell className="text-center font-bold">{totals.retainedClients}</TableCell>
-                )}
-                {visibleColumns.includes('retentionRate') && (
-                  <TableCell className="text-center font-bold">
-                    <span className="flex items-center justify-center gap-1">
-                      {avgRetentionRate > 50 ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
-                      {safeToFixed(avgRetentionRate, 1)}%
-                    </span>
-                  </TableCell>
-                )}
-                {visibleColumns.includes('convertedClients') && (
-                  <TableCell className="text-center font-bold">{totals.convertedClients}</TableCell>
-                )}
-                {visibleColumns.includes('conversionRate') && (
-                  <TableCell className="text-center font-bold">
-                    <span className="flex items-center justify-center gap-1">
-                      {avgConversionRate > 10 ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
-                      {safeToFixed(avgConversionRate, 1)}%
-                    </span>
-                  </TableCell>
-                )}
-                {visibleColumns.includes('totalRevenue') && (
-                  <TableCell className="text-center font-bold">{safeFormatCurrency(totals.totalRevenue)}</TableCell>
-                )}
-                {visibleColumns.includes('trials') && (
-                  <TableCell className="text-center font-bold">
-                    {displayData.reduce((sum, item) => sum + (item.trials || 0), 0)}
-                  </TableCell>
-                )}
-                {visibleColumns.includes('referrals') && (
-                  <TableCell className="text-center font-bold">
-                    {displayData.reduce((sum, item) => sum + (item.referrals || 0), 0)}
-                  </TableCell>
-                )}
-                {visibleColumns.includes('hosted') && (
-                  <TableCell className="text-center font-bold">
-                    {displayData.reduce((sum, item) => sum + (item.hosted || 0), 0)}
-                  </TableCell>
-                )}
-                {visibleColumns.includes('influencerSignups') && (
-                  <TableCell className="text-center font-bold">
-                    {displayData.reduce((sum, item) => sum + (item.influencerSignups || 0), 0)}
-                  </TableCell>
-                )}
-                {visibleColumns.includes('others') && (
-                  <TableCell className="text-center font-bold">
-                    {displayData.reduce((sum, item) => sum + (item.others || 0), 0)}
-                  </TableCell>
-                )}
-                {visibleColumns.includes('averageRevenuePerClient') && (
-                  <TableCell className="text-center font-bold">
-                    {safeFormatCurrency(totals.newClients > 0 ? totals.totalRevenue / totals.newClients : 0)}
-                  </TableCell>
-                )}
-                {visibleColumns.includes('noShowRate') && (
-                  <TableCell className="text-center font-bold">
-                    <span className="flex items-center justify-center gap-1">
-                      {avgNoShowRate < 10 ? <TrendingDown className="h-3 w-3" /> : <TrendingUp className="h-3 w-3" />}
-                      {safeToFixed(avgNoShowRate, 1)}%
-                    </span>
-                  </TableCell>
-                )}
-                {visibleColumns.includes('lateCancellationRate') && (
-                  <TableCell className="text-center font-bold">
-                    <span className="flex items-center justify-center gap-1">
-                      {avgLateCancellationRate < 10 ? <TrendingDown className="h-3 w-3" /> : <TrendingUp className="h-3 w-3" />}
-                      {safeToFixed(avgLateCancellationRate, 1)}%
-                    </span>
-                  </TableCell>
-                )}
-                <TableCell className="text-right pr-4">
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
-                    className="text-primary-foreground hover:text-white"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleTotalsRowClick();
-                    }}
-                  >
-                    View Details
-                  </Button>
-                </TableCell>
-              </TableRow>
-            </TableFooter>
-          </Table>
-        </ScrollArea>
-      </CardContent>
-    </Card>
-  );
-  
-  const renderCards = () => (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-      {displayData.map((item, idx) => (
-        <Card 
-          key={`${item.teacherName}-${item.location}-${item.period}`} 
-          className="bg-white/70 backdrop-blur-sm hover:shadow-md cursor-pointer transition-all animate-fade-in hover:-translate-y-1 duration-300"
-          style={{ animationDelay: `${idx * 50}ms` }}
-          onClick={() => handleRowClick(item)}
-        >
-          <CardHeader>
-            <CardTitle className="flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <Avatar>
-                  <AvatarImage src={`https://api.dicebear.com/7.x/lorelei/svg?seed=${item.teacherName}`} />
-                  <AvatarFallback>{item.teacherName.substring(0, 2)}</AvatarFallback>
-                </Avatar>
-                <div>
-                  <p className="text-sm font-medium leading-none">{dataMode === 'teacher' ? item.teacherName : item.location}</p>
-                  <p className="text-sm text-muted-foreground">
-                    {item.location} - {item.period}
-                  </p>
-                </div>
-              </div>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" className="h-8 w-8 p-0" onClick={(e) => e.stopPropagation()}>
-                    <span className="sr-only">Open menu</span>
-                    <MoreHorizontal className="h-4 w-4" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                  <DropdownMenuItem onClick={(e) => {
-                    e.stopPropagation();
-                    handleOpenClientModal(dataMode === 'teacher' ? item.teacherName : item.location, 'new');
-                  }}>
-                    <User2 className="mr-2 h-4 w-4" />
-                    View New Clients
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={(e) => {
-                    e.stopPropagation();
-                    handleOpenClientModal(dataMode === 'teacher' ? item.teacherName : item.location, 'retained');
-                  }}>
-                    <Users2 className="mr-2 h-4 w-4" />
-                    View Retained Clients
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={(e) => {
-                    e.stopPropagation();
-                    handleOpenClientModal(dataMode === 'teacher' ? item.teacherName : item.location, 'converted');
-                  }}>
-                    <FileText className="mr-2 h-4 w-4" />
-                    View Converted Clients
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={(e) => {
-                    e.stopPropagation();
-                    handleRowClick(item);
-                  }}>
-                    <LayoutDashboard className="mr-2 h-4 w-4" />
-                    View Detailed Analytics
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-2 gap-4">
-              <PerformanceMetricCard
-                title="New Clients"
-                value={item.newClients.toString()}
-                icon={<User2 className="h-4 w-4 text-blue-500" />}
-                tooltip="Number of new clients acquired"
-                isAnimated={true}
-              />
-              <PerformanceMetricCard
-                title="Retained Clients"
-                value={item.retainedClients.toString()}
-                secondaryValue={`${safeToFixed(item.retentionRate, 1)}%`}
-                icon={<Users2 className="h-4 w-4 text-green-500" />}
-                status={item.retentionRate > 50 ? 'positive' : item.retentionRate < 30 ? 'negative' : 'neutral'}
-                tooltip="Number of clients retained"
-                onCustomClick={(e) => {
-                  e.stopPropagation();
-                  handleMetricClick(item, 'retention');
-                }}
-                isAnimated={true}
-              />
-              <PerformanceMetricCard
-                title="Converted Clients"
-                value={item.convertedClients.toString()}
-                secondaryValue={`${safeToFixed(item.conversionRate, 1)}%`}
-                icon={<Sparkles className="h-4 w-4 text-purple-500" />}
-                status={item.conversionRate > 10 ? 'positive' : item.conversionRate < 5 ? 'negative' : 'neutral'}
-                tooltip="Number of clients converted"
-                onCustomClick={(e) => {
-                  e.stopPropagation();
-                  handleMetricClick(item, 'conversion');
-                }}
-                isAnimated={true}
-              />
-              <PerformanceMetricCard
-                title="Total Revenue"
-                value={safeFormatCurrency(item.totalRevenue)}
-                icon={<DollarSign className="h-4 w-4 text-amber-500" />}
-                tooltip="Total revenue generated"
-                isAnimated={true}
-              />
-            </div>
-          </CardContent>
-        </Card>
-      ))}
-      
-      {/* Totals card */}
-      <Card 
-        className="bg-gradient-to-br from-primary/10 to-primary/5 border-primary/20 backdrop-blur-sm hover:shadow-md cursor-pointer transition-all duration-300 hover:-translate-y-1 col-span-full animate-fade-in"
-        style={{ animationDelay: `${displayData.length * 50 + 100}ms` }}
-        onClick={handleTotalsRowClick}
-      >
-        <CardHeader>
-          <CardTitle className="flex items-center justify-between">
-            <div>
-              <p className="text-lg font-semibold">Aggregate Totals</p>
-              <p className="text-sm text-muted-foreground">
-                All Teachers - All Locations - All Periods
-              </p>
-            </div>
-            <Button 
-              size="sm" 
-              variant="outline"
-              className="animate-pulse-soft"
-              onClick={(e) => {
-                e.stopPropagation();
-                handleTotalsRowClick();
-              }}
-            >
-              <LayoutDashboard className="mr-2 h-4 w-4" />
-              View Details
-            </Button>
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <PerformanceMetricCard
-              title="New Clients"
-              value={totals.newClients.toString()}
-              icon={<User2 className="h-4 w-4 text-blue-500" />}
-              tooltip="Total number of new clients acquired"
-              isAnimated={true}
-            />
-            <PerformanceMetricCard
-              title="Retained Clients"
-              value={totals.retainedClients.toString()}
-              secondaryValue={`${safeToFixed(avgRetentionRate, 1)}%`}
-              icon={<Users2 className="h-4 w-4 text-green-500" />}
-              status={avgRetentionRate > 50 ? 'positive' : avgRetentionRate < 30 ? 'negative' : 'neutral'}
-              tooltip="Total number of clients retained"
-              isAnimated={true}
-            />
-            <PerformanceMetricCard
-              title="Converted Clients"
-              value={totals.convertedClients.toString()}
-              secondaryValue={`${safeToFixed(avgConversionRate, 1)}%`}
-              icon={<Sparkles className="h-4 w-4 text-purple-500" />}
-              status={avgConversionRate > 10 ? 'positive' : avgConversionRate < 5 ? 'negative' : 'neutral'}
-              tooltip="Total number of clients converted"
-              isAnimated={true}
-            />
-            <PerformanceMetricCard
-              title="Total Revenue"
-              value={safeFormatCurrency(totals.totalRevenue)}
-              icon={<DollarSign className="h-4 w-4 text-amber-500" />}
-              tooltip="Total revenue generated"
-              isAnimated={true}
-            />
-          </div>
-        </CardContent>
-      </Card>
-    </div>
-  );
+  // Handle search input change
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchValue(e.target.value);
+    onFilterChange({ search: e.target.value });
+  };
 
-  const renderDetailed = () => (
-    <div className="grid grid-cols-1 gap-6">
-      {displayData.map((item, idx) => (
-        <Card 
-          key={`${item.teacherName}-${item.location}-${item.period}`} 
-          className="bg-white/70 backdrop-blur-sm hover:shadow-md cursor-pointer transition-all animate-fade-in"
-          style={{ animationDelay: `${idx * 100}ms` }}
-          onClick={() => handleRowClick(item)}
-        >
-          <CardHeader>
-            <CardTitle className="flex items-center justify-between">
-              <div>
-                <p className="text-lg font-semibold">{dataMode === 'teacher' ? item.teacherName : item.location}</p>
-                <p className="text-sm text-muted-foreground">
-                  {item.location} - {item.period}
-                </p>
-              </div>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" className="h-8 w-8 p-0" onClick={(e) => e.stopPropagation()}>
-                    <span className="sr-only">Open menu</span>
-                    <MoreHorizontal className="h-4 w-4" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                  <DropdownMenuItem onClick={(e) => {
-                    e.stopPropagation();
-                    handleOpenClientModal(dataMode === 'teacher' ? item.teacherName : item.location, 'new');
-                  }}>
-                    <User2 className="mr-2 h-4 w-4" />
-                    View New Clients
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={(e) => {
-                    e.stopPropagation();
-                    handleOpenClientModal(dataMode === 'teacher' ? item.teacherName : item.location, 'retained');
-                  }}>
-                    <Users2 className="mr-2 h-4 w-4" />
-                    View Retained Clients
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={(e) => {
-                    e.stopPropagation();
-                    handleOpenClientModal(dataMode === 'teacher' ? item.teacherName : item.location, 'converted');
-                  }}>
-                    <FileText className="mr-2 h-4 w-4" />
-                    View Converted Clients
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={(e) => {
-                    e.stopPropagation();
-                    handleRowClick(item);
-                  }}>
-                    <LayoutDashboard className="mr-2 h-4 w-4" />
-                    View Detailed Analytics
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <h3 className="text-md font-semibold mb-2">Client Acquisition</h3>
-              <div className="grid grid-cols-2 gap-4">
-                <PerformanceMetricCard
-                  title="New Clients"
-                  value={item.newClients.toString()}
-                  icon={<User2 className="h-4 w-4 text-blue-500" />}
-                  tooltip="Number of new clients acquired"
-                  isAnimated={true}
-                />
-                <PerformanceMetricCard
-                  title="Trials"
-                  value={item.trials.toString()}
-                  icon={<FileText className="h-4 w-4 text-gray-500" />}
-                  tooltip="Number of trial clients"
-                  isAnimated={true}
-                />
-                <PerformanceMetricCard
-                  title="Referrals"
-                  value={item.referrals.toString()}
-                  icon={<Users2 className="h-4 w-4 text-sky-500" />}
-                  tooltip="Number of clients from referrals"
-                  isAnimated={true}
-                />
-                <PerformanceMetricCard
-                  title="Hosted Events"
-                  value={item.hosted.toString()}
-                  icon={<LayoutDashboard className="h-4 w-4 text-orange-500" />}
-                  tooltip="Number of clients from hosted events"
-                  isAnimated={true}
-                />
-                <PerformanceMetricCard
-                  title="Influencer Signups"
-                  value={item.influencerSignups.toString()}
-                  icon={<TrendingUp className="h-4 w-4 text-pink-500" />}
-                  tooltip="Number of clients from influencer signups"
-                  isAnimated={true}
-                />
-                <PerformanceMetricCard
-                  title="Others"
-                  value={item.others.toString()}
-                  icon={<MoreHorizontal className="h-4 w-4 text-zinc-500" />}
-                  tooltip="Number of clients from other sources"
-                  isAnimated={true}
-                />
-              </div>
+  // Filter data based on search value
+  const filterData = (searchTerm: string) => {
+    if (!searchTerm) return sortedData;
+    
+    return sortedData.filter(item => 
+      item.teacherName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      item.location.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+  };
+
+  // Apply quick filter to data
+  const applyQuickFilter = (location: string) => {
+    onFilterChange({ location });
+  };
+
+  // Close the drilldown modal
+  const closeDrillDown = () => {
+    setIsDrillDownOpen(false);
+  };
+
+  // Calculate the filtered data
+  const filteredData = useMemo(() => filterData(searchValue), [sortedData, searchValue]);
+
+  // Adjust tableHeight based on the window size
+  useEffect(() => {
+    const handleResize = () => {
+      const windowHeight = window.innerHeight;
+      const newHeight = Math.max(400, windowHeight - 400) + 'px';
+      setTableHeight(newHeight);
+    };
+
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  // Render table rows
+  const renderRows = () => {
+    if (isLoading) {
+      return (
+        <TableRow>
+          <TableCell colSpan={7} className="h-24 text-center">
+            <div className="flex flex-col items-center justify-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+              <p className="mt-2 text-sm text-muted-foreground">Loading data...</p>
             </div>
-            <div>
-              <h3 className="text-md font-semibold mb-2">Client Retention & Conversion</h3>
-              <div className="grid grid-cols-2 gap-4">
-                <PerformanceMetricCard
-                  title="Retained Clients"
-                  value={item.retainedClients.toString()}
-                  secondaryValue={`${safeToFixed(item.retentionRate, 1)}%`}
-                  icon={<Users2 className="h-4 w-4 text-green-500" />}
-                  status={item.retentionRate > 50 ? 'positive' : item.retentionRate < 30 ? 'negative' : 'neutral'}
-                  tooltip="Number of clients retained"
-                  onCustomClick={(e) => {
-                    e.stopPropagation();
-                    handleMetricClick(item, 'retention');
-                  }}
-                  isAnimated={true}
-                />
-                <PerformanceMetricCard
-                  title="Converted Clients"
-                  value={item.convertedClients.toString()}
-                  secondaryValue={`${safeToFixed(item.conversionRate, 1)}%`}
-                  icon={<Sparkles className="h-4 w-4 text-purple-500" />}
-                  status={item.conversionRate > 10 ? 'positive' : item.conversionRate < 5 ? 'negative' : 'neutral'}
-                  tooltip="Number of clients converted"
-                  onCustomClick={(e) => {
-                    e.stopPropagation();
-                    handleMetricClick(item, 'conversion');
-                  }}
-                  isAnimated={true}
-                />
-                <PerformanceMetricCard
-                  title="Total Revenue"
-                  value={safeFormatCurrency(item.totalRevenue)}
-                  icon={<DollarSign className="h-4 w-4 text-amber-500" />}
-                  tooltip="Total revenue generated"
-                  isAnimated={true}
-                />
-                <PerformanceMetricCard
-                  title="Avg. Revenue/Client"
-                  value={safeFormatCurrency(item.averageRevenuePerClient)}
-                  icon={<Percent className="h-4 w-4 text-teal-500" />}
-                  tooltip="Average revenue per client"
-                  isAnimated={true}
-                />
-                <PerformanceMetricCard
-                  title="No Show Rate"
-                  value={`${safeToFixed(item.noShowRate, 1)}%`}
-                  icon={item.noShowRate < 10 ? <TrendingDown className="h-4 w-4 text-green-500" /> : <TrendingUp className="h-4 w-4 text-red-500" />}
-                  tooltip="No show rate"
-                  status={item.noShowRate < 10 ? 'positive' : 'negative'}
-                  isAnimated={true}
-                />
-                <PerformanceMetricCard
-                  title="Late Cancellation Rate"
-                  value={`${safeToFixed(item.lateCancellationRate, 1)}%`}
-                  icon={item.lateCancellationRate < 5 ? <TrendingDown className="h-4 w-4 text-green-500" /> : <TrendingUp className="h-4 w-4 text-red-500" />}
-                  tooltip="Late cancellation rate"
-                  status={item.lateCancellationRate < 5 ? 'positive' : 'negative'}
-                  isAnimated={true}
-                />
-              </div>
+          </TableCell>
+        </TableRow>
+      );
+    }
+
+    if (filteredData.length === 0) {
+      return (
+        <TableRow>
+          <TableCell colSpan={7} className="h-24 text-center">
+            <div className="flex flex-col items-center justify-center">
+              <AlertTriangle className="h-8 w-8 text-muted-foreground mb-2" />
+              <p className="text-sm text-muted-foreground">No data found</p>
             </div>
-            <div className="col-span-full">
-              <h3 className="text-md font-semibold mb-2">Revenue by Week</h3>
-              <RevenueChart data={item.revenueByWeek || []} />
-            </div>
-          </CardContent>
-        </Card>
-      ))}
-      
-      {/* Totals detailed card */}
-      <Card 
-        className="bg-gradient-to-br from-primary/10 to-primary/5 border-primary/20 backdrop-blur-sm hover:shadow-md cursor-pointer transition-all animate-fade-in"
-        style={{ animationDelay: `${displayData.length * 100 + 200}ms` }}
-        onClick={handleTotalsRowClick}
+          </TableCell>
+        </TableRow>
+      );
+    }
+
+    return filteredData.map((item, index) => (
+      <TableRow 
+        key={`${item.teacherName}-${item.location}-${index}`} 
+        className="animate-fade-in cursor-pointer hover:bg-muted/80 transition-colors"
+        style={{ animationDelay: `${index * 50}ms` }}
+        onClick={() => handleRowClick(item, 'teacher')}
       >
-        <CardHeader>
-          <CardTitle className="flex items-center justify-between">
-            <div>
-              <p className="text-lg font-semibold">Aggregate Totals</p>
-              <p className="text-sm text-muted-foreground">
-                All Teachers - All Locations - All Periods
-              </p>
-            </div>
-            <Button 
-              size="sm" 
-              variant="outline"
-              className="animate-pulse-soft"
-              onClick={(e) => {
-                e.stopPropagation();
-                handleTotalsRowClick();
-              }}
+        <TableCell className="font-medium">{item.teacherName}</TableCell>
+        <TableCell>{item.location}</TableCell>
+        <TableCell className="text-center">{item.newClients}</TableCell>
+        <TableCell className="text-center">
+          <div className="flex items-center justify-center gap-1">
+            {item.convertedClients}
+            <Badge 
+              variant={item.conversionRate > 10 ? "success" : "destructive"} 
+              className="ml-1 animate-scale-in flex items-center gap-1"
             >
-              <LayoutDashboard className="mr-2 h-4 w-4" />
-              View Detailed Analytics
-            </Button>
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div>
-            <h3 className="text-md font-semibold mb-2">Performance Summary</h3>
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-              <PerformanceMetricCard
-                title="New Clients"
-                value={totals.newClients.toString()}
-                icon={<User2 className="h-4 w-4 text-blue-500" />}
-                tooltip="Total number of new clients"
-                isAnimated={true}
-              />
-              <PerformanceMetricCard
-                title="Retained Clients"
-                value={totals.retainedClients.toString()}
-                secondaryValue={`${safeToFixed(avgRetentionRate, 1)}%`}
-                icon={<Users2 className="h-4 w-4 text-green-500" />}
-                status={avgRetentionRate > 50 ? 'positive' : avgRetentionRate < 30 ? 'negative' : 'neutral'}
-                tooltip="Total clients retained"
-                isAnimated={true}
-              />
-              <PerformanceMetricCard
-                title="Converted Clients"
-                value={totals.convertedClients.toString()}
-                secondaryValue={`${safeToFixed(avgConversionRate, 1)}%`}
-                icon={<Sparkles className="h-4 w-4 text-purple-500" />}
-                status={avgConversionRate > 10 ? 'positive' : avgConversionRate < 5 ? 'negative' : 'neutral'}
-                tooltip="Total clients converted"
-                isAnimated={true}
-              />
-              <PerformanceMetricCard
-                title="Total Revenue"
-                value={safeFormatCurrency(totals.totalRevenue)}
-                icon={<DollarSign className="h-4 w-4 text-amber-500" />}
-                tooltip="Total revenue generated"
-                isAnimated={true}
-              />
-              <PerformanceMetricCard
-                title="Avg. Revenue/Client"
-                value={safeFormatCurrency(totals.newClients > 0 ? totals.totalRevenue / totals.newClients : 0)}
-                icon={<Percent className="h-4 w-4 text-teal-500" />}
-                tooltip="Average revenue per client"
-                isAnimated={true}
-              />
-              <PerformanceMetricCard
-                title="No Show Rate"
-                value={`${safeToFixed(avgNoShowRate, 1)}%`}
-                icon={avgNoShowRate < 10 ? <TrendingDown className="h-4 w-4 text-green-500" /> : <TrendingUp className="h-4 w-4 text-red-500" />}
-                tooltip="Average no show rate"
-                status={avgNoShowRate < 10 ? 'positive' : 'negative'}
-                isAnimated={true}
-              />
-            </div>
+              {item.conversionRate > 10 ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
+              {safeToFixed(item.conversionRate, 1)}%
+            </Badge>
           </div>
-          <div>
-            <h3 className="text-md font-semibold mb-2">Client Source Summary</h3>
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-              <PerformanceMetricCard
-                title="Trials"
-                value={displayData.reduce((sum, item) => sum + (item.trials || 0), 0).toString()}
-                icon={<FileText className="h-4 w-4 text-gray-500" />}
-                tooltip="Total trial clients"
-                isAnimated={true}
-              />
-              <PerformanceMetricCard
-                title="Referrals"
-                value={displayData.reduce((sum, item) => sum + (item.referrals || 0), 0).toString()}
-                icon={<Users2 className="h-4 w-4 text-sky-500" />}
-                tooltip="Total referral clients"
-                isAnimated={true}
-              />
-              <PerformanceMetricCard
-                title="Hosted Events"
-                value={displayData.reduce((sum, item) => sum + (item.hosted || 0), 0).toString()}
-                icon={<LayoutDashboard className="h-4 w-4 text-orange-500" />}
-                tooltip="Total hosted event clients"
-                isAnimated={true}
-              />
-              <PerformanceMetricCard
-                title="Influencer Signups"
-                value={displayData.reduce((sum, item) => sum + (item.influencerSignups || 0), 0).toString()}
-                icon={<TrendingUp className="h-4 w-4 text-pink-500" />}
-                tooltip="Total influencer signup clients"
-                isAnimated={true}
-              />
-              <PerformanceMetricCard
-                title="Others"
-                value={displayData.reduce((sum, item) => sum + (item.others || 0), 0).toString()}
-                icon={<MoreHorizontal className="h-4 w-4 text-zinc-500" />}
-                tooltip="Other client sources"
-                isAnimated={true}
-              />
-              <PerformanceMetricCard
-                title="Late Cancellation Rate"
-                value={`${safeToFixed(avgLateCancellationRate, 1)}%`}
-                icon={avgLateCancellationRate < 5 ? <TrendingDown className="h-4 w-4 text-green-500" /> : <TrendingUp className="h-4 w-4 text-red-500" />}
-                tooltip="Average late cancellation rate"
-                status={avgLateCancellationRate < 5 ? 'positive' : 'negative'}
-                isAnimated={true}
-              />
-            </div>
+        </TableCell>
+        <TableCell className="text-center">
+          <div className="flex items-center justify-center gap-1">
+            {item.retainedClients}
+            <Badge 
+              variant={item.retentionRate > 50 ? "success" : "destructive"} 
+              className="ml-1 animate-scale-in flex items-center gap-1"
+            >
+              {item.retentionRate > 50 ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
+              {safeToFixed(item.retentionRate, 1)}%
+            </Badge>
           </div>
-        </CardContent>
-      </Card>
-    </div>
-  );
-  
-  const renderAnalytics = () => (
-    <div className="space-y-6">
-      <Card className="animate-fade-in">
-        <CardHeader>
-          <CardTitle>Performance Analytics Dashboard</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <Card className="animate-fade-in" style={{ animationDelay: '100ms' }}>
-              <CardHeader className="py-2">
-                <CardTitle className="text-sm font-medium">Total New Clients</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{totals.newClients}</div>
-                <p className="text-xs text-muted-foreground">Across all teachers/studios</p>
-              </CardContent>
-            </Card>
-            <Card className="animate-fade-in" style={{ animationDelay: '200ms' }}>
-              <CardHeader className="py-2">
-                <CardTitle className="text-sm font-medium">Avg. Retention Rate</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold flex items-center">
-                  {avgRetentionRate > 50 ? <TrendingUp className="h-4 w-4 mr-2 text-green-500" /> : <TrendingDown className="h-4 w-4 mr-2 text-red-500" />}
-                  {safeToFixed(avgRetentionRate, 1)}%
-                </div>
-                <p className="text-xs text-muted-foreground">Weighted average</p>
-              </CardContent>
-            </Card>
-            <Card className="animate-fade-in" style={{ animationDelay: '300ms' }}>
-              <CardHeader className="py-2">
-                <CardTitle className="text-sm font-medium">Avg. Conversion Rate</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold flex items-center">
-                  {avgConversionRate > 10 ? <TrendingUp className="h-4 w-4 mr-2 text-green-500" /> : <TrendingDown className="h-4 w-4 mr-2 text-red-500" />}
-                  {safeToFixed(avgConversionRate, 1)}%
-                </div>
-                <p className="text-xs text-muted-foreground">Weighted average</p>
-              </CardContent>
-            </Card>
-            <Card className="animate-fade-in" style={{ animationDelay: '400ms' }}>
-              <CardHeader className="py-2">
-                <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{safeFormatCurrency(totals.totalRevenue)}</div>
-                <p className="text-xs text-muted-foreground">Across all data</p>
-              </CardContent>
-            </Card>
-          </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-fade-in" style={{ animationDelay: '500ms' }}>
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Performance Comparison</CardTitle>
-              </CardHeader>
-              <CardContent className="h-80">
-                {/* Bar chart would go here - using placeholder */}
-                <div className="h-full flex items-center justify-center bg-muted/20 rounded-md">
-                  <BarChart className="h-16 w-16 text-muted-foreground" />
-                  <p className="ml-2 text-muted-foreground">Performance Bar Chart</p>
-                </div>
-              </CardContent>
-            </Card>
-            
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Revenue Trend</CardTitle>
-              </CardHeader>
-              <CardContent className="h-80">
-                {/* Here we would include a specialized chart, using placeholder for now */}
-                <div className="h-full flex items-center justify-center bg-muted/20 rounded-md">
-                  <PieChart className="h-16 w-16 text-muted-foreground" />
-                  <p className="ml-2 text-muted-foreground">Revenue Distribution Chart</p>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-          
-          <Button className="w-full animate-scale-in" onClick={handleTotalsRowClick}>
-            <LayoutDashboard className="mr-2 h-4 w-4" />
-            View Detailed Analytics
+        </TableCell>
+        <TableCell className="text-right">{safeFormatCurrency(item.totalRevenue)}</TableCell>
+        <TableCell className="text-center">
+          <Button variant="outline" size="sm" 
+            className="flex items-center gap-1"
+            onClick={(e) => { e.stopPropagation(); handleRowClick(item, 'teacher'); }}
+          >
+            <BarChart2 className="h-4 w-4" /> View
           </Button>
-        </CardContent>
-      </Card>
-    </div>
-  );
-  
-  const renderCalendarView = () => (
-    <Card className="animate-fade-in">
-      <CardHeader>
-        <CardTitle>Calendar View</CardTitle>
-      </CardHeader>
-      <CardContent className="h-[600px]">
-        <div className="h-full flex items-center justify-center bg-muted/20 rounded-md">
-          <Calendar className="h-16 w-16 text-muted-foreground" />
-          <p className="ml-2 text-muted-foreground">Calendar View (Coming Soon)</p>
-        </div>
-      </CardContent>
-    </Card>
-  );
-  
-  const renderTrendsView = () => (
-    <Card className="animate-fade-in">
-      <CardHeader>
-        <CardTitle>Performance Trends</CardTitle>
-      </CardHeader>
-      <CardContent className="h-[600px]">
-        <div className="h-full flex items-center justify-center bg-muted/20 rounded-md">
-          <BarChart className="h-16 w-16 text-muted-foreground" />
-          <p className="ml-2 text-muted-foreground">Trends View (Coming Soon)</p>
-        </div>
-      </CardContent>
-    </Card>
-  );
+        </TableCell>
+      </TableRow>
+    ));
+  };
+
+  // Calculate studio metrics
+  const studioMetrics = useMemo(() => {
+    if (!data || data.length === 0) return [];
+
+    const locationMap = new Map<string, ProcessedTeacherData>();
+
+    data.forEach(item => {
+      if (!locationMap.has(item.location)) {
+        locationMap.set(item.location, {
+          id: item.location,
+          teacherName: 'All Teachers',
+          location: item.location,
+          newClients: 0,
+          convertedClients: 0,
+          retainedClients: 0,
+          trials: 0,
+          referrals: 0,
+          hosted: 0,
+          influencerSignups: 0,
+          others: 0,
+          trialToMembershipConversion: 0,
+          referralConversionRate: 0,
+          influencerConversionRate: 0,
+          retentionRate: 0,
+          conversionRate: 0,
+          noShowRate: 0,
+          lateCancellationRate: 0,
+          totalRevenue: 0,
+          averageRevenuePerClient: 0,
+          period: 'All Periods',
+          revenueByWeek: [],
+          newClientDetails: [],
+          convertedClientDetails: [],
+          retainedClientDetails: []
+        });
+      }
+
+      const locationData = locationMap.get(item.location)!;
+      locationData.newClients += item.newClients || 0;
+      locationData.convertedClients += item.convertedClients || 0;
+      locationData.retainedClients += item.retainedClients || 0;
+      locationData.trials += item.trials || 0;
+      locationData.referrals += item.referrals || 0;
+      locationData.hosted += item.hosted || 0;
+      locationData.influencerSignups += item.influencerSignups || 0;
+      locationData.others += item.others || 0;
+      locationData.totalRevenue += item.totalRevenue || 0;
+      
+      // Collect client details
+      if (item.newClientDetails) {
+        locationData.newClientDetails = [...(locationData.newClientDetails || []), ...(item.newClientDetails || [])];
+      }
+      if (item.convertedClientDetails) {
+        locationData.convertedClientDetails = [...(locationData.convertedClientDetails || []), ...(item.convertedClientDetails || [])];
+      }
+      if (item.retainedClientDetails) {
+        locationData.retainedClientDetails = [...(locationData.retainedClientDetails || []), ...(item.retainedClientDetails || [])];
+      }
+    });
+
+    // Calculate derived metrics for each location
+    for (const [_, locationData] of locationMap.entries()) {
+      locationData.conversionRate = locationData.newClients > 0 ? (locationData.convertedClients / locationData.newClients) * 100 : 0;
+      locationData.retentionRate = locationData.newClients > 0 ? (locationData.retainedClients / locationData.newClients) * 100 : 0;
+      locationData.averageRevenuePerClient = locationData.convertedClients > 0 ? locationData.totalRevenue / locationData.convertedClients : 0;
+    }
+
+    return Array.from(locationMap.values());
+  }, [data]);
 
   return (
-    <div className="space-y-6">
-      {/* Table options and view mode selector */}
-      <TableViewOptions
-        activeView={viewMode}
-        onViewChange={setViewMode}
-        onGroupByChange={setActiveGroupBy}
-        onVisibilityChange={setVisibleColumns}
-        onSortChange={(column, direction) => setSortConfig({ column, direction })}
-        availableColumns={allAvailableColumns}
-        visibleColumns={visibleColumns}
-        activeGroupBy={activeGroupBy}
-        activeSort={sortConfig}
-      />
+    <div className="space-y-4 animate-fade-in">
+      {viewMode === 'table' && (
+        <Card>
+          <CardHeader className="py-3 flex flex-row items-center justify-between">
+            <CardTitle className="text-xl">Performance Analytics</CardTitle>
+            <div className="flex items-center space-x-2">
+              <div className="relative w-64">
+                <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search teachers or locations..."
+                  className="pl-8"
+                  value={searchValue}
+                  onChange={handleSearchChange}
+                />
+              </div>
+              <div className="flex gap-1">
+                {locations.slice(0, 3).map(loc => (
+                  <Button 
+                    key={loc} 
+                    variant="outline" 
+                    size="sm"
+                    className="text-xs animate-scale-in px-2"
+                    onClick={() => applyQuickFilter(loc)}
+                  >
+                    {loc}
+                  </Button>
+                ))}
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent className="p-0">
+            <ScrollArea className={`rounded-md overflow-auto`} style={{ height: tableHeight }}>
+              <Table>
+                <TableHeader className="sticky top-0 z-10 bg-background/95 backdrop-blur-sm">
+                  <TableRow>
+                    <TableHead 
+                      className="cursor-pointer hover:bg-muted/60 transition-colors w-[180px]"
+                      onClick={() => handleSort('teacherName')}
+                    >
+                      <div className="flex items-center">
+                        Teacher 
+                        <ArrowUpDown className="ml-2 h-4 w-4" />
+                      </div>
+                    </TableHead>
+                    <TableHead 
+                      className="cursor-pointer hover:bg-muted/60 transition-colors w-[180px]"
+                      onClick={() => handleSort('location')}
+                    >
+                      <div className="flex items-center">
+                        Location
+                        <ArrowUpDown className="ml-2 h-4 w-4" />
+                      </div>
+                    </TableHead>
+                    <TableHead 
+                      className="cursor-pointer hover:bg-muted/60 transition-colors text-center w-[120px]"
+                      onClick={() => handleSort('newClients')}
+                    >
+                      <div className="flex items-center justify-center">
+                        New Clients
+                        <ArrowUpDown className="ml-2 h-4 w-4" />
+                      </div>
+                    </TableHead>
+                    <TableHead 
+                      className="cursor-pointer hover:bg-muted/60 transition-colors text-center w-[180px]"
+                      onClick={() => handleSort('conversionRate')}
+                    >
+                      <div className="flex items-center justify-center">
+                        Converted (Rate)
+                        <ArrowUpDown className="ml-2 h-4 w-4" />
+                      </div>
+                    </TableHead>
+                    <TableHead 
+                      className="cursor-pointer hover:bg-muted/60 transition-colors text-center w-[180px]"
+                      onClick={() => handleSort('retentionRate')}
+                    >
+                      <div className="flex items-center justify-center">
+                        Retained (Rate)
+                        <ArrowUpDown className="ml-2 h-4 w-4" />
+                      </div>
+                    </TableHead>
+                    <TableHead 
+                      className="cursor-pointer hover:bg-muted/60 transition-colors text-right w-[150px]"
+                      onClick={() => handleSort('totalRevenue')}
+                    >
+                      <div className="flex items-center justify-end">
+                        Revenue
+                        <ArrowUpDown className="ml-2 h-4 w-4" />
+                      </div>
+                    </TableHead>
+                    <TableHead className="text-center w-[100px]">
+                      Details
+                    </TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {renderRows()}
+                </TableBody>
+                <TableFooter className="sticky bottom-0 z-10 bg-primary text-white font-medium hover:bg-primary-dark cursor-pointer transition-colors duration-300"
+                             onClick={() => handleRowClick(totalsRow, 'totals')}>
+                  <TableRow>
+                    <TableCell className="text-white">Totals</TableCell>
+                    <TableCell className="text-white">All Locations</TableCell>
+                    <TableCell className="text-center text-white">{totalsRow.newClients}</TableCell>
+                    <TableCell className="text-center text-white">
+                      <div className="flex items-center justify-center gap-1">
+                        {totalsRow.convertedClients}
+                        <Badge 
+                          variant={totalsRow.conversionRate > 10 ? "success" : "destructive"} 
+                          className="ml-1 animate-scale-in flex items-center gap-1 bg-white/20 hover:bg-white/30"
+                        >
+                          {totalsRow.conversionRate > 10 ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
+                          {safeToFixed(totalsRow.conversionRate, 1)}%
+                        </Badge>
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-center text-white">
+                      <div className="flex items-center justify-center gap-1">
+                        {totalsRow.retainedClients}
+                        <Badge 
+                          variant={totalsRow.retentionRate > 50 ? "success" : "destructive"} 
+                          className="ml-1 animate-scale-in flex items-center gap-1 bg-white/20 hover:bg-white/30"
+                        >
+                          {totalsRow.retentionRate > 50 ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
+                          {safeToFixed(totalsRow.retentionRate, 1)}%
+                        </Badge>
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-right text-white">{safeFormatCurrency(totalsRow.totalRevenue)}</TableCell>
+                    <TableCell className="text-center text-white">
+                      <Button variant="outline" size="sm" 
+                        className="flex items-center gap-1 bg-white/20 hover:bg-white/30 border-white/30 text-white"
+                        onClick={(e) => { e.stopPropagation(); handleRowClick(totalsRow, 'totals'); }}
+                      >
+                        <BarChart2 className="h-4 w-4" /> View
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                </TableFooter>
+              </Table>
+            </ScrollArea>
+          </CardContent>
+        </Card>
+      )}
+
+      {viewMode === 'cards' && (
+        <div className="space-y-4">
+          <div className="flex flex-col gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <Card className="shadow-sm">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-xl">Performance Analytics</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-3 gap-3">
+                    <div className="bg-muted/30 rounded-lg p-4 text-center animate-scale-in" style={{ animationDelay: '100ms' }}>
+                      <div className="text-2xl font-bold">{totalsRow.newClients}</div>
+                      <div className="text-sm text-muted-foreground">New Clients</div>
+                    </div>
+                    <div className="bg-muted/30 rounded-lg p-4 text-center animate-scale-in" style={{ animationDelay: '200ms' }}>
+                      <div className="text-2xl font-bold flex items-center justify-center">
+                        {safeToFixed(totalsRow.conversionRate, 1)}%
+                        {totalsRow.conversionRate > 10 ? 
+                          <TrendingUp className="h-4 w-4 ml-2 text-green-500" /> : 
+                          <TrendingDown className="h-4 w-4 ml-2 text-red-500" />
+                        }
+                      </div>
+                      <div className="text-sm text-muted-foreground">Conversion</div>
+                    </div>
+                    <div className="bg-muted/30 rounded-lg p-4 text-center animate-scale-in" style={{ animationDelay: '300ms' }}>
+                      <div className="text-2xl font-bold">{safeFormatCurrency(totalsRow.totalRevenue)}</div>
+                      <div className="text-sm text-muted-foreground">Total Revenue</div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+            
+            {dataMode === 'teacher' ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                {sortedData.map((item, index) => (
+                  <PerformanceMetricCard 
+                    key={`${item.teacherName}-${item.location}-${index}`}
+                    data={item}
+                    animationDelay={index * 100}
+                    onClick={() => handleRowClick(item, 'teacher')}
+                    onMetricClick={handleMetricClick}
+                  />
+                ))}
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {studioMetrics.map((item, index) => (
+                  <StudioMetricCard 
+                    key={`studio-${item.location}-${index}`}
+                    data={item}
+                    animationDelay={index * 100}
+                    onClick={() => handleRowClick(item, 'location')}
+                    onMetricClick={handleMetricClick}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
       
-      {/* Render the appropriate view based on viewMode */}
-      {viewMode === 'table' && renderTableView()}
-      {viewMode === 'cards' && renderCards()}
-      {viewMode === 'detailed' && renderDetailed()}
-      {viewMode === 'analytics' && renderAnalytics()}
-      {viewMode === 'calendar' && renderCalendarView()}
-      {viewMode === 'trends' && renderTrendsView()}
+      {viewMode === 'detailed' && (
+        <div>
+          <Tabs defaultValue="teachers" className="w-full">
+            <TabsList className="grid w-full grid-cols-2 mb-4">
+              <TabsTrigger value="teachers" className="flex items-center gap-2">
+                Teacher Performance
+              </TabsTrigger>
+              <TabsTrigger value="studios" className="flex items-center gap-2">
+                Studio Performance
+              </TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="teachers">
+              <div className="grid grid-cols-1 gap-4">
+                {sortedData.map((item, index) => (
+                  <Card 
+                    key={`${item.teacherName}-${item.location}-${index}`} 
+                    className="shadow-sm hover:shadow-md transition-shadow cursor-pointer animate-fade-in"
+                    style={{ animationDelay: `${index * 100}ms` }}
+                    onClick={() => handleRowClick(item, 'teacher')}
+                  >
+                    <CardContent className="p-0">
+                      <div className="grid grid-cols-3 gap-0">
+                        <div className="p-4 border-r">
+                          <h3 className="text-lg font-semibold">{item.teacherName}</h3>
+                          <p className="text-sm text-muted-foreground">{item.location}</p>
+                        </div>
+                        <div className="p-4 border-r">
+                          <div className="grid grid-cols-2 gap-4">
+                            <div>
+                              <p className="text-sm text-muted-foreground">New Clients</p>
+                              <p className="text-xl font-semibold">{item.newClients}</p>
+                            </div>
+                            <div onClick={(e) => { e.stopPropagation(); handleMetricClick(item, 'conversion'); }}>
+                              <p className="text-sm text-muted-foreground">Conversion</p>
+                              <p className="text-xl font-semibold flex items-center">
+                                {safeToFixed(item.conversionRate, 1)}%
+                                {item.conversionRate > 10 ? 
+                                  <TrendingUp className="h-4 w-4 ml-1 text-green-500" /> : 
+                                  <TrendingDown className="h-4 w-4 ml-1 text-red-500" />
+                                }
+                              </p>
+                            </div>
+                            <div onClick={(e) => { e.stopPropagation(); handleMetricClick(item, 'retention'); }}>
+                              <p className="text-sm text-muted-foreground">Retention</p>
+                              <p className="text-xl font-semibold flex items-center">
+                                {safeToFixed(item.retentionRate, 1)}%
+                                {item.retentionRate > 50 ? 
+                                  <TrendingUp className="h-4 w-4 ml-1 text-green-500" /> : 
+                                  <TrendingDown className="h-4 w-4 ml-1 text-red-500" />
+                                }
+                              </p>
+                            </div>
+                            <div>
+                              <p className="text-sm text-muted-foreground">No-Shows</p>
+                              <p className="text-xl font-semibold">{safeToFixed(item.noShowRate, 1)}%</p>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="p-4">
+                          <div className="grid grid-cols-1 gap-4">
+                            <div>
+                              <p className="text-sm text-muted-foreground">Revenue</p>
+                              <p className="text-xl font-semibold">{safeFormatCurrency(item.totalRevenue)}</p>
+                            </div>
+                            <div>
+                              <p className="text-sm text-muted-foreground">Per Client</p>
+                              <p className="text-xl font-semibold">{safeFormatCurrency(item.averageRevenuePerClient)}</p>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </TabsContent>
+            
+            <TabsContent value="studios">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {studioMetrics.map((item, index) => (
+                  <Card 
+                    key={`studio-${item.location}-${index}`} 
+                    className="shadow-sm hover:shadow-md transition-shadow cursor-pointer animate-fade-in"
+                    style={{ animationDelay: `${index * 100}ms` }}
+                    onClick={() => handleRowClick(item, 'location')}
+                  >
+                    <CardContent className="p-0">
+                      <div className="p-4 border-b bg-muted/10">
+                        <h3 className="text-lg font-semibold">{item.location}</h3>
+                        <p className="text-sm text-muted-foreground">Studio Performance</p>
+                      </div>
+                      <div className="p-4">
+                        <div className="grid grid-cols-3 gap-4">
+                          <div>
+                            <p className="text-sm text-muted-foreground">New Clients</p>
+                            <p className="text-xl font-semibold">{item.newClients}</p>
+                          </div>
+                          <div onClick={(e) => { e.stopPropagation(); handleMetricClick(item, 'conversion'); }}>
+                            <p className="text-sm text-muted-foreground">Conversion</p>
+                            <p className="text-xl font-semibold flex items-center">
+                              {safeToFixed(item.conversionRate, 1)}%
+                              {item.conversionRate > 10 ? 
+                                <TrendingUp className="h-4 w-4 ml-1 text-green-500" /> : 
+                                <TrendingDown className="h-4 w-4 ml-1 text-red-500" />
+                              }
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-sm text-muted-foreground">Revenue</p>
+                            <p className="text-xl font-semibold">{safeFormatCurrency(item.totalRevenue)}</p>
+                          </div>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </TabsContent>
+          </Tabs>
+        </div>
+      )}
       
-      {/* Modals */}
-      <ClientDetailsModal
-        isOpen={isClientModalOpen}
-        onClose={handleCloseClientModal}
-        title={`${selectedTeacher ? selectedTeacher : 'Clients'} - ${clientType.charAt(0).toUpperCase() + clientType.slice(1)}`}
-        description={`Details of ${clientType} clients for ${selectedTeacher}`}
-        clients={getClientsForType(clientType)}
-        type={clientType}
-      />
-      
-      <DrillDownAnalytics
-        isOpen={isDrillDownOpen}
-        onClose={handleCloseDrillDown}
-        data={drillDownData}
+      {/* Drill Down Analytics Modal */}
+      <DrillDownAnalytics 
+        isOpen={isDrillDownOpen} 
+        onClose={closeDrillDown} 
+        data={selectedData} 
         type={drillDownType}
-        metricType={drillDownMetricType}
+        metricType={metricType}
       />
     </div>
   );
