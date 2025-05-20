@@ -16,6 +16,7 @@ interface StudioMetricCardProps {
   }[];
   icon: React.ReactNode;
   tooltip?: string;
+  onCustomClick?: (e: React.MouseEvent) => void; // Added this prop
 }
 
 const StudioMetricCard: React.FC<StudioMetricCardProps> = ({
@@ -25,6 +26,7 @@ const StudioMetricCard: React.FC<StudioMetricCardProps> = ({
   metrics = [], // Provide default empty array
   icon,
   tooltip,
+  onCustomClick, // Added this prop
 }) => {
   // Safely display the value by ensuring it's a string
   const displayValue = value !== undefined && value !== null 
@@ -32,7 +34,10 @@ const StudioMetricCard: React.FC<StudioMetricCardProps> = ({
     : 'N/A';
 
   return (
-    <Card className="card-hover bg-white/60 backdrop-blur-sm">
+    <Card 
+      className="card-hover bg-white/60 backdrop-blur-sm"
+      onClick={onCustomClick} // Use the prop if provided
+    >
       <CardContent className="pt-6">
         <div className="flex items-center justify-between mb-4">
           <div>

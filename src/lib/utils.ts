@@ -49,3 +49,10 @@ export function convertCamelToTitle(camelCase: string): string {
   const withSpaces = camelCase.replace(/([A-Z])/g, ' $1');
   return withSpaces.charAt(0).toUpperCase() + withSpaces.slice(1);
 }
+
+/**
+ * Returns a cursor class based on whether an element has click handler
+ */
+export function getCursorClass(hasClickHandler: boolean | undefined): string {
+  return hasClickHandler ? 'cursor-pointer' : '';
+}
