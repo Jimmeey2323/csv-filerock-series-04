@@ -1,4 +1,3 @@
-
 // This adds the necessary vertical scrolling and ensures the totals row is always visible
 import React, { useState, useEffect, useMemo } from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from '@/components/ui/table';
@@ -69,7 +68,10 @@ const ResultsTable: React.FC<ResultsTableProps> = ({
         averageRevenuePerClient: 0,
         period: 'All Periods',
         revenueByWeek: [],
-        firstTimeBuyerRate: 0 // Adding the missing property
+        firstTimeBuyerRate: 0,
+        newClientDetails: [],
+        convertedClientDetails: [],
+        retainedClientDetails: []
       };
     }
 
@@ -107,7 +109,7 @@ const ResultsTable: React.FC<ResultsTableProps> = ({
       averageRevenuePerClient: 0,
       period: 'All Periods',
       revenueByWeek: [],
-      firstTimeBuyerRate: 0, // Adding the missing property
+      firstTimeBuyerRate: 0,
       newClientDetails: data.flatMap(item => item.newClientDetails || []),
       convertedClientDetails: data.flatMap(item => item.convertedClientDetails || []),
       retainedClientDetails: data.flatMap(item => item.retainedClientDetails || [])
@@ -342,7 +344,7 @@ const ResultsTable: React.FC<ResultsTableProps> = ({
           averageRevenuePerClient: 0,
           period: 'All Periods',
           revenueByWeek: [],
-          firstTimeBuyerRate: 0, // Adding the missing property
+          firstTimeBuyerRate: 0,
           newClientDetails: [],
           convertedClientDetails: [],
           retainedClientDetails: []
@@ -600,7 +602,7 @@ const ResultsTable: React.FC<ResultsTableProps> = ({
                       },
                       {
                         label: 'New Clients',
-                        value: item.newClients
+                        value: String(item.newClients)
                       },
                       {
                         label: 'Revenue/Client',
@@ -609,6 +611,7 @@ const ResultsTable: React.FC<ResultsTableProps> = ({
                     ]}
                     icon={<BarChart2 className="h-5 w-5" />}
                     tooltip={`Performance metrics for ${item.location}`}
+                    onCustomClick={() => handleRowClick(item, 'location')}
                   />
                 ))}
               </div>

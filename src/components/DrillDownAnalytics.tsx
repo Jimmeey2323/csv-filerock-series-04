@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -30,7 +29,17 @@ import {
 import RevenueChart from '@/components/charts/RevenueChart';
 import ConversionRatesChart from '@/components/charts/ConversionRatesChart';
 import ClientSourceChart from '@/components/charts/ClientSourceChart';
-import { safeToFixed, safeFormatCurrency } from '@/lib/utils';
+import { 
+  safeToFixed, 
+  safeFormatCurrency, 
+  getFirstVisitDate, 
+  getFirstPurchaseDate, 
+  getFirstPurchaseItem, 
+  getPurchaseValue,
+  getFirstVisitPostTrial,
+  getMembershipUsed,
+  getTotalVisitsPostTrial
+} from '@/lib/utils';
 
 interface DrillDownAnalyticsProps {
   isOpen: boolean;
@@ -90,27 +99,7 @@ const DrillDownAnalytics: React.FC<DrillDownAnalyticsProps> = ({
     if (!client) return 'N/A';
     return client.email || 'N/A';
   };
-  
-  const getFirstVisit = (client: any) => {
-    if (!client) return 'N/A';
-    return client.firstVisit || client.date || 'N/A';
-  };
-  
-  const getFirstPurchaseDate = (client: any) => {
-    if (!client) return 'N/A';
-    return client.firstPurchaseDate || client.purchaseDate || 'N/A';
-  };
-  
-  const getPurchaseItem = (client: any) => {
-    if (!client) return 'N/A';
-    return client.firstPurchaseItem || client.purchaseItem || client.membershipType || 'N/A';
-  };
-  
-  const getPurchaseValue = (client: any) => {
-    if (!client || !client.purchaseValue) return 'N/A';
-    return safeFormatCurrency(client.purchaseValue || client.value);
-  };
-  
+
   const renderClientTable = (clients: any[], title: string) => {
     if (!clients || !Array.isArray(clients) || clients.length === 0) {
       return (
@@ -158,18 +147,18 @@ const DrillDownAnalytics: React.FC<DrillDownAnalyticsProps> = ({
                   <TableRow key={`${getClientEmail(client)}-${idx}`} className="animate-fade-in" style={{ animationDelay: `${idx * 30}ms` }}>
                     <TableCell className="font-medium">{getClientName(client)}</TableCell>
                     <TableCell>{getClientEmail(client)}</TableCell>
-                    <TableCell>{getFirstVisit(client)}</TableCell>
+                    <TableCell>{getFirstVisitDate(client)}</TableCell>
                     {(title.includes('Converted') || title.includes('New')) && <>
                       <TableCell className="font-medium text-emerald-600">
                         {getFirstPurchaseDate(client)}
                       </TableCell>
-                      <TableCell>{getPurchaseItem(client)}</TableCell>
+                      <TableCell>{getFirstPurchaseItem(client)}</TableCell>
                       <TableCell>{getPurchaseValue(client)}</TableCell>
                     </>}
                     {title.includes('Retained') && <>
-                      <TableCell>{client.visitsPostTrial || client.visitCount || client.totalVisitsPostTrial || '0'}</TableCell>
-                      <TableCell>{client.firstVisitPostTrial || 'N/A'}</TableCell>
-                      <TableCell>{client.membershipUsed || client.membershipType || 'N/A'}</TableCell>
+                      <TableCell>{getTotalVisitsPostTrial(client)}</TableCell>
+                      <TableCell>{getFirstVisitPostTrial(client)}</TableCell>
+                      <TableCell>{getMembershipUsed(client)}</TableCell>
                     </>}
                     <TableCell>
                       <Badge 
@@ -479,7 +468,7 @@ const DrillDownAnalytics: React.FC<DrillDownAnalyticsProps> = ({
                         <div className="relative w-full h-full flex items-end">
                           <div className="absolute top-0 left-0 w-full h-full grid grid-rows-4 border-b border-muted">
                             {[75, 50, 25, 0].map(tick => (
-                              <div key={tick} className="border-t border-dashed border-muted/50 relative">
+                              <div key={tick} className="border-t border-dashed border-muted">
                                 <span className="absolute -top-2.5 -left-5 text-xs text-muted-foreground">{tick}</span>
                               </div>
                             ))}
