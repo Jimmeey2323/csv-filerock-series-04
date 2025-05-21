@@ -76,11 +76,15 @@ const TableViewOptions: React.FC<TableViewOptionsProps> = ({
 
   return (
     <div className="flex flex-col space-y-4 animate-fade-in">
-      <div className="flex justify-between items-center bg-white/30 backdrop-blur-sm p-2 rounded-lg shadow-sm border border-slate-100">
+      <div className="flex justify-between items-center bg-white/50 backdrop-blur-lg p-3 rounded-xl shadow-premium border border-slate-100/80">
         <Tabs value={activeView} onValueChange={onViewChange} className="w-full">
-          <TabsList className="w-full justify-start overflow-x-auto no-scrollbar">
+          <TabsList className="w-full justify-start overflow-x-auto no-scrollbar glass-card">
             {views.map(view => (
-              <TabsTrigger key={view.id} value={view.id} className="flex items-center gap-2 data-[state=active]:bg-white/80">
+              <TabsTrigger 
+                key={view.id} 
+                value={view.id} 
+                className="flex items-center gap-2 data-[state=active]:bg-white/90 data-[state=active]:shadow-md transition-all duration-300"
+              >
                 <view.icon className="h-4 w-4" />
                 <span className="font-medium">{view.label}</span>
               </TabsTrigger>
@@ -91,7 +95,7 @@ const TableViewOptions: React.FC<TableViewOptionsProps> = ({
         <div className="flex items-center gap-2 ml-4">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="sm" className="h-9 gap-2 bg-white/80 hover:bg-white shadow-sm border-slate-200 hover:border-slate-300 button-hover">
+              <Button variant="outline" size="sm" className="h-9 gap-2 bg-white/90 hover:bg-white shadow-subtle border-slate-200 hover:border-slate-300 button-hover">
                 <Settings className="h-4 w-4 text-slate-600" />
                 <span className="text-slate-700">Table Options</span>
               </Button>
@@ -106,21 +110,21 @@ const TableViewOptions: React.FC<TableViewOptionsProps> = ({
                   <span>Group By</span>
                 </DropdownMenuSubTrigger>
                 <DropdownMenuPortal>
-                  <DropdownMenuSubContent className="bg-white/95 backdrop-blur-xl border-slate-200 shadow-lg animate-fade-in">
+                  <DropdownMenuSubContent className="bg-white/95 backdrop-blur-xl border-slate-200 shadow-lg animate-scale-in">
                     <DropdownMenuRadioGroup value={activeGroupBy} onValueChange={onGroupByChange}>
-                      <DropdownMenuRadioItem value="teacher" className="hover:bg-slate-100">
+                      <DropdownMenuRadioItem value="teacher" className="hover:bg-slate-100 transition-colors duration-200">
                         <User className="mr-2 h-4 w-4 text-indigo-500" />
                         Teacher
                       </DropdownMenuRadioItem>
-                      <DropdownMenuRadioItem value="studio" className="hover:bg-slate-100">
+                      <DropdownMenuRadioItem value="studio" className="hover:bg-slate-100 transition-colors duration-200">
                         <Store className="mr-2 h-4 w-4 text-blue-500" />
                         Studio
                       </DropdownMenuRadioItem>
-                      <DropdownMenuRadioItem value="location" className="hover:bg-slate-100">
+                      <DropdownMenuRadioItem value="location" className="hover:bg-slate-100 transition-colors duration-200">
                         <MapPin className="mr-2 h-4 w-4 text-green-500" />
                         Location
                       </DropdownMenuRadioItem>
-                      <DropdownMenuRadioItem value="period" className="hover:bg-slate-100">
+                      <DropdownMenuRadioItem value="period" className="hover:bg-slate-100 transition-colors duration-200">
                         <Calendar className="mr-2 h-4 w-4 text-amber-500" />
                         Period
                       </DropdownMenuRadioItem>
@@ -135,7 +139,7 @@ const TableViewOptions: React.FC<TableViewOptionsProps> = ({
                   <span>Column Visibility</span>
                 </DropdownMenuSubTrigger>
                 <DropdownMenuPortal>
-                  <DropdownMenuSubContent className="max-h-80 overflow-y-auto bg-white/95 backdrop-blur-xl border-slate-200 shadow-lg animate-fade-in">
+                  <DropdownMenuSubContent className="max-h-80 overflow-y-auto bg-white/95 backdrop-blur-xl border-slate-200 shadow-lg animate-scale-in">
                     {availableColumns.map(column => (
                       <DropdownMenuCheckboxItem
                         key={column}
@@ -143,7 +147,7 @@ const TableViewOptions: React.FC<TableViewOptionsProps> = ({
                         onCheckedChange={(checked) => 
                           handleColumnVisibilityChange(column, checked as boolean)
                         }
-                        className="hover:bg-slate-100"
+                        className="hover:bg-slate-100 transition-colors duration-200"
                       >
                         {column}
                       </DropdownMenuCheckboxItem>
@@ -158,10 +162,10 @@ const TableViewOptions: React.FC<TableViewOptionsProps> = ({
                   <span>Sort By</span>
                 </DropdownMenuSubTrigger>
                 <DropdownMenuPortal>
-                  <DropdownMenuSubContent className="bg-white/95 backdrop-blur-xl border-slate-200 shadow-lg animate-fade-in">
+                  <DropdownMenuSubContent className="bg-white/95 backdrop-blur-xl border-slate-200 shadow-lg animate-scale-in">
                     {availableColumns.map(column => (
                       <DropdownMenuSub key={column}>
-                        <DropdownMenuSubTrigger className="hover:bg-slate-100 justify-between">
+                        <DropdownMenuSubTrigger className="hover:bg-slate-100 justify-between transition-all duration-200">
                           <span>{column}</span>
                           {activeSort.column === column && (
                             <Badge variant="outline" className="ml-auto bg-blue-50 text-blue-700 border-blue-200">
@@ -170,17 +174,17 @@ const TableViewOptions: React.FC<TableViewOptionsProps> = ({
                           )}
                         </DropdownMenuSubTrigger>
                         <DropdownMenuPortal>
-                          <DropdownMenuSubContent className="bg-white/95 backdrop-blur-xl border-slate-200 shadow-lg animate-fade-in">
+                          <DropdownMenuSubContent className="bg-white/95 backdrop-blur-xl border-slate-200 shadow-lg animate-scale-in">
                             <DropdownMenuItem 
                               onClick={() => onSortChange(column, 'asc')}
-                              className="hover:bg-slate-100"
+                              className="hover:bg-slate-100 transition-colors duration-200"
                             >
                               <ArrowUpDown className="mr-2 h-4 w-4 rotate-180 text-slate-600" />
                               Ascending
                             </DropdownMenuItem>
                             <DropdownMenuItem 
                               onClick={() => onSortChange(column, 'desc')}
-                              className="hover:bg-slate-100"
+                              className="hover:bg-slate-100 transition-colors duration-200"
                             >
                               <ArrowUpDown className="mr-2 h-4 w-4 text-slate-600" />
                               Descending
@@ -201,4 +205,3 @@ const TableViewOptions: React.FC<TableViewOptionsProps> = ({
 };
 
 export default TableViewOptions;
-

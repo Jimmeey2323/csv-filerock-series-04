@@ -111,11 +111,11 @@
 
 /* Custom Classes */
 .glass {
-  @apply bg-white/50 backdrop-blur-md border border-white/40 shadow-sm;
+  @apply bg-white/60 backdrop-blur-md border border-white/50 shadow-sm;
 }
 
 .glass-card {
-  @apply bg-white/80 backdrop-blur-xl border border-white/40 shadow-sm rounded-2xl transition-all hover:shadow-md hover:bg-white/90;
+  @apply bg-white/80 backdrop-blur-xl border border-white/40 shadow-subtle rounded-2xl transition-all hover:shadow-md hover:bg-white/90;
 }
 
 .card-hover {
@@ -179,7 +179,7 @@
 }
 
 .badge-primary {
-  @apply bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-sm;
+  @apply bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-md;
 }
 
 .badge-secondary {
@@ -187,15 +187,15 @@
 }
 
 .badge-success {
-  @apply bg-gradient-to-r from-green-500 to-emerald-500 text-white shadow-sm;
+  @apply bg-gradient-to-r from-green-500 to-emerald-500 text-white shadow-md;
 }
 
 .badge-warning {
-  @apply bg-gradient-to-r from-amber-400 to-amber-500 text-white shadow-sm;
+  @apply bg-gradient-to-r from-amber-400 to-amber-500 text-white shadow-md;
 }
 
 .badge-danger {
-  @apply bg-gradient-to-r from-red-500 to-rose-500 text-white shadow-sm;
+  @apply bg-gradient-to-r from-red-500 to-rose-500 text-white shadow-md;
 }
 
 /* Enhanced table styling */
@@ -204,7 +204,7 @@
 }
 
 .table-modern th {
-  @apply bg-slate-50/80 backdrop-blur-sm sticky top-0 px-4 py-3 text-left text-sm font-medium text-slate-700 first:rounded-tl-lg last:rounded-tr-lg;
+  @apply bg-slate-50/80 backdrop-blur-md sticky top-0 px-4 py-3 text-left text-sm font-medium text-slate-700 first:rounded-tl-lg last:rounded-tr-lg;
 }
 
 .table-modern tr {
@@ -239,7 +239,7 @@
 
 /* Premium card styling */
 .premium-card {
-  @apply rounded-xl bg-white border border-slate-200 shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden;
+  @apply rounded-xl bg-white border border-slate-200 shadow-subtle hover:shadow-md transition-all duration-300 overflow-hidden;
 }
 
 .premium-card-header {
@@ -334,7 +334,7 @@
 
 /* Enhanced shadows for luxury feel */
 .shadow-subtle {
-  @apply shadow-[0_2px_8px_rgba(0,0,0,0.04)];
+  @apply shadow-[0_4px_12px_-2px_rgba(0,0,0,0.03)];
 }
 
 .shadow-premium {
@@ -345,11 +345,82 @@
   @apply shadow-[inset_0_20px_20px_-20px_rgba(0,0,0,0.1)];
 }
 
+.shadow-luxury {
+  @apply shadow-[0_10px_40px_-12px_rgba(0,0,0,0.08)];
+}
+
 /* Elegant buttons */
 .btn-elegant {
-  @apply px-4 py-2 rounded-md bg-white border border-slate-200 text-slate-700 font-medium shadow-sm hover:shadow-md hover:border-slate-300 transition-all duration-300;
+  @apply px-4 py-2 rounded-md bg-white border border-slate-200 text-slate-700 font-medium shadow-subtle hover:shadow-md hover:border-slate-300 transition-all duration-300;
 }
 
 .btn-elegant-primary {
-  @apply px-4 py-2 rounded-md bg-gradient-to-r from-blue-500 to-indigo-600 text-white font-medium shadow-sm hover:shadow-md hover:from-blue-600 hover:to-indigo-700 transition-all duration-300;
+  @apply px-4 py-2 rounded-md bg-gradient-to-r from-blue-500 to-indigo-600 text-white font-medium shadow-subtle hover:shadow-md hover:from-blue-600 hover:to-indigo-700 transition-all duration-300;
+}
+
+/* Drill down data styling */
+.drill-down-section {
+  @apply bg-white/70 backdrop-blur-lg rounded-xl border border-slate-100 shadow-luxury p-5 animate-fade-in;
+}
+
+.drill-down-header {
+  @apply flex items-center justify-between pb-4 border-b border-slate-100/80;
+}
+
+.drill-down-body {
+  @apply pt-4 space-y-4;
+}
+
+.drill-down-metric {
+  @apply p-4 bg-gradient-to-br from-slate-50/80 to-white/70 rounded-lg border border-slate-100/80 shadow-subtle;
+}
+
+.drill-down-card {
+  @apply bg-white/80 backdrop-blur-md rounded-xl border border-slate-100/80 shadow-subtle hover:shadow-md transition-all duration-300;
+}
+
+/* Luxury Raw Data Tab */
+.raw-data-container {
+  @apply bg-white/80 backdrop-blur-xl rounded-xl border border-slate-100/80 shadow-luxury p-0 overflow-hidden;
+}
+
+.raw-data-header {
+  @apply bg-gradient-to-r from-slate-50 to-white/90 p-4 border-b border-slate-100;
+}
+
+.raw-data-body {
+  @apply p-0;
+}
+
+.raw-data-table {
+  @apply w-full border-collapse;
+}
+
+.raw-data-table th {
+  @apply bg-slate-50/90 backdrop-blur-md sticky top-0 z-10 px-4 py-3 text-xs uppercase tracking-wider font-semibold text-slate-600;
+}
+
+.raw-data-table td {
+  @apply px-4 py-2.5 border-b border-slate-100/70 text-sm;
+}
+
+.raw-data-table tr:hover td {
+  @apply bg-blue-50/30;
+}
+
+/* Enhanced Badge Styles */
+.badge-retention {
+  @apply inline-flex items-center gap-1.5 px-3 py-1 rounded-md font-medium text-xs bg-gradient-to-br from-emerald-500 to-teal-600 text-white shadow-md;
+}
+
+.badge-conversion {
+  @apply inline-flex items-center gap-1.5 px-3 py-1 rounded-md font-medium text-xs bg-gradient-to-br from-blue-500 to-indigo-600 text-white shadow-md;
+}
+
+.badge-premium {
+  @apply inline-flex items-center gap-1.5 px-3 py-1 rounded-md font-medium text-xs bg-gradient-to-br from-violet-500 to-purple-600 text-white shadow-md;
+}
+
+.badge-excluded {
+  @apply inline-flex items-center gap-1.5 px-3 py-1 rounded-md font-medium text-xs bg-gradient-to-br from-rose-500 to-red-600 text-white shadow-md;
 }
