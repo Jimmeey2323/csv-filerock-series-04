@@ -1,4 +1,3 @@
-
 import React, { useState, useCallback, useEffect } from 'react';
 import { toast } from 'sonner';
 import FileUploader from '@/components/FileUploader';
@@ -44,7 +43,6 @@ const storageUtils = {
       return false;
     }
   },
-  
   // Load data from localStorage with error handling
   loadFromStorage: (key: string) => {
     try {
@@ -55,7 +53,6 @@ const storageUtils = {
       return null;
     }
   },
-  
   // Clear specific localStorage keys
   clearStorage: (keys: string[]) => {
     keys.forEach(key => {
@@ -67,7 +64,6 @@ const storageUtils = {
     });
   }
 };
-
 const Index = () => {
   const [files, setFiles] = useState<File[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -110,7 +106,6 @@ const Index = () => {
     const savedTeachers = storageUtils.loadFromStorage(STORAGE_KEYS.TEACHERS);
     const savedPeriods = storageUtils.loadFromStorage(STORAGE_KEYS.PERIODS);
     const hasRawData = localStorage.getItem(STORAGE_KEYS.HAS_RAW_DATA) === 'true';
-    
     if (savedProcessedData) {
       setProcessedData(savedProcessedData);
       setResultsVisible(true);
@@ -127,7 +122,7 @@ const Index = () => {
     if (savedPeriods) {
       setPeriods(savedPeriods);
     }
-    
+
     // If we have processed results but no raw data available, show a notice
     if (savedProcessedData && savedProcessedData.length > 0 && hasRawData) {
       setResultsVisible(true);
@@ -151,7 +146,7 @@ const Index = () => {
     if (periods.length > 0) {
       storageUtils.saveToStorage(STORAGE_KEYS.PERIODS, periods);
     }
-    
+
     // Set a flag that we have raw data, but don't store the actual raw data
     if (rawData.newClientData.length > 0 || rawData.bookingsData.length > 0) {
       localStorage.setItem(STORAGE_KEYS.HAS_RAW_DATA, 'true');
@@ -213,20 +208,17 @@ const Index = () => {
 
     // Clear localStorage when processing new files
     storageUtils.clearStorage(Object.values(STORAGE_KEYS));
-    
     setIsProcessing(true);
     updateProgress({
       progress: 0,
       currentStep: 'Starting processing...'
     });
-    
     try {
       // Parse CSV files
       updateProgress({
         progress: 10,
         currentStep: 'Parsing CSV files...'
       });
-      
       const newFileResult = await parseCSV(categorized.new);
       const bookingsFileResult = await parseCSV(categorized.bookings);
 
@@ -251,7 +243,6 @@ const Index = () => {
           retainedClients: []
         }
       };
-      
       setRawData(initialRawData);
 
       // Process data
@@ -259,13 +250,7 @@ const Index = () => {
         progress: 30,
         currentStep: 'Processing data...'
       });
-      
-      const result = await processData(
-        newFileResult.data || [], 
-        bookingsFileResult.data || [], 
-        salesFileResult.data || [], 
-        updateProgress
-      );
+      const result = await processData(newFileResult.data || [], bookingsFileResult.data || [], salesFileResult.data || [], updateProgress);
 
       // Update state with processed data
       setProcessedData(result.processedData || []);
@@ -333,10 +318,7 @@ const Index = () => {
     // Filter by search (teacher name)
     if (newFilters.search) {
       const searchLower = newFilters.search.toLowerCase();
-      filtered = filtered.filter(item => 
-        (item.teacherName && item.teacherName.toLowerCase().includes(searchLower)) ||
-        (item.location && item.location.toLowerCase().includes(searchLower))
-      );
+      filtered = filtered.filter(item => item.teacherName && item.teacherName.toLowerCase().includes(searchLower) || item.location && item.location.toLowerCase().includes(searchLower));
     }
     setFilteredData(filtered);
   }, [processedData]);
@@ -379,7 +361,6 @@ const Index = () => {
     });
     toast.success('Application reset. You can upload new files');
   }, []);
-
   return <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white">
       <header className="border-b bg-white/80 backdrop-blur-sm sticky top-0 z-50">
         <div className="container flex justify-between items-center py-3 bg-neutral-50">
@@ -409,7 +390,7 @@ const Index = () => {
             </div>
           </> : <div className="space-y-6 animate-fade-in">
             <div className="flex justify-between items-center mb-6">
-              <h2 className="text-2xl font-semibold">Performance Analytics</h2>
+              
               <div className="flex space-x-4">
                 <button onClick={handleResetApp} className="text-sm text-destructive hover:underline">
                   Reset data
@@ -451,42 +432,20 @@ const Index = () => {
               
               <TabsContent value="analytics" className="mt-0">
                 <div className="space-y-6">
-                  <FilterBar 
-                    locations={locations} 
-                    teachers={teachers} 
-                    periods={periods} 
-                    activeViewMode={viewMode} 
-                    activeDataMode={dataMode} 
-                    onViewModeChange={setViewMode} 
-                    onDataModeChange={setDataMode} 
-                    onFilterChange={handleFilterChange} 
-                    initialSearch={activeFilters.search}
-                  />
+                  <FilterBar locations={locations} teachers={teachers} periods={periods} activeViewMode={viewMode} activeDataMode={dataMode} onViewModeChange={setViewMode} onDataModeChange={setDataMode} onFilterChange={handleFilterChange} initialSearch={activeFilters.search} />
                   
-                  <ResultsTable 
-                    data={filteredData} 
-                    locations={locations}
-                    isLoading={false}
-                    viewMode={viewMode}
-                    dataMode={dataMode}
-                    onFilterChange={handleFilterChange}
-                  />
+                  <ResultsTable data={filteredData} locations={locations} isLoading={false} viewMode={viewMode} dataMode={dataMode} onFilterChange={handleFilterChange} />
                 </div>
               </TabsContent>
               
               <TabsContent value="raw-data" className="mt-0">
-                <RawDataView 
-                  newClientData={rawData.newClientData || []} 
-                  bookingsData={rawData.bookingsData || []} 
-                  paymentsData={rawData.paymentsData || []} 
-                  processingResults={rawData.processingResults || {
-                    included: [],
-                    excluded: [],
-                    newClients: [],
-                    convertedClients: [],
-                    retainedClients: []
-                  }} 
-                />
+                <RawDataView newClientData={rawData.newClientData || []} bookingsData={rawData.bookingsData || []} paymentsData={rawData.paymentsData || []} processingResults={rawData.processingResults || {
+              included: [],
+              excluded: [],
+              newClients: [],
+              convertedClients: [],
+              retainedClients: []
+            }} />
               </TabsContent>
             </Tabs>
           </div>}
