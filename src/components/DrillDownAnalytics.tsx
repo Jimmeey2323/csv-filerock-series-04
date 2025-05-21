@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -38,6 +37,13 @@ import ConversionRatesChart from '@/components/charts/ConversionRatesChart';
 import ClientSourceChart from '@/components/charts/ClientSourceChart';
 import { safeToFixed, safeFormatCurrency, safeFormatDate, daysBetweenDates } from '@/lib/utils';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+
+// Extend the ProcessedTeacherData interface to include excludedClientDetails
+declare module '@/utils/dataProcessor' {
+  interface ProcessedTeacherData {
+    excludedClientDetails?: any[];
+  }
+}
 
 interface DrillDownAnalyticsProps {
   isOpen: boolean;
@@ -361,14 +367,14 @@ const DrillDownAnalytics: React.FC<DrillDownAnalyticsProps> = ({
                   </CardHeader>
                   <CardContent>
                     <div className="grid grid-cols-2 gap-4">
-                      <div className="flex flex-col p-4 bg-gradient-to-br from-muted/30 to-muted/10 rounded-lg border border-muted/40 animate-fade-in shadow-sm" style={{ animationDelay: '150ms' }}>
+                      <div className="flex flex-col p-4 bg-gradient-to-br from-muted/30 to-muted/10 rounded-lg border border-muted/40 animate-fade-in" style={{ animationDelay: '150ms' }}>
                         <span className="text-sm text-muted-foreground flex items-center gap-1">
                           <UserRound className="h-4 w-4" />
                           New Clients
                         </span>
                         <span className="text-2xl font-bold">{data.newClients}</span>
                       </div>
-                      <div className="flex flex-col p-4 bg-gradient-to-br from-muted/30 to-muted/10 rounded-lg border border-muted/40 animate-fade-in shadow-sm" style={{ animationDelay: '200ms' }}>
+                      <div className="flex flex-col p-4 bg-gradient-to-br from-muted/30 to-muted/10 rounded-lg border border-muted/40 animate-fade-in" style={{ animationDelay: '200ms' }}>
                         <span className="text-sm text-muted-foreground flex items-center gap-1">
                           <Check className="h-4 w-4" />
                           Retained Clients
@@ -381,7 +387,7 @@ const DrillDownAnalytics: React.FC<DrillDownAnalyticsProps> = ({
                           </Badge>
                         </span>
                       </div>
-                      <div className="flex flex-col p-4 bg-gradient-to-br from-muted/30 to-muted/10 rounded-lg border border-muted/40 animate-fade-in shadow-sm" style={{ animationDelay: '250ms' }}>
+                      <div className="flex flex-col p-4 bg-gradient-to-br from-muted/30 to-muted/10 rounded-lg border border-muted/40 animate-fade-in" style={{ animationDelay: '250ms' }}>
                         <span className="text-sm text-muted-foreground flex items-center gap-1">
                           <Award className="h-4 w-4" />
                           Converted Clients
@@ -394,7 +400,7 @@ const DrillDownAnalytics: React.FC<DrillDownAnalyticsProps> = ({
                           </Badge>
                         </span>
                       </div>
-                      <div className="flex flex-col p-4 bg-gradient-to-br from-muted/30 to-muted/10 rounded-lg border border-muted/40 animate-fade-in shadow-sm" style={{ animationDelay: '300ms' }}>
+                      <div className="flex flex-col p-4 bg-gradient-to-br from-muted/30 to-muted/10 rounded-lg border border-muted/40 animate-fade-in" style={{ animationDelay: '300ms' }}>
                         <span className="text-sm text-muted-foreground flex items-center gap-1">
                           <DollarSign className="h-4 w-4" />
                           Total Revenue

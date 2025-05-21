@@ -121,7 +121,7 @@ export function groupAndAggregate<T extends Record<string, any>>(
   data: T[],
   groupKey: string,
   aggregations: Record<string, (items: T[]) => any>
-): Array<T & { isGroupHeader: boolean; groupValue: string; }> {
+): Array<Record<string, any> & { isGroupHeader: boolean; groupValue: string; }> {
   if (!data || data.length === 0) return [];
   
   // Group the data
@@ -135,7 +135,7 @@ export function groupAndAggregate<T extends Record<string, any>>(
   }, {} as Record<string, T[]>);
   
   // Create result with group headers
-  const result: Array<T & { isGroupHeader: boolean; groupValue: string; }> = [];
+  const result: Array<Record<string, any> & { isGroupHeader: boolean; groupValue: string; }> = [];
   
   Object.entries(groups).forEach(([key, items]) => {
     // Add the group header
@@ -143,7 +143,7 @@ export function groupAndAggregate<T extends Record<string, any>>(
       ...items[0],
       isGroupHeader: true,
       groupValue: key
-    } as T & { isGroupHeader: boolean; groupValue: string; };
+    } as Record<string, any> & { isGroupHeader: boolean; groupValue: string; };
     
     // Calculate aggregates for the group
     Object.entries(aggregations).forEach(([aggKey, aggFn]) => {
