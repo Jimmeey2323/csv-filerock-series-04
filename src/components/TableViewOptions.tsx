@@ -19,9 +19,9 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
-  LayoutTable,
+  Table,
   LayoutGrid, 
-  LayoutList, 
+  List, 
   BarChart, 
   PieChart,
   Calendar,
@@ -58,9 +58,9 @@ const TableViewOptions: React.FC<TableViewOptionsProps> = ({
   activeSort
 }) => {
   const views = [
-    { id: 'table', label: 'Table', icon: LayoutTable },
+    { id: 'table', label: 'Table', icon: Table },
     { id: 'cards', label: 'Cards', icon: LayoutGrid },
-    { id: 'detailed', label: 'Detailed', icon: LayoutList },
+    { id: 'detailed', label: 'Detailed', icon: List },
     { id: 'analytics', label: 'Analytics', icon: BarChart },
     { id: 'calendar', label: 'Calendar', icon: Calendar },
     { id: 'trends', label: 'Trends', icon: PieChart },
@@ -201,3 +201,4 @@ const TableViewOptions: React.FC<TableViewOptionsProps> = ({
 };
 
 export default TableViewOptions;
+
