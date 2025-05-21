@@ -172,7 +172,7 @@ export function groupAndAggregate<T extends Record<string, any>>(
       ...groupHeaderItem,
       isGroupHeader: true,
       groupValue: key
-    };
+    } as T & { isGroupHeader: boolean; groupValue: string };
     
     // Calculate aggregates for the group
     Object.entries(aggregations).forEach(([aggKey, aggFn]) => {
@@ -183,7 +183,7 @@ export function groupAndAggregate<T extends Record<string, any>>(
     
     // Add the items
     items.forEach(item => {
-      result.push({ ...item, isGroupHeader: false, groupValue: key });
+      result.push({ ...item, isGroupHeader: false, groupValue: key } as T & { isGroupHeader: boolean; groupValue: string });
     });
   });
   

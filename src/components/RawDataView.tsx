@@ -20,7 +20,7 @@ import {
 } from 'lucide-react';
 import { 
   safeFormatCurrency, safeFormatDate, daysBetweenDates, sortDataByColumn,
-  calculateConversionSpan, formatClientName
+  calculateConversionSpan, calculateRetentionSpan, formatClientName
 } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";

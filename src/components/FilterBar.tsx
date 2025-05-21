@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Search, Calendar, MapPin, User, Filter, BarChart3, ArrowDownUp, Columns, Grid, List, Store } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -42,6 +41,7 @@ interface FilterBarProps {
     period?: string;
     search?: string;
   }) => void;
+  initialSearch?: string; // Add initialSearch prop
 }
 
 const FilterBar: React.FC<FilterBarProps> = ({
@@ -53,13 +53,25 @@ const FilterBar: React.FC<FilterBarProps> = ({
   onViewModeChange,
   onDataModeChange,
   onFilterChange,
+  initialSearch = '', // Add default value
 }) => {
   const [filters, setFilters] = React.useState({
     location: '',
     teacher: '',
     period: '',
-    search: '',
+    search: initialSearch || '', // Use initialSearch if provided
   });
+
+  React.useEffect(() => {
+    // Update search filter when initialSearch changes
+    if (initialSearch !== undefined && initialSearch !== filters.search) {
+      setFilters(prev => ({ ...prev, search: initialSearch }));
+      // Only trigger filter change if initialSearch is not empty
+      if (initialSearch) {
+        onFilterChange({ ...filters, search: initialSearch });
+      }
+    }
+  }, [initialSearch]);
 
   const handleFilterChange = (key: string, value: string) => {
     const newFilters = { ...filters, [key]: value };
