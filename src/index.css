@@ -144,6 +144,16 @@
   @apply bg-primary/30 rounded-full hover:bg-primary/50 transition-colors;
 }
 
+/* No scrollbar utility */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
 /* Drag and drop area */
 .drag-active {
   @apply border-primary border-dashed border-2 bg-primary/5;
@@ -205,6 +215,45 @@
   @apply px-4 py-3 text-sm;
 }
 
+/* Table shadow effect */
+.table-shadow-effect {
+  @apply relative after:absolute after:pointer-events-none after:inset-0 after:rounded-lg after:shadow-[inset_0_-20px_30px_-20px_rgba(0,0,0,0.05),inset_0_20px_30px_-20px_rgba(0,0,0,0.05)];
+}
+
+/* Luxury table styling */
+.luxury-table th {
+  @apply text-xs uppercase tracking-wider text-slate-500 font-semibold pb-3 pt-4 px-4 border-b border-slate-200;
+}
+
+.luxury-table td {
+  @apply py-3 px-4 border-b border-slate-100 text-slate-700;
+}
+
+.luxury-table tbody tr:hover {
+  @apply bg-slate-50/70 backdrop-blur-sm transition-colors;
+}
+
+.luxury-table tbody tr:last-child td {
+  @apply border-b-0;
+}
+
+/* Premium card styling */
+.premium-card {
+  @apply rounded-xl bg-white border border-slate-200 shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden;
+}
+
+.premium-card-header {
+  @apply p-4 border-b border-slate-100 bg-slate-50/50;
+}
+
+.premium-card-body {
+  @apply p-4;
+}
+
+.premium-card-footer {
+  @apply p-4 bg-slate-50/50 border-t border-slate-100;
+}
+
 /* Enhanced select styling */
 .select-modern {
   @apply h-10 w-full rounded-md border border-input bg-white px-3 py-2 text-sm ring-offset-background focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2;
@@ -248,6 +297,16 @@
   animation: pop 0.3s ease-out forwards;
 }
 
+/* Soft pulse animation for elements */
+@keyframes pulse-soft {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.8; }
+}
+
+.animate-pulse-soft {
+  animation: pulse-soft 3s ease-in-out infinite;
+}
+
 /* Staggered animation classes */
 .stagger-animation > *:nth-child(1) { animation-delay: 0ms; }
 .stagger-animation > *:nth-child(2) { animation-delay: 50ms; }
@@ -271,4 +330,26 @@
 
 .gradient-text-3 {
   @apply bg-clip-text text-transparent bg-gradient-to-r from-green-600 to-emerald-600;
+}
+
+/* Enhanced shadows for luxury feel */
+.shadow-subtle {
+  @apply shadow-[0_2px_8px_rgba(0,0,0,0.04)];
+}
+
+.shadow-premium {
+  @apply shadow-[0_10px_30px_-5px_rgba(0,0,0,0.05)];
+}
+
+.shadow-inner-top {
+  @apply shadow-[inset_0_20px_20px_-20px_rgba(0,0,0,0.1)];
+}
+
+/* Elegant buttons */
+.btn-elegant {
+  @apply px-4 py-2 rounded-md bg-white border border-slate-200 text-slate-700 font-medium shadow-sm hover:shadow-md hover:border-slate-300 transition-all duration-300;
+}
+
+.btn-elegant-primary {
+  @apply px-4 py-2 rounded-md bg-gradient-to-r from-blue-500 to-indigo-600 text-white font-medium shadow-sm hover:shadow-md hover:from-blue-600 hover:to-indigo-700 transition-all duration-300;
 }
