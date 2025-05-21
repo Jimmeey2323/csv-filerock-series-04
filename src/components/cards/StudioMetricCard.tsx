@@ -19,6 +19,7 @@ interface StudioMetricCardProps {
   tooltip?: string;
   onCustomClick?: (e: React.MouseEvent) => void;
   formatType?: 'date' | 'currency' | 'number' | 'percent' | 'default';
+  variant?: 'default' | 'elevated' | 'premium';
 }
 
 const StudioMetricCard: React.FC<StudioMetricCardProps> = ({
@@ -30,6 +31,7 @@ const StudioMetricCard: React.FC<StudioMetricCardProps> = ({
   tooltip,
   onCustomClick,
   formatType = 'default',
+  variant = 'default',
 }) => {
   // Format value based on formatType
   const formatDisplayValue = (val: string | number): string => {
@@ -54,9 +56,15 @@ const StudioMetricCard: React.FC<StudioMetricCardProps> = ({
   // Safely display the value by ensuring it's a string
   const displayValue = formatDisplayValue(value);
 
+  const cardClasses = {
+    default: "card-hover bg-white/60 backdrop-blur-sm",
+    elevated: "card-hover bg-white/80 backdrop-blur-sm shadow-md",
+    premium: "card-hover bg-gradient-to-br from-white/90 to-white/60 backdrop-blur-sm shadow-md border-primary/10",
+  };
+
   return (
     <Card 
-      className="card-hover bg-white/60 backdrop-blur-sm"
+      className={cardClasses[variant]}
       onClick={onCustomClick} // Use the prop if provided
     >
       <CardContent className="pt-6">

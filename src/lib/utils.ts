@@ -99,3 +99,130 @@ export function convertCamelToTitle(camelCase: string): string {
 export function getCursorClass(hasClickHandler: boolean | undefined): string {
   return hasClickHandler ? 'cursor-pointer' : '';
 }
+
+/**
+ * Calculates the number of days between two dates
+ */
+export function daysBetweenDates(startDate: string | Date, endDate: string | Date): number {
+  try {
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    const diffTime = Math.abs(end.getTime() - start.getTime());
+    return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  } catch (error) {
+    return 0;
+  }
+}
+
+/**
+ * Groups an array by a key and calculates aggregates
+ */
+export function groupAndAggregate<T extends Record<string, any>>(
+  data: T[],
+  groupKey: string,
+  aggregations: Record<string, (items: T[]) => any>
+): Array<T & { isGroupHeader: boolean; groupValue: string; }> {
+  if (!data || data.length === 0) return [];
+  
+  // Group the data
+  const groups = data.reduce((acc, item) => {
+    const key = item[groupKey] || 'Other';
+    if (!acc[key]) {
+      acc[key] = [];
+    }
+    acc[key].push(item);
+    return acc;
+  }, {} as Record<string, T[]>);
+  
+  // Create result with group headers
+  const result: Array<T & { isGroupHeader: boolean; groupValue: string; }> = [];
+  
+  Object.entries(groups).forEach(([key, items]) => {
+    // Add the group header
+    const groupHeader = {
+      ...items[0],
+      isGroupHeader: true,
+      groupValue: key
+    } as T & { isGroupHeader: boolean; groupValue: string; };
+    
+    // Calculate aggregates for the group
+    Object.entries(aggregations).forEach(([aggKey, aggFn]) => {
+      groupHeader[aggKey] = aggFn(items);
+    });
+    
+    result.push(groupHeader);
+    
+    // Add the items
+    items.forEach(item => {
+      result.push({ ...item, isGroupHeader: false, groupValue: key });
+    });
+  });
+  
+  return result;
+}
+
+/**
+ * Calculate the sum of a numeric property in an array
+ */
+export function sum<T>(items: T[], key: keyof T): number {
+  return items.reduce((total, item) => {
+    const value = Number(item[key]) || 0;
+    return total + value;
+  }, 0);
+}
+
+/**
+ * Calculate the average of a numeric property in an array
+ */
+export function average<T>(items: T[], key: keyof T): number {
+  if (items.length === 0) return 0;
+  return sum(items, key) / items.length;
+}
+
+/**
+ * Sort data by a column
+ */
+export function sortDataByColumn<T>(data: T[], column: keyof T, direction: 'asc' | 'desc'): T[] {
+  return [...data].sort((a, b) => {
+    let valueA = a[column];
+    let valueB = b[column];
+    
+    // Handle dates
+    if (typeof valueA === 'string' && typeof valueB === 'string' && 
+        (column.toString().toLowerCase().includes('date') || 
+         valueA.match(/^\d{4}-\d{2}-\d{2}/) || 
+         valueB.match(/^\d{4}-\d{2}-\d{2}/))) {
+      const dateA = new Date(valueA);
+      const dateB = new Date(valueB);
+      
+      // If valid dates
+      if (!isNaN(dateA.getTime()) && !isNaN(dateB.getTime())) {
+        return direction === 'asc' 
+          ? dateA.getTime() - dateB.getTime() 
+          : dateB.getTime() - dateA.getTime();
+      }
+    }
+    
+    // Handle numbers
+    if (typeof valueA === 'number' && typeof valueB === 'number') {
+      return direction === 'asc' ? valueA - valueB : valueB - valueA;
+    }
+    
+    // Handle strings (case insensitive)
+    if (typeof valueA === 'string' && typeof valueB === 'string') {
+      return direction === 'asc' 
+        ? valueA.localeCompare(valueB, undefined, { sensitivity: 'base' })
+        : valueB.localeCompare(valueA, undefined, { sensitivity: 'base' });
+    }
+    
+    // Handle other cases
+    if (valueA === undefined) return direction === 'asc' ? -1 : 1;
+    if (valueB === undefined) return direction === 'asc' ? 1 : -1;
+    
+    // Default comparison
+    if (valueA < valueB) return direction === 'asc' ? -1 : 1;
+    if (valueA > valueB) return direction === 'asc' ? 1 : -1;
+    return 0;
+  });
+}
+

@@ -1,6 +1,6 @@
 
 import * as React from "react"
-
+import { ChevronDown, ChevronUp, ChevronsUpDown } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 const Table = React.forwardRef<
@@ -55,13 +55,19 @@ TableFooter.displayName = "TableFooter"
 
 const TableRow = React.forwardRef<
   HTMLTableRowElement,
-  React.HTMLAttributes<HTMLTableRowElement> & { isClickable?: boolean }
->(({ className, isClickable = false, ...props }, ref) => (
+  React.HTMLAttributes<HTMLTableRowElement> & { 
+    isClickable?: boolean; 
+    isSubtotal?: boolean;
+    isGroupHeader?: boolean;
+  }
+>(({ className, isClickable = false, isSubtotal = false, isGroupHeader = false, ...props }, ref) => (
   <tr
     ref={ref}
     className={cn(
       "border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted h-[25px] whitespace-nowrap",
       isClickable && "cursor-pointer hover:bg-muted/80",
+      isSubtotal && "bg-muted/70 font-medium",
+      isGroupHeader && "bg-primary/10 font-semibold text-primary",
       className
     )}
     {...props}
@@ -69,19 +75,41 @@ const TableRow = React.forwardRef<
 ))
 TableRow.displayName = "TableRow"
 
-const TableHead = React.forwardRef<
-  HTMLTableCellElement,
-  React.ThHTMLAttributes<HTMLTableCellElement>
->(({ className, ...props }, ref) => (
-  <th
-    ref={ref}
-    className={cn(
-      "h-10 px-2 text-left align-middle font-medium text-muted-foreground whitespace-nowrap [&:has([role=checkbox])]:pr-0",
-      className
-    )}
-    {...props}
-  />
-))
+interface TableHeadProps extends React.ThHTMLAttributes<HTMLTableCellElement> {
+  sortable?: boolean;
+  sortDirection?: 'asc' | 'desc' | undefined;
+  onSort?: () => void;
+}
+
+const TableHead = React.forwardRef<HTMLTableCellElement, TableHeadProps>(
+  ({ className, children, sortable = false, sortDirection, onSort, ...props }, ref) => (
+    <th
+      ref={ref}
+      className={cn(
+        "h-10 px-2 text-left align-middle font-medium text-muted-foreground whitespace-nowrap [&:has([role=checkbox])]:pr-0",
+        sortable && "cursor-pointer hover:bg-muted/70 select-none",
+        className
+      )}
+      onClick={sortable ? onSort : undefined}
+      {...props}
+    >
+      <div className="flex items-center gap-1">
+        {children}
+        {sortable && (
+          <div className="flex items-center">
+            {sortDirection === 'asc' ? (
+              <ChevronUp className="h-4 w-4 text-primary" />
+            ) : sortDirection === 'desc' ? (
+              <ChevronDown className="h-4 w-4 text-primary" />
+            ) : (
+              <ChevronsUpDown className="h-4 w-4 text-muted-foreground/50" />
+            )}
+          </div>
+        )}
+      </div>
+    </th>
+  )
+);
 TableHead.displayName = "TableHead"
 
 const TableCell = React.forwardRef<

@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -23,12 +24,20 @@ import {
   Users,
   TrendingUp,
   TrendingDown,
-  Check
+  Check,
+  Clock,
+  Info,
+  CalendarCheck,
+  X,
+  Award,
+  FileText,
+  Filter
 } from 'lucide-react';
 import RevenueChart from '@/components/charts/RevenueChart';
 import ConversionRatesChart from '@/components/charts/ConversionRatesChart';
 import ClientSourceChart from '@/components/charts/ClientSourceChart';
-import { safeToFixed, safeFormatCurrency } from '@/lib/utils';
+import { safeToFixed, safeFormatCurrency, safeFormatDate, daysBetweenDates } from '@/lib/utils';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface DrillDownAnalyticsProps {
   isOpen: boolean;
@@ -46,6 +55,8 @@ const DrillDownAnalytics: React.FC<DrillDownAnalyticsProps> = ({
   metricType = 'all'
 }) => {
   const [activeTab, setActiveTab] = React.useState('overview');
+  const [sortColumn, setSortColumn] = React.useState<string | null>(null);
+  const [sortDirection, setSortDirection] = React.useState<'asc' | 'desc'>('asc');
 
   // Use the useEffect hook to update the active tab based on metricType
   React.useEffect(() => {
@@ -78,70 +89,194 @@ const DrillDownAnalytics: React.FC<DrillDownAnalyticsProps> = ({
     }
   };
   
-  const renderClientTable = (clients: any[], title: string) => (
-    <Card className="w-full">
-      <CardHeader className="pb-2">
-        <CardTitle className="text-lg">{title}</CardTitle>
-        <CardDescription>
-          {clients.length} {title.toLowerCase()} found
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="p-0">
-        <ScrollArea className="h-[400px] rounded-md border">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead>Email</TableHead>
-                <TableHead>First Visit</TableHead>
-                {(title.includes('Converted') || title.includes('New')) && <>
-                  <TableHead>First Purchase Date</TableHead>
-                  <TableHead>First Purchase Item</TableHead>
-                  <TableHead>Purchase Value</TableHead>
-                </>}
-                {title.includes('Retained') && <>
-                  <TableHead>Total Visits Post Trial</TableHead>
-                  <TableHead>First Visit Post Trial</TableHead>
-                  <TableHead>Membership Used</TableHead>
-                </>}
-                <TableHead>Status</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {clients.map((client, idx) => (
-                <TableRow key={`${client.email}-${idx}`} className="animate-fade-in" style={{ animationDelay: `${idx * 30}ms` }}>
-                  <TableCell className="font-medium">{client.name || client.customerName || 'N/A'}</TableCell>
-                  <TableCell>{client.email || 'N/A'}</TableCell>
-                  <TableCell>{client.firstVisit || client.date || 'N/A'}</TableCell>
+  // Handle sorting columns
+  const handleSort = (column: string) => {
+    if (sortColumn === column) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortColumn(column);
+      setSortDirection('asc');
+    }
+  };
+  
+  // Sort data based on column and direction
+  const sortData = (data: any[]) => {
+    if (!sortColumn || !data || data.length === 0) return data;
+    
+    return [...data].sort((a, b) => {
+      const valueA = a[sortColumn];
+      const valueB = b[sortColumn];
+      
+      // Handle dates
+      if (typeof valueA === 'string' && typeof valueB === 'string' && 
+          (sortColumn.toLowerCase().includes('date') || valueA.includes('-') || valueB.includes('-'))) {
+        const dateA = new Date(valueA);
+        const dateB = new Date(valueB);
+        
+        if (!isNaN(dateA.getTime()) && !isNaN(dateB.getTime())) {
+          return sortDirection === 'asc' ? 
+            dateA.getTime() - dateB.getTime() : 
+            dateB.getTime() - dateA.getTime();
+        }
+      }
+      
+      // Handle numbers
+      if (typeof valueA === 'number' && typeof valueB === 'number') {
+        return sortDirection === 'asc' ? valueA - valueB : valueB - valueA;
+      }
+      
+      // Handle strings
+      if (typeof valueA === 'string' && typeof valueB === 'string') {
+        return sortDirection === 'asc' ? 
+          valueA.localeCompare(valueB) : 
+          valueB.localeCompare(valueA);
+      }
+      
+      return 0;
+    });
+  };
+  
+  // Calculate conversion span
+  const getConversionSpan = (client: any) => {
+    const firstVisit = client.firstVisit || client.date;
+    const firstPurchase = client.firstPurchaseDate || client.purchaseDate;
+    
+    if (firstVisit && firstPurchase) {
+      const days = daysBetweenDates(firstVisit, firstPurchase);
+      return days;
+    }
+    return null;
+  };
+  
+  const renderClientTable = (clients: any[], title: string) => {
+    // Sort the data if a sort column is selected
+    const sortedClients = sortData(clients);
+    
+    return (
+      <Card className="w-full">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-lg flex items-center gap-2">
+            {title.includes('Converted') ? <Award className="h-4 w-4 text-emerald-500" /> : 
+             title.includes('Retained') ? <Check className="h-4 w-4 text-blue-500" /> :
+             title.includes('Excluded') ? <X className="h-4 w-4 text-red-500" /> :
+             <UserRound className="h-4 w-4 text-primary" />}
+            {title}
+          </CardTitle>
+          <CardDescription>
+            {sortedClients.length} {title.toLowerCase()} found
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="p-0">
+          <ScrollArea className="h-[400px] rounded-md border">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead sortable sortDirection={sortColumn === 'name' ? sortDirection : undefined} onSort={() => handleSort('name')}>
+                    Name
+                  </TableHead>
+                  <TableHead sortable sortDirection={sortColumn === 'email' ? sortDirection : undefined} onSort={() => handleSort('email')}>
+                    Email
+                  </TableHead>
+                  <TableHead sortable sortDirection={sortColumn === 'firstVisit' ? sortDirection : undefined} onSort={() => handleSort('firstVisit')}>
+                    First Visit
+                  </TableHead>
                   {(title.includes('Converted') || title.includes('New')) && <>
-                    <TableCell className="font-medium text-emerald-600">
-                      {client.firstPurchaseDate || client.purchaseDate || client.date || 'N/A'}
-                    </TableCell>
-                    <TableCell>{client.firstPurchaseItem || client.purchaseItem || client.membershipType || 'N/A'}</TableCell>
-                    <TableCell>{client.purchaseValue || client.value ? safeFormatCurrency(client.purchaseValue || client.value) : 'N/A'}</TableCell>
+                    <TableHead sortable sortDirection={sortColumn === 'firstPurchaseDate' ? sortDirection : undefined} onSort={() => handleSort('firstPurchaseDate')}>
+                      First Purchase Date
+                    </TableHead>
+                    <TableHead sortable sortDirection={sortColumn === 'firstPurchaseItem' ? sortDirection : undefined} onSort={() => handleSort('firstPurchaseItem')}>
+                      First Purchase Item
+                    </TableHead>
+                    <TableHead sortable sortDirection={sortColumn === 'purchaseValue' ? sortDirection : undefined} onSort={() => handleSort('purchaseValue')}>
+                      Purchase Value
+                    </TableHead>
+                    <TableHead sortable sortDirection={sortColumn === 'conversionSpan' ? sortDirection : undefined} onSort={() => handleSort('conversionSpan')}>
+                      Conversion Span (days)
+                    </TableHead>
                   </>}
                   {title.includes('Retained') && <>
-                    <TableCell>{client.visitsPostTrial || client.visitCount || client.totalVisitsPostTrial || '0'}</TableCell>
-                    <TableCell>{client.firstVisitPostTrial || 'N/A'}</TableCell>
-                    <TableCell>{client.membershipUsed || client.membershipType || 'N/A'}</TableCell>
+                    <TableHead sortable sortDirection={sortColumn === 'visitsPostTrial' ? sortDirection : undefined} onSort={() => handleSort('visitsPostTrial')}>
+                      Total Visits Post Trial
+                    </TableHead>
+                    <TableHead sortable sortDirection={sortColumn === 'firstVisitPostTrial' ? sortDirection : undefined} onSort={() => handleSort('firstVisitPostTrial')}>
+                      First Visit Post Trial
+                    </TableHead>
+                    <TableHead sortable sortDirection={sortColumn === 'membershipUsed' ? sortDirection : undefined} onSort={() => handleSort('membershipUsed')}>
+                      Membership Used
+                    </TableHead>
                   </>}
-                  <TableCell>
-                    <Badge 
-                      variant={title.includes('Converted') ? 'success' : title.includes('Retained') ? 'outline' : 'default'}
-                      className="animate-scale-in flex items-center gap-1"
-                    >
-                      {title.includes('Converted') ? <Check className="h-3 w-3" /> : null}
-                      {title.includes('Converted') ? 'Converted' : title.includes('Retained') ? 'Retained' : 'New'}
-                    </Badge>
-                  </TableCell>
+                  {title.includes('Excluded') && (
+                    <TableHead sortable sortDirection={sortColumn === 'reason' ? sortDirection : undefined} onSort={() => handleSort('reason')}>
+                      Exclusion Reason
+                    </TableHead>
+                  )}
+                  {title.includes('New') && !title.includes('Converted') && (
+                    <TableHead sortable sortDirection={sortColumn === 'reason' ? sortDirection : undefined} onSort={() => handleSort('reason')}>
+                      Inclusion Reason
+                    </TableHead>
+                  )}
+                  <TableHead>Status</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </ScrollArea>
-      </CardContent>
-    </Card>
-  );
+              </TableHeader>
+              <TableBody>
+                {sortedClients.map((client, idx) => {
+                  const conversionSpan = getConversionSpan(client);
+                  
+                  return (
+                    <TableRow key={`${client.email}-${idx}`} className="animate-fade-in" style={{ animationDelay: `${idx * 30}ms` }}>
+                      <TableCell className="font-medium">{client.name || client.customerName || 'N/A'}</TableCell>
+                      <TableCell>{client.email || 'N/A'}</TableCell>
+                      <TableCell>{safeFormatDate(client.firstVisit || client.date)}</TableCell>
+                      {(title.includes('Converted') || title.includes('New')) && <>
+                        <TableCell className="font-medium text-emerald-600">
+                          {safeFormatDate(client.firstPurchaseDate || client.purchaseDate || client.date)}
+                        </TableCell>
+                        <TableCell>{client.firstPurchaseItem || client.purchaseItem || client.membershipType || 'N/A'}</TableCell>
+                        <TableCell>{client.purchaseValue || client.value ? safeFormatCurrency(client.purchaseValue || client.value) : 'N/A'}</TableCell>
+                        <TableCell>
+                          <div className="flex items-center">
+                            <Clock className="h-3 w-3 mr-1 text-muted-foreground" />
+                            {conversionSpan !== null ? `${conversionSpan} days` : 'N/A'}
+                          </div>
+                        </TableCell>
+                      </>}
+                      {title.includes('Retained') && <>
+                        <TableCell>{client.visitsPostTrial || client.visitCount || client.totalVisitsPostTrial || '0'}</TableCell>
+                        <TableCell>{safeFormatDate(client.firstVisitPostTrial || 'N/A')}</TableCell>
+                        <TableCell>{client.membershipUsed || client.membershipType || 'N/A'}</TableCell>
+                      </>}
+                      {title.includes('Excluded') && (
+                        <TableCell className="text-red-600">{client.reason || 'No reason specified'}</TableCell>
+                      )}
+                      {title.includes('New') && !title.includes('Converted') && (
+                        <TableCell className="text-blue-600">{client.reason || 'First time visitor'}</TableCell>
+                      )}
+                      <TableCell>
+                        <Badge 
+                          variant={title.includes('Converted') ? 'conversion' : 
+                                 title.includes('Retained') ? 'retention' : 
+                                 title.includes('Excluded') ? 'excluded' : 'modern'}
+                          className="animate-scale-in flex items-center gap-1"
+                        >
+                          {title.includes('Converted') ? <Award className="h-3 w-3" /> : 
+                           title.includes('Retained') ? <Check className="h-3 w-3" /> : 
+                           title.includes('Excluded') ? <X className="h-3 w-3" /> :
+                           <UserRound className="h-3 w-3" />}
+                          {title.includes('Converted') ? 'Converted' : 
+                           title.includes('Retained') ? 'Retained' : 
+                           title.includes('Excluded') ? 'Excluded' : 'New'}
+                        </Badge>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </ScrollArea>
+        </CardContent>
+      </Card>
+    );
+  };
 
   // Create properly formatted data for ClientSourceChart
   const clientSourceData = [{
@@ -178,7 +313,12 @@ const DrillDownAnalytics: React.FC<DrillDownAnalyticsProps> = ({
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-5xl h-[80vh] p-0 overflow-hidden animate-scale-in">
         <DialogHeader className="sticky top-0 z-10 bg-background pt-6 px-6 shadow-sm">
-          <DialogTitle className="text-2xl">{getEntityLabel()} Analytics</DialogTitle>
+          <DialogTitle className="text-2xl flex items-center gap-2">
+            {type === 'teacher' ? <UserRound className="h-5 w-5 text-primary" /> :
+             type === 'location' ? <LayoutDashboard className="h-5 w-5 text-primary" /> :
+             <BarChartIcon className="h-5 w-5 text-primary" />}
+            {getEntityLabel()} Analytics
+          </DialogTitle>
           <DialogDescription>
             Detailed performance metrics and client data analysis
           </DialogDescription>
@@ -214,36 +354,51 @@ const DrillDownAnalytics: React.FC<DrillDownAnalyticsProps> = ({
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <Card className="shadow-sm border-muted/60 bg-gradient-to-br from-card to-background animate-fade-in">
                   <CardHeader>
-                    <CardTitle>Performance Summary</CardTitle>
+                    <CardTitle className="flex items-center gap-2">
+                      <Award className="h-5 w-5 text-primary" />
+                      Performance Summary
+                    </CardTitle>
                   </CardHeader>
                   <CardContent>
                     <div className="grid grid-cols-2 gap-4">
-                      <div className="flex flex-col p-4 bg-muted/20 rounded-lg border border-muted/40 animate-fade-in" style={{ animationDelay: '150ms' }}>
-                        <span className="text-sm text-muted-foreground">New Clients</span>
+                      <div className="flex flex-col p-4 bg-gradient-to-br from-muted/30 to-muted/10 rounded-lg border border-muted/40 animate-fade-in shadow-sm" style={{ animationDelay: '150ms' }}>
+                        <span className="text-sm text-muted-foreground flex items-center gap-1">
+                          <UserRound className="h-4 w-4" />
+                          New Clients
+                        </span>
                         <span className="text-2xl font-bold">{data.newClients}</span>
                       </div>
-                      <div className="flex flex-col p-4 bg-muted/20 rounded-lg border border-muted/40 animate-fade-in" style={{ animationDelay: '200ms' }}>
-                        <span className="text-sm text-muted-foreground">Retained Clients</span>
+                      <div className="flex flex-col p-4 bg-gradient-to-br from-muted/30 to-muted/10 rounded-lg border border-muted/40 animate-fade-in shadow-sm" style={{ animationDelay: '200ms' }}>
+                        <span className="text-sm text-muted-foreground flex items-center gap-1">
+                          <Check className="h-4 w-4" />
+                          Retained Clients
+                        </span>
                         <span className="text-2xl font-bold flex items-center">
                           {data.retainedClients} 
-                          <Badge className="ml-2 flex items-center gap-1" variant={data.retentionRate > 50 ? "success" : "destructive"}>
+                          <Badge className="ml-2 flex items-center gap-1" variant={data.retentionRate > 50 ? "retention" : "excluded"}>
                             {data.retentionRate > 50 ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
                             {safeToFixed(data.retentionRate, 1)}%
                           </Badge>
                         </span>
                       </div>
-                      <div className="flex flex-col p-4 bg-muted/20 rounded-lg border border-muted/40 animate-fade-in" style={{ animationDelay: '250ms' }}>
-                        <span className="text-sm text-muted-foreground">Converted Clients</span>
+                      <div className="flex flex-col p-4 bg-gradient-to-br from-muted/30 to-muted/10 rounded-lg border border-muted/40 animate-fade-in shadow-sm" style={{ animationDelay: '250ms' }}>
+                        <span className="text-sm text-muted-foreground flex items-center gap-1">
+                          <Award className="h-4 w-4" />
+                          Converted Clients
+                        </span>
                         <span className="text-2xl font-bold flex items-center">
                           {data.convertedClients}
-                          <Badge className="ml-2 flex items-center gap-1" variant={data.conversionRate > 10 ? "success" : "destructive"}>
+                          <Badge className="ml-2 flex items-center gap-1" variant={data.conversionRate > 10 ? "conversion" : "excluded"}>
                             {data.conversionRate > 10 ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
                             {safeToFixed(data.conversionRate, 1)}%
                           </Badge>
                         </span>
                       </div>
-                      <div className="flex flex-col p-4 bg-muted/20 rounded-lg border border-muted/40 animate-fade-in" style={{ animationDelay: '300ms' }}>
-                        <span className="text-sm text-muted-foreground">Total Revenue</span>
+                      <div className="flex flex-col p-4 bg-gradient-to-br from-muted/30 to-muted/10 rounded-lg border border-muted/40 animate-fade-in shadow-sm" style={{ animationDelay: '300ms' }}>
+                        <span className="text-sm text-muted-foreground flex items-center gap-1">
+                          <DollarSign className="h-4 w-4" />
+                          Total Revenue
+                        </span>
                         <span className="text-2xl font-bold">{safeFormatCurrency(data.totalRevenue)}</span>
                       </div>
                     </div>
@@ -252,7 +407,10 @@ const DrillDownAnalytics: React.FC<DrillDownAnalyticsProps> = ({
                 
                 <Card className="shadow-sm border-muted/60 animate-fade-in" style={{ animationDelay: '350ms' }}>
                   <CardHeader>
-                    <CardTitle>Client Sources</CardTitle>
+                    <CardTitle className="flex items-center gap-2">
+                      <PieChartIcon className="h-5 w-5 text-primary" />
+                      Client Sources
+                    </CardTitle>
                   </CardHeader>
                   <CardContent className="flex items-center justify-center">
                     <ClientSourceChart data={clientSourceData} />
@@ -262,7 +420,10 @@ const DrillDownAnalytics: React.FC<DrillDownAnalyticsProps> = ({
               
               <Card className="shadow-sm border-muted/60 animate-fade-in" style={{ animationDelay: '400ms' }}>
                 <CardHeader>
-                  <CardTitle>Revenue by Week</CardTitle>
+                  <CardTitle className="flex items-center gap-2">
+                    <LineChartIcon className="h-5 w-5 text-primary" />
+                    Revenue by Week
+                  </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <RevenueChart data={revenueChartData} />
@@ -273,15 +434,21 @@ const DrillDownAnalytics: React.FC<DrillDownAnalyticsProps> = ({
             <TabsContent value="conversion" className="space-y-6">
               <Card className="shadow-sm border-muted/60 animate-fade-in">
                 <CardHeader>
-                  <CardTitle>Conversion Analysis</CardTitle>
+                  <CardTitle className="flex items-center gap-2">
+                    <Award className="h-5 w-5 text-primary" />
+                    Conversion Analysis
+                  </CardTitle>
                   <CardDescription>
                     Detailed breakdown of client conversion journey from trials to paid memberships
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
                   <div className="flex space-x-4">
-                    <div className="flex-1 p-4 border border-muted/40 rounded-lg text-center bg-muted/10 animate-fade-in" style={{ animationDelay: '150ms' }}>
-                      <h3 className="text-lg font-medium">Conversion Rate</h3>
+                    <div className="flex-1 p-4 border border-muted/40 rounded-lg text-center bg-gradient-to-br from-muted/20 to-muted/5 shadow-sm animate-fade-in" style={{ animationDelay: '150ms' }}>
+                      <h3 className="text-lg font-medium flex items-center justify-center gap-1">
+                        <Percent className="h-4 w-4 text-muted-foreground" />
+                        Conversion Rate
+                      </h3>
                       <p className="text-3xl font-bold text-primary mt-2 flex items-center justify-center">
                         {data.conversionRate > 10 ? <TrendingUp className="h-5 w-5 mr-2 text-green-500" /> : <TrendingDown className="h-5 w-5 mr-2 text-red-500" />}
                         {safeToFixed(data.conversionRate, 1)}%
@@ -290,15 +457,21 @@ const DrillDownAnalytics: React.FC<DrillDownAnalyticsProps> = ({
                         {data.conversionRate > 10 ? 'Above average' : 'Below average'}
                       </p>
                     </div>
-                    <div className="flex-1 p-4 border border-muted/40 rounded-lg text-center bg-muted/10 animate-fade-in" style={{ animationDelay: '200ms' }}>
-                      <h3 className="text-lg font-medium">Converted Clients</h3>
+                    <div className="flex-1 p-4 border border-muted/40 rounded-lg text-center bg-gradient-to-br from-muted/20 to-muted/5 shadow-sm animate-fade-in" style={{ animationDelay: '200ms' }}>
+                      <h3 className="text-lg font-medium flex items-center justify-center gap-1">
+                        <Award className="h-4 w-4 text-muted-foreground" />
+                        Converted Clients
+                      </h3>
                       <p className="text-3xl font-bold mt-2">{data.convertedClients}</p>
                       <p className="text-sm text-muted-foreground mt-1">
                         out of {data.newClients} new clients
                       </p>
                     </div>
-                    <div className="flex-1 p-4 border border-muted/40 rounded-lg text-center bg-muted/10 animate-fade-in" style={{ animationDelay: '250ms' }}>
-                      <h3 className="text-lg font-medium">Avg. Revenue</h3>
+                    <div className="flex-1 p-4 border border-muted/40 rounded-lg text-center bg-gradient-to-br from-muted/20 to-muted/5 shadow-sm animate-fade-in" style={{ animationDelay: '250ms' }}>
+                      <h3 className="text-lg font-medium flex items-center justify-center gap-1">
+                        <DollarSign className="h-4 w-4 text-muted-foreground" />
+                        Avg. Revenue
+                      </h3>
                       <p className="text-3xl font-bold mt-2">{safeFormatCurrency(data.averageRevenuePerClient)}</p>
                       <p className="text-sm text-muted-foreground mt-1">
                         per converted client
@@ -315,15 +488,21 @@ const DrillDownAnalytics: React.FC<DrillDownAnalyticsProps> = ({
             <TabsContent value="retention" className="space-y-6">
               <Card className="shadow-sm border-muted/60 animate-fade-in">
                 <CardHeader>
-                  <CardTitle>Retention Analysis</CardTitle>
+                  <CardTitle className="flex items-center gap-2">
+                    <Check className="h-5 w-5 text-primary" />
+                    Retention Analysis
+                  </CardTitle>
                   <CardDescription>
                     Detailed breakdown of client retention patterns
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
                   <div className="flex space-x-4">
-                    <div className="flex-1 p-4 border border-muted/40 rounded-lg text-center bg-muted/10 animate-fade-in" style={{ animationDelay: '150ms' }}>
-                      <h3 className="text-lg font-medium">Retention Rate</h3>
+                    <div className="flex-1 p-4 border border-muted/40 rounded-lg text-center bg-gradient-to-br from-muted/20 to-muted/5 shadow-sm animate-fade-in" style={{ animationDelay: '150ms' }}>
+                      <h3 className="text-lg font-medium flex items-center justify-center gap-1">
+                        <Check className="h-4 w-4 text-muted-foreground" />
+                        Retention Rate
+                      </h3>
                       <p className="text-3xl font-bold text-primary mt-2 flex items-center justify-center">
                         {data.retentionRate > 50 ? <TrendingUp className="h-5 w-5 mr-2 text-green-500" /> : <TrendingDown className="h-5 w-5 mr-2 text-red-500" />}
                         {safeToFixed(data.retentionRate, 1)}%
@@ -332,15 +511,21 @@ const DrillDownAnalytics: React.FC<DrillDownAnalyticsProps> = ({
                         {data.retentionRate > 50 ? 'Above average' : 'Below average'}
                       </p>
                     </div>
-                    <div className="flex-1 p-4 border border-muted/40 rounded-lg text-center bg-muted/10 animate-fade-in" style={{ animationDelay: '200ms' }}>
-                      <h3 className="text-lg font-medium">Retained Clients</h3>
+                    <div className="flex-1 p-4 border border-muted/40 rounded-lg text-center bg-gradient-to-br from-muted/20 to-muted/5 shadow-sm animate-fade-in" style={{ animationDelay: '200ms' }}>
+                      <h3 className="text-lg font-medium flex items-center justify-center gap-1">
+                        <UserRound className="h-4 w-4 text-muted-foreground" />
+                        Retained Clients
+                      </h3>
                       <p className="text-3xl font-bold mt-2">{data.retainedClients}</p>
                       <p className="text-sm text-muted-foreground mt-1">
                         out of total clients
                       </p>
                     </div>
-                    <div className="flex-1 p-4 border border-muted/40 rounded-lg text-center bg-muted/10 animate-fade-in" style={{ animationDelay: '250ms' }}>
-                      <h3 className="text-lg font-medium">No Show Rate</h3>
+                    <div className="flex-1 p-4 border border-muted/40 rounded-lg text-center bg-gradient-to-br from-muted/20 to-muted/5 shadow-sm animate-fade-in" style={{ animationDelay: '250ms' }}>
+                      <h3 className="text-lg font-medium flex items-center justify-center gap-1">
+                        <X className="h-4 w-4 text-muted-foreground" />
+                        No Show Rate
+                      </h3>
                       <p className="text-3xl font-bold mt-2 flex items-center justify-center">
                         {data.noShowRate < 10 ? <TrendingDown className="h-5 w-5 mr-2 text-green-500" /> : <TrendingUp className="h-5 w-5 mr-2 text-red-500" />}
                         {safeToFixed(data.noShowRate, 1)}%
@@ -360,23 +545,35 @@ const DrillDownAnalytics: React.FC<DrillDownAnalyticsProps> = ({
             <TabsContent value="revenue" className="space-y-6">
               <Card className="shadow-sm border-muted/60 animate-fade-in">
                 <CardHeader>
-                  <CardTitle>Revenue Analysis</CardTitle>
+                  <CardTitle className="flex items-center gap-2">
+                    <DollarSign className="h-5 w-5 text-primary" />
+                    Revenue Analysis
+                  </CardTitle>
                   <CardDescription>
                     Detailed breakdown of revenue streams and financial performance
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
                   <div className="grid grid-cols-3 gap-4">
-                    <div className="p-4 border border-muted/40 rounded-lg text-center bg-muted/10 animate-fade-in" style={{ animationDelay: '150ms' }}>
-                      <h3 className="text-lg font-medium">Total Revenue</h3>
+                    <div className="p-4 border border-muted/40 rounded-lg text-center bg-gradient-to-br from-muted/20 to-muted/5 shadow-sm animate-fade-in" style={{ animationDelay: '150ms' }}>
+                      <h3 className="text-lg font-medium flex items-center justify-center gap-1">
+                        <DollarSign className="h-4 w-4 text-muted-foreground" />
+                        Total Revenue
+                      </h3>
                       <p className="text-3xl font-bold text-primary mt-2">{safeFormatCurrency(data.totalRevenue)}</p>
                     </div>
-                    <div className="p-4 border border-muted/40 rounded-lg text-center bg-muted/10 animate-fade-in" style={{ animationDelay: '200ms' }}>
-                      <h3 className="text-lg font-medium">Revenue per Client</h3>
+                    <div className="p-4 border border-muted/40 rounded-lg text-center bg-gradient-to-br from-muted/20 to-muted/5 shadow-sm animate-fade-in" style={{ animationDelay: '200ms' }}>
+                      <h3 className="text-lg font-medium flex items-center justify-center gap-1">
+                        <UserRound className="h-4 w-4 text-muted-foreground" />
+                        Revenue per Client
+                      </h3>
                       <p className="text-3xl font-bold mt-2">{safeFormatCurrency(data.averageRevenuePerClient)}</p>
                     </div>
-                    <div className="p-4 border border-muted/40 rounded-lg text-center bg-muted/10 animate-fade-in" style={{ animationDelay: '250ms' }}>
-                      <h3 className="text-lg font-medium">Revenue Trend</h3>
+                    <div className="p-4 border border-muted/40 rounded-lg text-center bg-gradient-to-br from-muted/20 to-muted/5 shadow-sm animate-fade-in" style={{ animationDelay: '250ms' }}>
+                      <h3 className="text-lg font-medium flex items-center justify-center gap-1">
+                        <ArrowUpDown className="h-4 w-4 text-muted-foreground" />
+                        Revenue Trend
+                      </h3>
                       <p className="text-3xl font-bold flex items-center justify-center gap-2 mt-2">
                         {data.revenueByWeek && data.revenueByWeek.length > 1 ? 
                           data.revenueByWeek[data.revenueByWeek.length - 1].revenue > data.revenueByWeek[data.revenueByWeek.length - 2].revenue ? 
@@ -389,7 +586,10 @@ const DrillDownAnalytics: React.FC<DrillDownAnalyticsProps> = ({
                   
                   <Card className="shadow-sm border-muted/60 bg-card/60 animate-fade-in" style={{ animationDelay: '300ms' }}>
                     <CardHeader>
-                      <CardTitle className="text-lg">Revenue by Week</CardTitle>
+                      <CardTitle className="text-lg flex items-center gap-2">
+                        <LineChartIcon className="h-4 w-4 text-primary" />
+                        Revenue by Week
+                      </CardTitle>
                     </CardHeader>
                     <CardContent>
                       <RevenueChart data={revenueChartData} />
@@ -402,7 +602,10 @@ const DrillDownAnalytics: React.FC<DrillDownAnalyticsProps> = ({
             <TabsContent value="trends" className="space-y-6">
               <Card className="shadow-sm border-muted/60 animate-fade-in">
                 <CardHeader>
-                  <CardTitle>Performance Trends</CardTitle>
+                  <CardTitle className="flex items-center gap-2">
+                    <ArrowUpDown className="h-5 w-5 text-primary" />
+                    Performance Trends
+                  </CardTitle>
                   <CardDescription>
                     Historical performance and trend analysis
                   </CardDescription>
@@ -411,7 +614,10 @@ const DrillDownAnalytics: React.FC<DrillDownAnalyticsProps> = ({
                   <div className="grid grid-cols-2 gap-6">
                     <Card className="shadow-sm border-muted/30 bg-card/60 animate-fade-in" style={{ animationDelay: '150ms' }}>
                       <CardHeader>
-                        <CardTitle className="text-lg">Client Acquisition</CardTitle>
+                        <CardTitle className="text-lg flex items-center gap-2">
+                          <UserRound className="h-4 w-4 text-primary" />
+                          Client Acquisition
+                        </CardTitle>
                       </CardHeader>
                       <CardContent>
                         <ConversionRatesChart data={[conversionRateData]} />
@@ -420,12 +626,18 @@ const DrillDownAnalytics: React.FC<DrillDownAnalyticsProps> = ({
                     
                     <Card className="shadow-sm border-muted/30 bg-card/60 animate-fade-in" style={{ animationDelay: '200ms' }}>
                       <CardHeader>
-                        <CardTitle className="text-lg">Attendance Patterns</CardTitle>
+                        <CardTitle className="text-lg flex items-center gap-2">
+                          <Calendar className="h-4 w-4 text-primary" />
+                          Attendance Patterns
+                        </CardTitle>
                       </CardHeader>
                       <CardContent>
                         <div className="grid grid-cols-2 gap-4">
-                          <div className="flex flex-col p-4 border border-muted/40 rounded-lg bg-muted/10">
-                            <span className="text-sm text-muted-foreground">No Show Rate</span>
+                          <div className="flex flex-col p-4 border border-muted/40 rounded-lg bg-gradient-to-br from-muted/20 to-muted/5 shadow-sm">
+                            <span className="text-sm text-muted-foreground flex items-center gap-1">
+                              <X className="h-3 w-3" />
+                              No Show Rate
+                            </span>
                             <span className="text-xl font-bold flex items-center">
                               {safeToFixed(data.noShowRate, 1)}%
                               {data.noShowRate < 10 ? 
@@ -434,8 +646,11 @@ const DrillDownAnalytics: React.FC<DrillDownAnalyticsProps> = ({
                               }
                             </span>
                           </div>
-                          <div className="flex flex-col p-4 border border-muted/40 rounded-lg bg-muted/10">
-                            <span className="text-sm text-muted-foreground">Late Cancellation</span>
+                          <div className="flex flex-col p-4 border border-muted/40 rounded-lg bg-gradient-to-br from-muted/20 to-muted/5 shadow-sm">
+                            <span className="text-sm text-muted-foreground flex items-center gap-1">
+                              <Filter className="h-3 w-3" />
+                              Late Cancellation
+                            </span>
                             <span className="text-xl font-bold flex items-center">
                               {safeToFixed(data.lateCancellationRate, 1)}%
                               {data.lateCancellationRate < 5 ? 
@@ -444,8 +659,11 @@ const DrillDownAnalytics: React.FC<DrillDownAnalyticsProps> = ({
                               }
                             </span>
                           </div>
-                          <div className="flex flex-col p-4 border border-muted/40 rounded-lg bg-muted/10">
-                            <span className="text-sm text-muted-foreground">Retention Rate</span>
+                          <div className="flex flex-col p-4 border border-muted/40 rounded-lg bg-gradient-to-br from-muted/20 to-muted/5 shadow-sm">
+                            <span className="text-sm text-muted-foreground flex items-center gap-1">
+                              <Check className="h-3 w-3" />
+                              Retention Rate
+                            </span>
                             <span className="text-xl font-bold flex items-center">
                               {safeToFixed(data.retentionRate, 1)}%
                               {data.retentionRate > 50 ? 
@@ -454,8 +672,11 @@ const DrillDownAnalytics: React.FC<DrillDownAnalyticsProps> = ({
                               }
                             </span>
                           </div>
-                          <div className="flex flex-col p-4 border border-muted/40 rounded-lg bg-muted/10">
-                            <span className="text-sm text-muted-foreground">Conversion Rate</span>
+                          <div className="flex flex-col p-4 border border-muted/40 rounded-lg bg-gradient-to-br from-muted/20 to-muted/5 shadow-sm">
+                            <span className="text-sm text-muted-foreground flex items-center gap-1">
+                              <Award className="h-3 w-3" />
+                              Conversion Rate
+                            </span>
                             <span className="text-xl font-bold flex items-center">
                               {safeToFixed(data.conversionRate, 1)}%
                               {data.conversionRate > 10 ? 
@@ -474,12 +695,34 @@ const DrillDownAnalytics: React.FC<DrillDownAnalyticsProps> = ({
               {/* New clients overview */}
               <Card className="shadow-sm border-muted/60 animate-fade-in" style={{ animationDelay: '300ms' }}>
                 <CardHeader>
-                  <CardTitle>New Clients Overview</CardTitle>
-                  <CardDescription>Details of new clients</CardDescription>
+                  <div className="flex justify-between items-center">
+                    <CardTitle className="flex items-center gap-2">
+                      <UserRound className="h-5 w-5 text-primary" />
+                      New Clients Overview
+                    </CardTitle>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <div className="rounded-full bg-primary/10 p-2">
+                            <Info className="h-4 w-4 text-primary" />
+                          </div>
+                        </TooltipTrigger>
+                        <TooltipContent side="left">
+                          <p className="max-w-xs text-xs">Detailed information about all new clients identified in this period</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  </div>
+                  <CardDescription>Details of new clients and their status</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  {data.newClientDetails && data.newClientDetails.length > 0 && 
-                    renderClientTable(data.newClientDetails, "New Clients")}
+                  <div className="grid grid-cols-1 gap-4">
+                    {data.newClientDetails && data.newClientDetails.length > 0 && 
+                      renderClientTable(data.newClientDetails, "New Clients")}
+                      
+                    {data.excludedClientDetails && data.excludedClientDetails.length > 0 && 
+                      renderClientTable(data.excludedClientDetails, "Excluded Clients")}
+                  </div>
                 </CardContent>
               </Card>
             </TabsContent>

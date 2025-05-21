@@ -10,20 +10,24 @@ const badgeVariants = cva(
     variants: {
       variant: {
         default:
-          "border-transparent bg-primary text-primary-foreground",
+          "border-transparent bg-primary text-primary-foreground shadow-sm",
         secondary:
-          "border-transparent bg-secondary text-secondary-foreground",
+          "border-transparent bg-secondary text-secondary-foreground shadow-sm",
         destructive:
-          "border-transparent bg-destructive text-destructive-foreground",
-        outline: "text-foreground",
-        success: "border-transparent bg-green-500 text-white",
-        warning: "border-transparent bg-amber-500 text-white",
-        active: "border-transparent bg-blue-500 text-white font-bold",
-        info: "border-transparent bg-sky-400 text-white",
-        purple: "border-transparent bg-purple-500 text-white",
-        emerald: "border-transparent bg-emerald-500 text-white",
-        rose: "border-transparent bg-rose-500 text-white",
-        premium: "border-transparent bg-gradient-to-r from-purple-600 to-pink-500 text-white shadow-sm",
+          "border-transparent bg-destructive text-destructive-foreground shadow-sm",
+        outline: "text-foreground shadow-sm",
+        success: "border-transparent bg-gradient-to-r from-green-500 to-emerald-500 text-white shadow-sm",
+        warning: "border-transparent bg-gradient-to-r from-amber-400 to-amber-500 text-white shadow-sm",
+        active: "border-transparent bg-gradient-to-r from-blue-500 to-blue-600 text-white font-bold shadow-sm",
+        info: "border-transparent bg-gradient-to-r from-sky-400 to-blue-500 text-white shadow-sm",
+        purple: "border-transparent bg-gradient-to-r from-purple-500 to-violet-500 text-white shadow-sm",
+        emerald: "border-transparent bg-gradient-to-r from-emerald-400 to-green-500 text-white shadow-sm",
+        rose: "border-transparent bg-gradient-to-r from-rose-400 to-red-500 text-white shadow-sm",
+        premium: "border-transparent bg-gradient-to-r from-purple-600 to-pink-500 text-white shadow-md",
+        conversion: "border-transparent bg-gradient-to-r from-blue-500 to-indigo-600 text-white shadow-md backdrop-blur-sm",
+        retention: "border-transparent bg-gradient-to-r from-emerald-500 to-teal-600 text-white shadow-md backdrop-blur-sm",
+        excluded: "border-transparent bg-gradient-to-r from-red-500 to-rose-600 text-white shadow-md backdrop-blur-sm",
+        modern: "border-transparent px-3 py-1 rounded-lg bg-gradient-to-r from-blue-700 to-indigo-600 text-white text-xs shadow-lg backdrop-blur-sm",
       },
     },
     defaultVariants: {
