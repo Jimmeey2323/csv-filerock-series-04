@@ -1,3 +1,4 @@
+
 import React, { useState, useCallback, useEffect } from 'react';
 import { toast } from 'sonner';
 import FileUploader from '@/components/FileUploader';
@@ -332,7 +333,10 @@ const Index = () => {
     // Filter by search (teacher name)
     if (newFilters.search) {
       const searchLower = newFilters.search.toLowerCase();
-      filtered = filtered.filter(item => item.teacherName.toLowerCase().includes(searchLower));
+      filtered = filtered.filter(item => 
+        (item.teacherName && item.teacherName.toLowerCase().includes(searchLower)) ||
+        (item.location && item.location.toLowerCase().includes(searchLower))
+      );
     }
     setFilteredData(filtered);
   }, [processedData]);
@@ -447,9 +451,26 @@ const Index = () => {
               
               <TabsContent value="analytics" className="mt-0">
                 <div className="space-y-6">
-                  <FilterBar locations={locations} teachers={teachers} periods={periods} activeViewMode={viewMode} activeDataMode={dataMode} onViewModeChange={setViewMode} onDataModeChange={setDataMode} onFilterChange={handleFilterChange} />
+                  <FilterBar 
+                    locations={locations} 
+                    teachers={teachers} 
+                    periods={periods} 
+                    activeViewMode={viewMode} 
+                    activeDataMode={dataMode} 
+                    onViewModeChange={setViewMode} 
+                    onDataModeChange={setDataMode} 
+                    onFilterChange={handleFilterChange} 
+                    initialSearch={activeFilters.search}
+                  />
                   
-                  <ResultsTable data={filteredData} locations={locations} isLoading={false} viewMode={viewMode} dataMode={dataMode} onFilterChange={handleFilterChange} />
+                  <ResultsTable 
+                    data={filteredData} 
+                    locations={locations}
+                    isLoading={false}
+                    viewMode={viewMode}
+                    dataMode={dataMode}
+                    onFilterChange={handleFilterChange}
+                  />
                 </div>
               </TabsContent>
               

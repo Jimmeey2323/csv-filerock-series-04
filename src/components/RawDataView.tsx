@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   Table,
   TableBody,
@@ -14,8 +14,14 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Search, FileText, Filter, AlertTriangle, Calendar, CalendarCheck, Clock, Users, UserCheck, UserPlus, UserX } from 'lucide-react';
-import { safeFormatCurrency, safeFormatDate, daysBetweenDates, sortDataByColumn } from '@/lib/utils';
+import { 
+  Search, FileText, Filter, AlertTriangle, Calendar, CalendarCheck, 
+  Clock, Users, UserCheck, UserPlus, UserX, ArrowUpDown, RefreshCcw
+} from 'lucide-react';
+import { 
+  safeFormatCurrency, safeFormatDate, daysBetweenDates, sortDataByColumn,
+  calculateConversionSpan, formatClientName
+} from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
@@ -44,26 +50,62 @@ const RawDataView: React.FC<RawDataProps> = ({
   const [filterField, setFilterField] = useState<string>('');
   const [filterValue, setFilterValue] = useState<string>('');
   const [currentTab, setCurrentTab] = useState('processing');
+  const [clientRecordTab, setClientRecordTab] = useState('new');
+  const [clientSearchTerm, setClientSearchTerm] = useState('');
   
-  // Summary counts
-  const newClientCount = processingResults.newClients?.length || 0;
-  const excludedCount = processingResults.excluded?.length || 0;
-  const totalClientsCount = (processingResults.included?.length || 0) + excludedCount;
+  // Summary counts - using useMemo for performance
+  const counts = useMemo(() => {
+    const newClientCount = processingResults.newClients?.length || 0;
+    const convertedClientCount = processingResults.convertedClients?.length || 0;
+    const retainedClientCount = processingResults.retainedClients?.length || 0;
+    const excludedCount = processingResults.excluded?.length || 0;
+    const includedCount = processingResults.included?.length || 0;
+    
+    return {
+      newClientCount,
+      excludedCount,
+      includedCount,
+      totalClientsCount: includedCount + excludedCount,
+      conversionRate: newClientCount > 0 ? ((convertedClientCount / newClientCount) * 100).toFixed(1) : 0,
+      retentionRate: newClientCount > 0 ? ((retainedClientCount / newClientCount) * 100).toFixed(1) : 0
+    };
+  }, [processingResults]);
+  
+  // Helper function to deduplicate records by email
+  const deduplicateByEmail = (records: any[]) => {
+    if (!records || !Array.isArray(records)) return [];
+    const seen = new Set();
+    return records.filter(item => {
+      const email = item['Email'] || item.email || '';
+      if (email && !seen.has(email)) {
+        seen.add(email);
+        return true;
+      }
+      return false;
+    });
+  };
+  
+  // Filter client records based on search term
+  const filterClientRecords = (records: any[]) => {
+    if (!records || !Array.isArray(records) || records.length === 0) return [];
+    if (!clientSearchTerm) return records;
+    
+    return records.filter(record => {
+      const clientName = formatClientName(record).toLowerCase();
+      const clientEmail = (record['Email'] || record.email || '').toLowerCase();
+      const searchTermLower = clientSearchTerm.toLowerCase();
+      
+      return clientName.includes(searchTermLower) || clientEmail.includes(searchTermLower);
+    });
+  };
   
   // Handle search input event
   useEffect(() => {
-    const searchInput = document.getElementById('search-data-input');
-    if (searchInput) {
-      // Force focus to search input to fix keyboard input issues
-      searchInput.addEventListener('click', () => {
-        setTimeout(() => {
-          const input = document.getElementById('search-data-input') as HTMLInputElement;
-          if (input) {
-            input.focus();
-            input.select();
-          }
-        }, 0);
-      });
+    // Reset search and filter values when changing tabs
+    if (currentTab !== 'processing') {
+      setClientSearchTerm('');
+      setFilterField('');
+      setFilterValue('');
     }
   }, [currentTab]);
   
@@ -105,19 +147,90 @@ const RawDataView: React.FC<RawDataProps> = ({
     return filtered;
   };
 
-  // Helper function to deduplicate records by email
-  const deduplicateByEmail = (records: any[]) => {
-    if (!records || !Array.isArray(records)) return [];
-    const seen = new Set();
-    return records.filter(item => {
-      const email = item['Email'] || item.email || '';
-      if (email && !seen.has(email)) {
-        seen.add(email);
-        return true;
-      }
-      return false;
-    });
+  // Helper to get email
+  const getClientEmail = (client: any) => {
+    if (!client) return '';
+    return client['Email'] || client.email || '';
   };
+
+  // Helper to get dates
+  const getFirstVisitDate = (client: any) => {
+    if (!client) return '';
+    return client['First visit at'] || client.firstVisit || client.date || '';
+  };
+
+  // Helper to get first purchase date
+  const getFirstPurchaseDate = (client: any) => {
+    if (!client) return '';
+    return client['First purchase date'] || client.purchaseDate || client.date || client.firstPurchaseDate || '';
+  };
+
+  // Helper to get first visit post trial
+  const getFirstVisitPostTrial = (client: any) => {
+    if (!client) return '';
+    
+    // Find the client's visit post trial date
+    if (client.firstVisitPostTrial) return client.firstVisitPostTrial;
+    if (client.postTrialVisitDate) return client.postTrialVisitDate;
+    if (client.visitsPostTrial && client.visitsPostTrial.length > 0) {
+      return client.visitsPostTrial[0].date;
+    }
+    
+    // If we have multiple visits and the client is retained, the second visit is likely post-trial
+    const visits = bookingsData.filter(booking => 
+      (booking.email === getClientEmail(client)) || 
+      (booking['Client email'] === getClientEmail(client)) ||
+      (booking['Email'] === getClientEmail(client))
+    );
+    
+    if (visits.length > 1) {
+      // Sort visits by date
+      const sortedVisits = visits.sort((a, b) => {
+        const dateA = new Date(a.date || a['Visit date'] || a.Date || '');
+        const dateB = new Date(b.date || b['Visit date'] || b.Date || '');
+        return dateA.getTime() - dateB.getTime();
+      });
+      
+      // Return the second visit date as post-trial
+      if (sortedVisits.length > 1) {
+        return sortedVisits[1].date || sortedVisits[1]['Visit date'] || sortedVisits[1].Date || '';
+      }
+    }
+    
+    return '';
+  };
+
+  // Deduplicate exclusion records by email
+  const uniqueExcludedRecords = useMemo(() => 
+    deduplicateByEmail(processingResults.excluded || []), 
+    [processingResults.excluded]
+  );
+  
+  const hasProcessingData = useMemo(() => 
+    processingResults && 
+    ((processingResults.included && processingResults.included.length > 0) || 
+     (processingResults.excluded && processingResults.excluded.length > 0) ||
+     (processingResults.newClients && processingResults.newClients.length > 0) ||
+     (processingResults.convertedClients && processingResults.convertedClients.length > 0) ||
+     (processingResults.retainedClients && processingResults.retainedClients.length > 0)),
+    [processingResults]
+  );
+
+  // Filter client data based on current tab and search term
+  const filteredClientRecords = useMemo(() => {
+    switch(clientRecordTab) {
+      case 'new':
+        return filterClientRecords(processingResults.newClients || []);
+      case 'converted':
+        return filterClientRecords(processingResults.convertedClients || []);
+      case 'retained':
+        return filterClientRecords(processingResults.retainedClients || []);
+      case 'excluded':
+        return filterClientRecords(uniqueExcludedRecords || []);
+      default:
+        return [];
+    }
+  }, [clientRecordTab, clientSearchTerm, processingResults, uniqueExcludedRecords]);
 
   const renderDataTable = (data: any[], type: string) => {
     if (!data || !Array.isArray(data) || data.length === 0) {
@@ -158,13 +271,14 @@ const RawDataView: React.FC<RawDataProps> = ({
             <div className="flex flex-wrap items-center gap-2">
               {/* Search */}
               <div className="relative w-64">
-                <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground pointer-events-none" />
                 <Input
                   id="search-data-input"
                   placeholder="Search data..."
                   className="pl-8"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
+                  autoComplete="off"
                 />
               </div>
               
@@ -188,6 +302,7 @@ const RawDataView: React.FC<RawDataProps> = ({
                     className="w-[180px]"
                     value={filterValue}
                     onChange={(e) => setFilterValue(e.target.value)}
+                    autoComplete="off"
                   />
                 )}
                 
@@ -264,67 +379,250 @@ const RawDataView: React.FC<RawDataProps> = ({
     );
   };
 
-  // Helper function to format client name
-  const formatClientName = (client: any) => {
-    if (!client) return 'Unknown';
-    if (client['First name'] && client['Last name']) {
-      return `${client['First name']} ${client['Last name']}`;
-    } else if (client.name) {
-      return client.name;
-    } else if (client.customerName) {
-      return client.customerName;
-    } else if (client['Email'] || client.email) {
-      return client['Email'] || client.email;
-    }
-    return 'Unknown';
+  const renderClientDetailsTables = () => {
+    return (
+      <div className="space-y-4 animate-fade-in">
+        <div className="flex items-center justify-between">
+          <h3 className="text-lg font-semibold">Client Details</h3>
+          
+          <div className="flex items-center gap-2">
+            <div className="relative">
+              <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground pointer-events-none" />
+              <Input
+                placeholder="Search clients..."
+                className="pl-8 w-64"
+                value={clientSearchTerm}
+                onChange={(e) => setClientSearchTerm(e.target.value)}
+                autoComplete="off"
+              />
+            </div>
+          </div>
+        </div>
+        
+        <Tabs value={clientRecordTab} onValueChange={setClientRecordTab}>
+          <TabsList className="grid grid-cols-4 mb-4">
+            <TabsTrigger value="new" className="flex items-center gap-1">
+              <UserPlus className="h-4 w-4" /> 
+              New Clients 
+              <Badge variant="outline" className="ml-1">{processingResults.newClients?.length || 0}</Badge>
+            </TabsTrigger>
+            <TabsTrigger value="converted" className="flex items-center gap-1">
+              <UserCheck className="h-4 w-4" /> 
+              Converted 
+              <Badge variant="outline" className="ml-1">{processingResults.convertedClients?.length || 0}</Badge>
+            </TabsTrigger>
+            <TabsTrigger value="retained" className="flex items-center gap-1">
+              <RefreshCcw className="h-4 w-4" /> 
+              Retained 
+              <Badge variant="outline" className="ml-1">{processingResults.retainedClients?.length || 0}</Badge>
+            </TabsTrigger>
+            <TabsTrigger value="excluded" className="flex items-center gap-1">
+              <UserX className="h-4 w-4" /> 
+              Excluded 
+              <Badge variant="outline" className="ml-1">{uniqueExcludedRecords?.length || 0}</Badge>
+            </TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="new">
+            <Card>
+              <CardContent className="p-0">
+                <ScrollArea className="h-[320px]">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Client</TableHead>
+                        <TableHead>Email</TableHead>
+                        <TableHead>First Visit</TableHead>
+                        <TableHead>Studio/Location</TableHead>
+                        <TableHead>Teacher</TableHead>
+                        <TableHead>Reason</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {filteredClientRecords.length > 0 ? (
+                        filteredClientRecords.map((client, index) => (
+                          <TableRow key={index} className="animate-fade-in">
+                            <TableCell className="font-medium">{formatClientName(client)}</TableCell>
+                            <TableCell>{getClientEmail(client)}</TableCell>
+                            <TableCell>{safeFormatDate(getFirstVisitDate(client), 'medium')}</TableCell>
+                            <TableCell>{client.location || client.studio || client.Studio || 'N/A'}</TableCell>
+                            <TableCell>{client.teacherName || client.teacher || client.Teacher || 'N/A'}</TableCell>
+                            <TableCell>
+                              <Badge variant="default">
+                                {client.reason || 'First time visitor'}
+                              </Badge>
+                            </TableCell>
+                          </TableRow>
+                        ))
+                      ) : (
+                        <TableRow>
+                          <TableCell colSpan={6} className="text-center py-4">
+                            {clientSearchTerm ? 'No clients matching your search.' : 'No new client records available.'}
+                          </TableCell>
+                        </TableRow>
+                      )}
+                    </TableBody>
+                  </Table>
+                </ScrollArea>
+              </CardContent>
+            </Card>
+          </TabsContent>
+          
+          <TabsContent value="converted">
+            <Card>
+              <CardContent className="p-0">
+                <ScrollArea className="h-[320px]">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Client</TableHead>
+                        <TableHead>Email</TableHead>
+                        <TableHead>First Visit</TableHead>
+                        <TableHead>First Purchase</TableHead>
+                        <TableHead>Item Purchased</TableHead>
+                        <TableHead>Value</TableHead>
+                        <TableHead>Conversion Span</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {filteredClientRecords.length > 0 ? (
+                        filteredClientRecords.map((client, index) => {
+                          const firstVisit = getFirstVisitDate(client);
+                          const firstPurchase = getFirstPurchaseDate(client);
+                          const conversionSpan = calculateConversionSpan(firstVisit, firstPurchase);
+                          
+                          return (
+                            <TableRow key={index} className="animate-fade-in">
+                              <TableCell className="font-medium">{formatClientName(client)}</TableCell>
+                              <TableCell>{getClientEmail(client)}</TableCell>
+                              <TableCell>{safeFormatDate(firstVisit, 'medium')}</TableCell>
+                              <TableCell>{safeFormatDate(firstPurchase, 'medium')}</TableCell>
+                              <TableCell>{client.item || client.purchaseItem || client.Product || 'N/A'}</TableCell>
+                              <TableCell>{safeFormatCurrency(client.saleValue || client.value || client.Price)}</TableCell>
+                              <TableCell>
+                                <Badge variant="conversion" className="flex items-center gap-1">
+                                  <Clock className="h-3 w-3" />
+                                  {conversionSpan}
+                                </Badge>
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })
+                      ) : (
+                        <TableRow>
+                          <TableCell colSpan={7} className="text-center py-4">
+                            {clientSearchTerm ? 'No clients matching your search.' : 'No converted client records available.'}
+                          </TableCell>
+                        </TableRow>
+                      )}
+                    </TableBody>
+                  </Table>
+                </ScrollArea>
+              </CardContent>
+            </Card>
+          </TabsContent>
+          
+          <TabsContent value="retained">
+            <Card>
+              <CardContent className="p-0">
+                <ScrollArea className="h-[320px]">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Client</TableHead>
+                        <TableHead>Email</TableHead>
+                        <TableHead>First Visit</TableHead>
+                        <TableHead>First Visit Post-Trial</TableHead>
+                        <TableHead>Total Visits</TableHead>
+                        <TableHead>Studio/Location</TableHead>
+                        <TableHead>Retention Span</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {filteredClientRecords.length > 0 ? (
+                        filteredClientRecords.map((client, index) => {
+                          const firstVisit = getFirstVisitDate(client);
+                          const firstVisitPostTrial = getFirstVisitPostTrial(client);
+                          const retentionSpan = calculateRetentionSpan(firstVisit, firstVisitPostTrial || client.lastVisitDate || '');
+                          
+                          return (
+                            <TableRow key={index} className="animate-fade-in">
+                              <TableCell className="font-medium">{formatClientName(client)}</TableCell>
+                              <TableCell>{getClientEmail(client)}</TableCell>
+                              <TableCell>{safeFormatDate(firstVisit, 'medium')}</TableCell>
+                              <TableCell>{safeFormatDate(firstVisitPostTrial, 'medium')}</TableCell>
+                              <TableCell>{client.visitsCount || client.totalVisits || '1+'}</TableCell>
+                              <TableCell>{client.location || client.studio || client.Studio || 'N/A'}</TableCell>
+                              <TableCell>
+                                <Badge variant="retention" className="flex items-center gap-1">
+                                  <RefreshCcw className="h-3 w-3" />
+                                  {retentionSpan}
+                                </Badge>
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })
+                      ) : (
+                        <TableRow>
+                          <TableCell colSpan={7} className="text-center py-4">
+                            {clientSearchTerm ? 'No clients matching your search.' : 'No retained client records available.'}
+                          </TableCell>
+                        </TableRow>
+                      )}
+                    </TableBody>
+                  </Table>
+                </ScrollArea>
+              </CardContent>
+            </Card>
+          </TabsContent>
+          
+          <TabsContent value="excluded">
+            <Card>
+              <CardContent className="p-0">
+                <ScrollArea className="h-[320px]">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Client</TableHead>
+                        <TableHead>Email</TableHead>
+                        <TableHead>First Visit</TableHead>
+                        <TableHead>Studio/Location</TableHead>
+                        <TableHead>Reason for Exclusion</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {filteredClientRecords.length > 0 ? (
+                        filteredClientRecords.map((client, index) => (
+                          <TableRow key={index} className="animate-fade-in">
+                            <TableCell className="font-medium">{formatClientName(client)}</TableCell>
+                            <TableCell>{getClientEmail(client)}</TableCell>
+                            <TableCell>{safeFormatDate(getFirstVisitDate(client), 'medium')}</TableCell>
+                            <TableCell>{client.location || client.studio || client.Studio || 'N/A'}</TableCell>
+                            <TableCell>
+                              <Badge variant="excluded" className="flex items-center gap-1">
+                                <AlertTriangle className="h-3 w-3" />
+                                {client.reason || 'Unknown reason'}
+                              </Badge>
+                            </TableCell>
+                          </TableRow>
+                        ))
+                      ) : (
+                        <TableRow>
+                          <TableCell colSpan={5} className="text-center py-4">
+                            {clientSearchTerm ? 'No clients matching your search.' : 'No excluded client records available.'}
+                          </TableCell>
+                        </TableRow>
+                      )}
+                    </TableBody>
+                  </Table>
+                </ScrollArea>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
+      </div>
+    );
   };
-
-  // Helper to get email
-  const getClientEmail = (client: any) => {
-    if (!client) return '';
-    return client['Email'] || client.email || '';
-  };
-
-  // Helper to get dates
-  const getFirstVisitDate = (client: any) => {
-    if (!client) return '';
-    return client['First visit at'] || client.firstVisit || client.date || '';
-  };
-
-  // Helper to get first purchase date
-  const getFirstPurchaseDate = (client: any) => {
-    if (!client) return '';
-    return client['First purchase date'] || client.purchaseDate || client.date || client.firstPurchaseDate || '';
-  };
-
-  // Helper to calculate conversion span
-  const getConversionSpan = (client: any) => {
-    const firstVisit = getFirstVisitDate(client);
-    const firstPurchase = getFirstPurchaseDate(client);
-    
-    if (firstVisit && firstPurchase) {
-      const days = daysBetweenDates(firstVisit, firstPurchase);
-      return `${days} days`;
-    }
-    return 'N/A';
-  };
-
-  // Helper to get first visit post trial
-  const getFirstVisitPostTrial = (client: any) => {
-    if (!client) return 'N/A';
-    return client.firstVisitPostTrial || 
-           client.postTrialVisitDate || 
-           (client.visitsPostTrial && client.visitsPostTrial.length > 0 ? client.visitsPostTrial[0].date : 'N/A');
-  };
-
-  // Deduplicate exclusion records by email
-  const uniqueExcludedRecords = deduplicateByEmail(processingResults.excluded || []);
-  const hasProcessingData = processingResults && 
-    ((processingResults.included && processingResults.included.length > 0) || 
-     (processingResults.excluded && processingResults.excluded.length > 0) ||
-     (processingResults.newClients && processingResults.newClients.length > 0) ||
-     (processingResults.convertedClients && processingResults.convertedClients.length > 0) ||
-     (processingResults.retainedClients && processingResults.retainedClients.length > 0));
 
   const renderProcessingTab = () => {
     if (!hasProcessingData) {
@@ -342,206 +640,74 @@ const RawDataView: React.FC<RawDataProps> = ({
     return (
       <div className="space-y-6 animate-fade-in">
         <div className="grid grid-cols-1 gap-4">
-          <Card className="shadow-sm">
+          <Card className="shadow-sm bg-gradient-to-r from-slate-50 to-slate-100">
             <CardHeader>
               <CardTitle className="text-lg flex items-center">
-                <Users className="h-5 w-5 mr-2" />
-                Processing Status
+                <Users className="h-5 w-5 mr-2 text-primary" />
+                Processing Summary
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-4 gap-4">
-                <div className="bg-gradient-to-br from-muted/40 to-muted/10 rounded-lg p-4 animate-scale-in shadow-sm" style={{ animationDelay: '100ms' }}>
+              <div className="grid grid-cols-6 gap-4">
+                <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg p-4 animate-scale-in shadow-sm" style={{ animationDelay: '100ms' }}>
                   <div className="text-sm text-muted-foreground flex items-center">
-                    <Users className="h-4 w-4 mr-2" />
+                    <Users className="h-4 w-4 mr-2 text-blue-600" />
                     Total Records
                   </div>
-                  <div className="text-2xl font-semibold">
-                    {(processingResults.included?.length || 0) + (uniqueExcludedRecords?.length || 0)}
+                  <div className="text-2xl font-semibold text-blue-800">
+                    {counts.totalClientsCount}
                   </div>
                 </div>
-                <div className="bg-gradient-to-br from-muted/40 to-muted/10 rounded-lg p-4 animate-scale-in shadow-sm" style={{ animationDelay: '200ms' }}>
+                <div className="bg-gradient-to-br from-indigo-50 to-indigo-100 rounded-lg p-4 animate-scale-in shadow-sm" style={{ animationDelay: '200ms' }}>
                   <div className="text-sm text-muted-foreground flex items-center">
-                    <UserCheck className="h-4 w-4 mr-2" />
+                    <UserCheck className="h-4 w-4 mr-2 text-indigo-600" />
                     Included
                   </div>
-                  <div className="text-2xl font-semibold">{processingResults.included?.length || 0}</div>
+                  <div className="text-2xl font-semibold text-indigo-800">
+                    {counts.includedCount}
+                  </div>
                 </div>
-                <div className="bg-gradient-to-br from-muted/40 to-muted/10 rounded-lg p-4 animate-scale-in shadow-sm" style={{ animationDelay: '300ms' }}>
+                <div className="bg-gradient-to-br from-red-50 to-red-100 rounded-lg p-4 animate-scale-in shadow-sm" style={{ animationDelay: '300ms' }}>
                   <div className="text-sm text-muted-foreground flex items-center">
-                    <UserX className="h-4 w-4 mr-2" />
+                    <UserX className="h-4 w-4 mr-2 text-red-600" />
                     Excluded
                   </div>
-                  <div className="text-2xl font-semibold">{uniqueExcludedRecords?.length || 0}</div>
+                  <div className="text-2xl font-semibold text-red-800">
+                    {counts.excludedCount}
+                  </div>
                 </div>
-                <div className="bg-gradient-to-br from-muted/40 to-muted/10 rounded-lg p-4 animate-scale-in shadow-sm" style={{ animationDelay: '400ms' }}>
+                <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-lg p-4 animate-scale-in shadow-sm" style={{ animationDelay: '400ms' }}>
                   <div className="text-sm text-muted-foreground flex items-center">
-                    <UserPlus className="h-4 w-4 mr-2" />
+                    <UserPlus className="h-4 w-4 mr-2 text-green-600" />
+                    New Clients
+                  </div>
+                  <div className="text-2xl font-semibold text-green-800">
+                    {counts.newClientCount}
+                  </div>
+                </div>
+                <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg p-4 animate-scale-in shadow-sm" style={{ animationDelay: '500ms' }}>
+                  <div className="text-sm text-muted-foreground flex items-center">
+                    <ArrowUpDown className="h-4 w-4 mr-2 text-purple-600" />
                     Conversion Rate
                   </div>
-                  <div className="text-2xl font-semibold">
-                    {processingResults.newClients && processingResults.newClients.length > 0 && processingResults.convertedClients
-                      ? `${(((processingResults.convertedClients.length || 0) / (processingResults.newClients.length || 1)) * 100).toFixed(1)}%`
-                      : '0%'}
+                  <div className="text-2xl font-semibold text-purple-800">
+                    {counts.conversionRate}%
+                  </div>
+                </div>
+                <div className="bg-gradient-to-br from-teal-50 to-teal-100 rounded-lg p-4 animate-scale-in shadow-sm" style={{ animationDelay: '600ms' }}>
+                  <div className="text-sm text-muted-foreground flex items-center">
+                    <RefreshCcw className="h-4 w-4 mr-2 text-teal-600" />
+                    Retention Rate
+                  </div>
+                  <div className="text-2xl font-semibold text-teal-800">
+                    {counts.retentionRate}%
                   </div>
                 </div>
               </div>
             </CardContent>
           </Card>
           
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg flex items-center">
-                <UserX className="h-5 w-5 mr-2" />
-                Exclusion Reasons
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ScrollArea className="h-[180px]">
-                {uniqueExcludedRecords.length > 0 ? (
-                  <div className="space-y-2">
-                    {uniqueExcludedRecords.map((item, index) => (
-                      <div key={index} className="flex items-start border-b py-2 animate-fade-in" style={{ animationDelay: `${index * 50}ms` }}>
-                        <Badge variant="excluded" className="mr-2 mt-0.5">#{index + 1}</Badge>
-                        <div>
-                          <p className="font-medium">{formatClientName(item)}</p>
-                          <p className="text-sm text-muted-foreground">{item.reason || 'No reason specified'}</p>
-                          <p className="text-xs text-muted-foreground">{getClientEmail(item)}</p>
-                          <p className="text-xs text-muted-foreground flex items-center gap-1">
-                            <Calendar className="h-3 w-3" />
-                            First visit: {safeFormatDate(getFirstVisitDate(item), 'medium')}
-                          </p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-center py-4 text-muted-foreground">No exclusions found</p>
-                )}
-              </ScrollArea>
-            </CardContent>
-          </Card>
-        </div>
-        
-        <div className="grid grid-cols-2 gap-4">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg flex items-center">
-                <UserPlus className="h-5 w-5 mr-2" />
-                New Client Reasons
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ScrollArea className="h-[240px]">
-                {processingResults.newClients && processingResults.newClients.length > 0 ? (
-                  <div className="space-y-2">
-                    {processingResults.newClients.map((item, index) => (
-                      <div key={index} className="flex items-start border-b py-2 animate-fade-in" style={{ animationDelay: `${index * 50}ms` }}>
-                        <Badge variant="default" className="mr-2 mt-0.5">#{index + 1}</Badge>
-                        <div>
-                          <p className="font-medium">{formatClientName(item)}</p>
-                          <p className="text-sm text-muted-foreground">{item.reason || 'First time visitor'}</p>
-                          <p className="text-xs text-muted-foreground">{getClientEmail(item)}</p>
-                          <p className="text-xs text-muted-foreground flex items-center gap-1">
-                            <Calendar className="h-3 w-3" />
-                            First visit: {safeFormatDate(getFirstVisitDate(item), 'medium')}
-                          </p>
-                          <p className="text-xs text-muted-foreground">{item['Membership used'] || 'N/A'}</p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-center py-4 text-muted-foreground">No new clients found</p>
-                )}
-              </ScrollArea>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg flex items-center">
-                <UserCheck className="h-5 w-5 mr-2" />
-                Conversion/Retention Reasons
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ScrollArea className="h-[240px]">
-                <Tabs defaultValue="converted">
-                  <TabsList className="w-full">
-                    <TabsTrigger value="converted" className="flex-1 flex items-center justify-center">
-                      <Badge variant="conversion" className="mr-2">+</Badge> Converted
-                    </TabsTrigger>
-                    <TabsTrigger value="retained" className="flex-1 flex items-center justify-center">
-                      <Badge variant="retention" className="mr-2">+</Badge> Retained
-                    </TabsTrigger>
-                  </TabsList>
-                  
-                  <TabsContent value="converted">
-                    {processingResults.convertedClients && processingResults.convertedClients.length > 0 ? (
-                      <div className="space-y-2 pt-2">
-                        {processingResults.convertedClients.map((item, index) => (
-                          <div key={index} className="flex items-start border-b py-2 animate-fade-in" style={{ animationDelay: `${index * 50}ms` }}>
-                            <Badge variant="conversion" className="mr-2 mt-0.5">#{index + 1}</Badge>
-                            <div>
-                              <p className="font-medium">{formatClientName(item)}</p>
-                              <p className="text-sm text-muted-foreground">{item.reason || 'Purchased membership'}</p>
-                              <p className="text-xs text-muted-foreground">{getClientEmail(item)}</p>
-                              <p className="text-xs text-muted-foreground flex items-center gap-1">
-                                <Calendar className="h-3 w-3" />
-                                First visit: {safeFormatDate(getFirstVisitDate(item), 'medium')}
-                              </p>
-                              <p className="text-xs text-muted-foreground flex items-center gap-1">
-                                <CalendarCheck className="h-3 w-3" />
-                                First purchase: {safeFormatDate(getFirstPurchaseDate(item), 'medium')}
-                              </p>
-                              <p className="text-xs text-muted-foreground">Purchase item: {item.item || item.purchaseItem || 'N/A'}</p>
-                              <p className="text-xs text-muted-foreground">Value: {item.saleValue ? safeFormatCurrency(item.saleValue) : 'N/A'}</p>
-                              <p className="text-xs text-muted-foreground flex items-center gap-1">
-                                <Clock className="h-3 w-3" />
-                                Conversion span: {getConversionSpan(item)}
-                              </p>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <p className="text-center py-4 text-muted-foreground">No converted clients found</p>
-                    )}
-                  </TabsContent>
-                  
-                  <TabsContent value="retained">
-                    {processingResults.retainedClients && processingResults.retainedClients.length > 0 ? (
-                      <div className="space-y-2 pt-2">
-                        {processingResults.retainedClients.map((item, index) => (
-                          <div key={index} className="flex items-start border-b py-2 animate-fade-in" style={{ animationDelay: `${index * 50}ms` }}>
-                            <Badge variant="retention" className="mr-2 mt-0.5">#{index + 1}</Badge>
-                            <div>
-                              <p className="font-medium">{formatClientName(item)}</p>
-                              <p className="text-sm text-muted-foreground">{item.reason || 'Multiple visits'}</p>
-                              <p className="text-xs text-muted-foreground">{getClientEmail(item)}</p>
-                              <p className="text-xs text-muted-foreground flex items-center gap-1">
-                                <Calendar className="h-3 w-3" />
-                                First visit: {safeFormatDate(getFirstVisitDate(item), 'medium')}
-                              </p>
-                              <p className="text-xs text-muted-foreground flex items-center gap-1">
-                                <CalendarCheck className="h-3 w-3" />
-                                First visit post trial: {safeFormatDate(getFirstVisitPostTrial(item), 'medium')}
-                              </p>
-                              <p className="text-xs text-muted-foreground">Visits: {item.visitsCount || 'N/A'}</p>
-                              <p className="text-xs text-muted-foreground">Membership: {item['Membership used'] || 'N/A'}</p>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <p className="text-center py-4 text-muted-foreground">No retained clients found</p>
-                    )}
-                  </TabsContent>
-                </Tabs>
-              </ScrollArea>
-            </CardContent>
-          </Card>
+          {renderClientDetailsTables()}
         </div>
       </div>
     );
@@ -549,31 +715,31 @@ const RawDataView: React.FC<RawDataProps> = ({
 
   return (
     <div className="space-y-4">
-      <Card className="shadow-sm mb-4">
+      <Card className="shadow-sm mb-4 bg-gradient-to-r from-slate-50 to-slate-100">
         <CardContent className="p-4">
           <div className="grid grid-cols-3 gap-4">
-            <div className="bg-gradient-to-br from-blue-50 to-blue-100 p-4 rounded-lg shadow-sm flex flex-col items-center animate-scale-in">
-              <div className="bg-blue-500/10 p-2 rounded-full mb-2">
+            <div className="bg-gradient-to-br from-blue-50 to-blue-100 p-4 rounded-lg shadow-sm flex flex-col items-center animate-scale-in border border-blue-200">
+              <div className="bg-blue-500/10 p-2 rounded-full mb-2 border border-blue-200">
                 <UserPlus className="h-5 w-5 text-blue-600" />
               </div>
               <div className="text-sm text-muted-foreground mb-1">New Clients</div>
-              <div className="text-xl font-bold">{newClientCount}</div>
+              <div className="text-xl font-bold text-blue-900">{processingResults.newClients?.length || 0}</div>
             </div>
             
-            <div className="bg-gradient-to-br from-red-50 to-red-100 p-4 rounded-lg shadow-sm flex flex-col items-center animate-scale-in" style={{ animationDelay: '100ms' }}>
-              <div className="bg-red-500/10 p-2 rounded-full mb-2">
+            <div className="bg-gradient-to-br from-red-50 to-red-100 p-4 rounded-lg shadow-sm flex flex-col items-center animate-scale-in border border-red-200" style={{ animationDelay: '100ms' }}>
+              <div className="bg-red-500/10 p-2 rounded-full mb-2 border border-red-200">
                 <UserX className="h-5 w-5 text-red-600" />
               </div>
               <div className="text-sm text-muted-foreground mb-1">Excluded Clients</div>
-              <div className="text-xl font-bold">{excludedCount}</div>
+              <div className="text-xl font-bold text-red-900">{uniqueExcludedRecords?.length || 0}</div>
             </div>
             
-            <div className="bg-gradient-to-br from-purple-50 to-purple-100 p-4 rounded-lg shadow-sm flex flex-col items-center animate-scale-in" style={{ animationDelay: '200ms' }}>
-              <div className="bg-purple-500/10 p-2 rounded-full mb-2">
+            <div className="bg-gradient-to-br from-purple-50 to-purple-100 p-4 rounded-lg shadow-sm flex flex-col items-center animate-scale-in border border-purple-200" style={{ animationDelay: '200ms' }}>
+              <div className="bg-purple-500/10 p-2 rounded-full mb-2 border border-purple-200">
                 <Users className="h-5 w-5 text-purple-600" />
               </div>
               <div className="text-sm text-muted-foreground mb-1">Total Clients</div>
-              <div className="text-xl font-bold">{totalClientsCount}</div>
+              <div className="text-xl font-bold text-purple-900">{counts.totalClientsCount}</div>
             </div>
           </div>
         </CardContent>

@@ -115,13 +115,41 @@ export function daysBetweenDates(startDate: string | Date, endDate: string | Dat
 }
 
 /**
+ * Calculate conversion span - days between first visit and first purchase
+ */
+export function calculateConversionSpan(firstVisitDate: string | Date, firstPurchaseDate: string | Date): string {
+  if (!firstVisitDate || !firstPurchaseDate) return 'N/A';
+  
+  try {
+    const days = daysBetweenDates(firstVisitDate, firstPurchaseDate);
+    return `${days} days`;
+  } catch (error) {
+    return 'N/A';
+  }
+}
+
+/**
+ * Calculate retention span - days between first visit and latest visit
+ */
+export function calculateRetentionSpan(firstVisitDate: string | Date, lastVisitDate: string | Date): string {
+  if (!firstVisitDate || !lastVisitDate) return 'N/A';
+  
+  try {
+    const days = daysBetweenDates(firstVisitDate, lastVisitDate);
+    return `${days} days`;
+  } catch (error) {
+    return 'N/A';
+  }
+}
+
+/**
  * Groups an array by a key and calculates aggregates
  */
 export function groupAndAggregate<T extends Record<string, any>>(
   data: T[],
   groupKey: string,
   aggregations: Record<string, (items: T[]) => any>
-): Array<Record<string, any> & { isGroupHeader: boolean; groupValue: string; }> {
+): Array<T & { isGroupHeader: boolean; groupValue: string }> {
   if (!data || data.length === 0) return [];
   
   // Group the data
@@ -135,19 +163,20 @@ export function groupAndAggregate<T extends Record<string, any>>(
   }, {} as Record<string, T[]>);
   
   // Create result with group headers
-  const result: Array<Record<string, any> & { isGroupHeader: boolean; groupValue: string; }> = [];
+  const result: Array<T & { isGroupHeader: boolean; groupValue: string }> = [];
   
   Object.entries(groups).forEach(([key, items]) => {
-    // Add the group header
+    // Add the group header with aggregated values
+    const groupHeaderItem = { ...items[0] } as T;
     const groupHeader = {
-      ...items[0],
+      ...groupHeaderItem,
       isGroupHeader: true,
       groupValue: key
-    } as Record<string, any> & { isGroupHeader: boolean; groupValue: string; };
+    };
     
     // Calculate aggregates for the group
     Object.entries(aggregations).forEach(([aggKey, aggFn]) => {
-      groupHeader[aggKey] = aggFn(items);
+      (groupHeader as any)[aggKey] = aggFn(items);
     });
     
     result.push(groupHeader);
@@ -226,3 +255,47 @@ export function sortDataByColumn<T>(data: T[], column: keyof T, direction: 'asc'
   });
 }
 
+/**
+ * Extract first visit post trial date from client data
+ */
+export function extractFirstVisitPostTrialDate(clientVisits: any[]): string {
+  if (!clientVisits || !Array.isArray(clientVisits) || clientVisits.length === 0) {
+    return '';
+  }
+  
+  // Sort visits by date
+  const sortedVisits = [...clientVisits].sort((a, b) => {
+    const dateA = new Date(a.date || a.Date || a['Visit date'] || '');
+    const dateB = new Date(b.date || b.Date || b['Visit date'] || '');
+    return dateA.getTime() - dateB.getTime();
+  });
+  
+  // Return the earliest visit date that is not the first visit
+  if (sortedVisits.length > 1) {
+    const secondVisit = sortedVisits[1];
+    return secondVisit.date || secondVisit.Date || secondVisit['Visit date'] || '';
+  }
+  
+  return '';
+}
+
+/**
+ * Format client name from various data formats
+ */
+export function formatClientName(client: any): string {
+  if (!client) return 'Unknown';
+  
+  if (client['First name'] && client['Last name']) {
+    return `${client['First name']} ${client['Last name']}`;
+  } else if (client.firstName && client.lastName) {
+    return `${client.firstName} ${client.lastName}`;
+  } else if (client.name) {
+    return client.name;
+  } else if (client.customerName) {
+    return client.customerName;
+  } else if (client['Email'] || client.email) {
+    return client['Email'] || client.email;
+  }
+  
+  return 'Unknown';
+}
