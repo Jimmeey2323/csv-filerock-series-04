@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useMemo } from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from '@/components/ui/table';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -9,6 +10,7 @@ import { Search, FileText, Filter, AlertTriangle, Calendar, CalendarCheck, Clock
 import { safeFormatCurrency, safeFormatDate, daysBetweenDates, sortDataByColumn, calculateConversionSpan, calculateRetentionSpan, formatClientName } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+
 interface RawDataProps {
   newClientData: any[];
   bookingsData: any[];
@@ -21,6 +23,7 @@ interface RawDataProps {
     retainedClients: any[];
   };
 }
+
 const RawDataView: React.FC<RawDataProps> = ({
   newClientData,
   bookingsData,
@@ -43,11 +46,13 @@ const RawDataView: React.FC<RawDataProps> = ({
     const retainedClientCount = processingResults.retainedClients?.length || 0;
     const excludedCount = processingResults.excluded?.length || 0;
     const includedCount = processingResults.included?.length || 0;
+    
+    // Fix: Total records should be the sum of included and excluded records
     return {
       newClientCount,
       excludedCount,
       includedCount,
-      totalClientsCount: includedCount + excludedCount,
+      totalClientsCount: newClientCount, // Fixed to be newClientCount instead of includedCount + excludedCount
       conversionRate: newClientCount > 0 ? (convertedClientCount / newClientCount * 100).toFixed(1) : 0,
       retentionRate: newClientCount > 0 ? (retainedClientCount / newClientCount * 100).toFixed(1) : 0
     };
@@ -75,7 +80,15 @@ const RawDataView: React.FC<RawDataProps> = ({
       const clientName = formatClientName(record).toLowerCase();
       const clientEmail = (record['Email'] || record.email || '').toLowerCase();
       const searchTermLower = clientSearchTerm.toLowerCase();
-      return clientName.includes(searchTermLower) || clientEmail.includes(searchTermLower);
+      
+      // Added search for studio/location and reason fields
+      const location = (record['First visit location'] || record.location || record.studio || record.Studio || '').toLowerCase();
+      const reason = (record.reason || '').toLowerCase();
+      
+      return clientName.includes(searchTermLower) || 
+             clientEmail.includes(searchTermLower) ||
+             location.includes(searchTermLower) ||
+             reason.includes(searchTermLower);
     });
   };
 
@@ -88,6 +101,7 @@ const RawDataView: React.FC<RawDataProps> = ({
       setFilterValue('');
     }
   }, [currentTab]);
+
   const handleSort = (column: string) => {
     if (sortColumn === column) {
       setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
@@ -96,6 +110,7 @@ const RawDataView: React.FC<RawDataProps> = ({
       setSortDirection('asc');
     }
   };
+
   const filterData = (data: any[]) => {
     if (!data || !Array.isArray(data)) return [];
 
@@ -138,6 +153,12 @@ const RawDataView: React.FC<RawDataProps> = ({
     return client['First purchase date'] || client.purchaseDate || client.date || client.firstPurchaseDate || '';
   };
 
+  // Helper to get location
+  const getStudioLocation = (client: any) => {
+    if (!client) return '';
+    return client['First visit location'] || client.location || client.studio || client.Studio || 'N/A';
+  };
+
   // Helper to get first visit post trial
   const getFirstVisitPostTrial = (client: any) => {
     if (!client) return '';
@@ -150,18 +171,18 @@ const RawDataView: React.FC<RawDataProps> = ({
     }
 
     // If we have multiple visits and the client is retained, the second visit is likely post-trial
-    const visits = bookingsData.filter(booking => booking.email === getClientEmail(client) || booking['Client email'] === getClientEmail(client) || booking['Email'] === getClientEmail(client));
+    const visits = bookingsData.filter(booking => booking.email === getClientEmail(client) || booking['Client email'] === getClientEmail(client) || booking['Customer Email'] === getClientEmail(client) || booking['Email'] === getClientEmail(client));
     if (visits.length > 1) {
       // Sort visits by date
       const sortedVisits = visits.sort((a, b) => {
-        const dateA = new Date(a.date || a['Visit date'] || a.Date || '');
-        const dateB = new Date(b.date || b['Visit date'] || b.Date || '');
+        const dateA = new Date(a.date || a['Visit date'] || a['Class Date'] || a.Date || '');
+        const dateB = new Date(b.date || b['Visit date'] || b['Class Date'] || b.Date || '');
         return dateA.getTime() - dateB.getTime();
       });
 
       // Return the second visit date as post-trial
       if (sortedVisits.length > 1) {
-        return sortedVisits[1].date || sortedVisits[1]['Visit date'] || sortedVisits[1].Date || '';
+        return sortedVisits[1].date || sortedVisits[1]['Visit date'] || sortedVisits[1]['Class Date'] || sortedVisits[1].Date || '';
       }
     }
     return '';
@@ -186,6 +207,7 @@ const RawDataView: React.FC<RawDataProps> = ({
         return [];
     }
   }, [clientRecordTab, clientSearchTerm, processingResults, uniqueExcludedRecords]);
+
   const renderDataTable = (data: any[], type: string) => {
     if (!data || !Array.isArray(data) || data.length === 0) {
       return <div className="flex flex-col items-center justify-center py-10 text-center animate-fade-in">
@@ -276,6 +298,7 @@ const RawDataView: React.FC<RawDataProps> = ({
         </CardContent>
       </Card>;
   };
+
   const renderClientDetailsTables = () => {
     return <div className="space-y-4 animate-fade-in">
         <div className="flex items-center justify-between">
@@ -284,7 +307,7 @@ const RawDataView: React.FC<RawDataProps> = ({
           <div className="flex items-center gap-2">
             <div className="relative">
               <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground pointer-events-none" />
-              <Input placeholder="Search clients..." className="pl-8 w-64" value={clientSearchTerm} onChange={e => setClientSearchTerm(e.target.value)} autoComplete="off" />
+              <Input placeholder="Search clients, locations, reasons..." className="pl-8 w-64" value={clientSearchTerm} onChange={e => setClientSearchTerm(e.target.value)} autoComplete="off" />
             </div>
           </div>
         </div>
@@ -333,7 +356,7 @@ const RawDataView: React.FC<RawDataProps> = ({
                             <TableCell className="font-medium">{formatClientName(client)}</TableCell>
                             <TableCell>{getClientEmail(client)}</TableCell>
                             <TableCell>{safeFormatDate(getFirstVisitDate(client), 'medium')}</TableCell>
-                            <TableCell>{client.location || client.studio || client.Studio || 'N/A'}</TableCell>
+                            <TableCell>{getStudioLocation(client)}</TableCell>
                             <TableCell>{client.teacherName || client.teacher || client.Teacher || 'N/A'}</TableCell>
                             <TableCell>
                               <Badge variant="default">
@@ -426,7 +449,7 @@ const RawDataView: React.FC<RawDataProps> = ({
                               <TableCell>{safeFormatDate(firstVisit, 'medium')}</TableCell>
                               <TableCell>{safeFormatDate(firstVisitPostTrial, 'medium')}</TableCell>
                               <TableCell>{client.visitsCount || client.totalVisits || '1+'}</TableCell>
-                              <TableCell>{client.location || client.studio || client.Studio || 'N/A'}</TableCell>
+                              <TableCell>{getStudioLocation(client)}</TableCell>
                               <TableCell>
                                 <Badge variant="retention" className="flex items-center gap-1">
                                   <RefreshCcw className="h-3 w-3" />
@@ -465,7 +488,7 @@ const RawDataView: React.FC<RawDataProps> = ({
                             <TableCell className="font-medium">{formatClientName(client)}</TableCell>
                             <TableCell>{getClientEmail(client)}</TableCell>
                             <TableCell>{safeFormatDate(getFirstVisitDate(client), 'medium')}</TableCell>
-                            <TableCell>{client.location || client.studio || client.Studio || 'N/A'}</TableCell>
+                            <TableCell>{getStudioLocation(client)}</TableCell>
                             <TableCell>
                               <Badge variant="excluded" className="flex items-center gap-1">
                                 <AlertTriangle className="h-3 w-3" />
@@ -486,6 +509,7 @@ const RawDataView: React.FC<RawDataProps> = ({
         </Tabs>
       </div>;
   };
+
   const renderProcessingTab = () => {
     if (!hasProcessingData) {
       return <div className="flex flex-col items-center justify-center py-10 text-center">
@@ -512,10 +536,10 @@ const RawDataView: React.FC<RawDataProps> = ({
               }}>
                   <div className="text-sm text-muted-foreground flex items-center">
                     <Users className="h-4 w-4 mr-2 text-blue-600" />
-                    Total Records
+                    New Clients
                   </div>
                   <div className="text-2xl font-semibold text-blue-800">
-                    {counts.totalClientsCount}
+                    {counts.newClientCount}
                   </div>
                 </div>
                 <div className="bg-gradient-to-br from-indigo-50 to-indigo-100 rounded-lg p-4 animate-scale-in shadow-sm" style={{
@@ -545,10 +569,10 @@ const RawDataView: React.FC<RawDataProps> = ({
               }}>
                   <div className="text-sm text-muted-foreground flex items-center">
                     <UserPlus className="h-4 w-4 mr-2 text-green-600" />
-                    New Clients
+                    Converted
                   </div>
                   <div className="text-2xl font-semibold text-green-800">
-                    {counts.newClientCount}
+                    {processingResults.convertedClients?.length || 0}
                   </div>
                 </div>
                 <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg p-4 animate-scale-in shadow-sm" style={{
@@ -581,11 +605,8 @@ const RawDataView: React.FC<RawDataProps> = ({
         </div>
       </div>;
   };
-  return <div className="space-y-4">
-      <Card className="shadow-sm mb-4 bg-gradient-to-r from-slate-50 to-slate-100">
-        
-      </Card>
 
+  return <div className="space-y-4">
       <Tabs value={currentTab} onValueChange={setCurrentTab} className="w-full">
         <TabsList className="grid grid-cols-4 mb-4">
           <TabsTrigger value="processing" className="flex items-center gap-2">
@@ -624,4 +645,5 @@ const RawDataView: React.FC<RawDataProps> = ({
       </Tabs>
     </div>;
 };
+
 export default RawDataView;
