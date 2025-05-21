@@ -1,4 +1,3 @@
-
 import React from 'react';
 import {
   Dialog,
@@ -52,11 +51,16 @@ const ClientDetailsModal: React.FC<ClientDetailsModalProps> = ({
   }
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-    });
+    if (!dateString) return 'N/A';
+    try {
+      return new Date(dateString).toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+      });
+    } catch (error) {
+      return 'N/A';
+    }
   };
 
   const formatCurrency = (value: number | undefined) => {

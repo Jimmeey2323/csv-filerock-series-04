@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -116,7 +115,7 @@ const DrillDownAnalytics: React.FC<DrillDownAnalyticsProps> = ({
                   <TableCell>{client.firstVisit || client.date || 'N/A'}</TableCell>
                   {(title.includes('Converted') || title.includes('New')) && <>
                     <TableCell className="font-medium text-emerald-600">
-                      {client.firstPurchaseDate || client.purchaseDate || 'N/A'}
+                      {client.firstPurchaseDate || client.purchaseDate || client.date || 'N/A'}
                     </TableCell>
                     <TableCell>{client.firstPurchaseItem || client.purchaseItem || client.membershipType || 'N/A'}</TableCell>
                     <TableCell>{client.purchaseValue || client.value ? safeFormatCurrency(client.purchaseValue || client.value) : 'N/A'}</TableCell>

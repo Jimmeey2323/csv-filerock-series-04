@@ -40,6 +40,49 @@ export function safeFormatCurrency(value: any, currency: string = '₹', fallbac
 }
 
 /**
+ * Safely formats a date string or Date object to a readable string
+ * Returns a fallback value if the input is not a valid date.
+ */
+export function safeFormatDate(value: any, format: 'short' | 'medium' | 'long' = 'medium', fallback: string = 'N/A'): string {
+  if (value === undefined || value === null || value === '') {
+    return fallback;
+  }
+  
+  try {
+    const date = new Date(value);
+    if (isNaN(date.getTime())) {
+      return fallback;
+    }
+    
+    switch (format) {
+      case 'short':
+        return date.toLocaleDateString();
+      case 'medium':
+        return date.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+      case 'long':
+        return date.toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' });
+      default:
+        return date.toLocaleDateString();
+    }
+  } catch (error) {
+    return fallback;
+  }
+}
+
+/**
+ * Determines if one date is after another date, accounting for different formats
+ */
+export function isDateAfter(date1: string | Date, date2: string | Date): boolean {
+  try {
+    const d1 = new Date(date1);
+    const d2 = new Date(date2);
+    return d1 > d2;
+  } catch (error) {
+    return false;
+  }
+}
+
+/**
  * Converts a camelCase string to Title Case
  */
 export function convertCamelToTitle(camelCase: string): string {

@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import {
   Table,
@@ -175,7 +174,7 @@ const RawDataView: React.FC<RawDataProps> = ({
   // Helper to get first purchase date
   const getFirstPurchaseDate = (client: any) => {
     if (!client) return '';
-    return client['First purchase date'] || client.purchaseDate || client.saleDate || client.firstPurchaseDate || '';
+    return client['First purchase date'] || client.purchaseDate || client.date || client.firstPurchaseDate || '';
   };
 
   // Deduplicate exclusion records by email

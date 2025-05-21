@@ -4,6 +4,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Badge } from '@/components/ui/badge';
 import { Info } from 'lucide-react';
+import { safeToFixed, safeFormatCurrency } from '@/lib/utils';
 
 interface StudioMetricCardProps {
   title: string;
@@ -16,22 +17,42 @@ interface StudioMetricCardProps {
   }[];
   icon: React.ReactNode;
   tooltip?: string;
-  onCustomClick?: (e: React.MouseEvent) => void; // Added this prop
+  onCustomClick?: (e: React.MouseEvent) => void;
+  formatType?: 'date' | 'currency' | 'number' | 'percent' | 'default';
 }
 
 const StudioMetricCard: React.FC<StudioMetricCardProps> = ({
   title,
   value,
   location,
-  metrics = [], // Provide default empty array
+  metrics = [],
   icon,
   tooltip,
-  onCustomClick, // Added this prop
+  onCustomClick,
+  formatType = 'default',
 }) => {
+  // Format value based on formatType
+  const formatDisplayValue = (val: string | number): string => {
+    if (val === undefined || val === null) return 'N/A';
+    
+    if (typeof val === 'string' && val.trim() === '') return 'N/A';
+    
+    switch(formatType) {
+      case 'date':
+        return val ? new Date(String(val)).toLocaleDateString() : 'N/A';
+      case 'currency':
+        return safeFormatCurrency(val);
+      case 'number':
+        return typeof val === 'number' ? val.toLocaleString() : String(val);
+      case 'percent':
+        return typeof val === 'number' ? `${safeToFixed(val, 1)}%` : String(val);
+      default:
+        return String(val);
+    }
+  };
+
   // Safely display the value by ensuring it's a string
-  const displayValue = value !== undefined && value !== null 
-    ? String(value)
-    : 'N/A';
+  const displayValue = formatDisplayValue(value);
 
   return (
     <Card 
@@ -72,9 +93,7 @@ const StudioMetricCard: React.FC<StudioMetricCardProps> = ({
           <div className="grid grid-cols-2 gap-2 mt-4">
             {metrics.map((metric, index) => {
               // Safely convert metric value to string
-              const metricDisplayValue = metric.value !== undefined && metric.value !== null 
-                ? String(metric.value)
-                : 'N/A';
+              const metricDisplayValue = formatDisplayValue(metric.value);
                 
               return (
                 <div key={index} className="flex flex-col">

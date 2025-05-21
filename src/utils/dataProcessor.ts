@@ -1,4 +1,3 @@
-
 import { formatDateString, getMonthYearFromDate, cleanFirstVisitValue, matchesPattern, isDateAfter, parseDate } from './csvParser';
 
 // Define types for our data structures
@@ -435,9 +434,9 @@ export const processData = (
                     const firstVisitDate = matchingClient['First visit at'];
                     const saleDateAfterVisit = isDateAfter(saleDate, firstVisitDate);
                     
-                    // 2. Category != 'product'
+                    // 2. Category doesn't contain 'product' or 'money-credit'
                     const category = (sale['Category'] || '').toLowerCase();
-                    const notProductCategory = category !== 'product';
+                    const notProductOrMoneyCredit = !matchesPattern(category, "product|money-credit");
                     
                     // 3. Item doesn't contain '2 for 1'
                     const not2For1 = !sale['Item'] || !matchesPattern(sale['Item'] || '', "2 for 1");
@@ -453,7 +452,7 @@ export const processData = (
                     // Log detailed diagnostics
                     console.log("Conversion conditions check:", {
                       saleDateAfterVisit,
-                      notProductCategory,
+                      notProductOrMoneyCredit,
                       not2For1,
                       hasSaleValue,
                       notRefunded,
@@ -462,15 +461,16 @@ export const processData = (
                       refunded: sale['Refunded']
                     });
                     
-                    const isConverted = saleDateAfterVisit && notProductCategory && not2For1 && hasSaleValue && notRefunded;
+                    const isConverted = saleDateAfterVisit && notProductOrMoneyCredit && not2For1 && hasSaleValue && notRefunded;
                     
                     // Add to converted records if it matches all criteria - with full client information
                     if (isConverted && matchingClient) {
                       const convertedClient = {
                         ...matchingClient,
-                        saleDate: sale['Date'],
+                        purchaseDate: sale['Date'],
                         saleValue: saleValue,
-                        item: sale['Item'],
+                        purchaseItem: sale['Item'],
+                        firstPurchaseDate: sale['Date'], // Add this explicitly for clarity
                         reason: "Made purchase after initial visit"
                       };
                       convertedClientRecords.push(convertedClient);
@@ -486,26 +486,39 @@ export const processData = (
                     sale['Customer email'] || sale['Paying Customer email'] || ''))];
                   const convertedClientsCount = convertedClientEmails.length;
                   
-                  // Create detailed converted client list
+                  // Create detailed converted client list with proper purchase date extraction
                   const convertedClientDetails = convertedClientEmails.map(email => {
-                    const clientSales = convertedClients.filter(sale => 
-                      (sale['Customer email'] || sale['Paying Customer email']) === email);
+                    const clientSales = convertedClients
+                      .filter(sale => (sale['Customer email'] || sale['Paying Customer email']) === email)
+                      // Sort by date to find the earliest purchase date after first visit
+                      .sort((a, b) => {
+                        const dateA = new Date(a['Date'] || '');
+                        const dateB = new Date(b['Date'] || '');
+                        return dateA.getTime() - dateB.getTime(); // Ascending sort
+                      });
+                    
                     const totalValue = clientSales.reduce((sum, sale) => {
                       const saleValue = typeof sale['Sale value'] === 'number' ? 
                         sale['Sale value'] : parseFloat(String(sale['Sale value'] || '0').replace(/[^0-9.-]+/g, ''));
                       return sum + saleValue;
                     }, 0);
                     
+                    // Get the client's information including first visit date
                     const clientInfo = teacherNewClients.find(client => client['Email'] === email);
+                    
+                    // The first purchase date is the date of the earliest sale after first visit
+                    const firstPurchaseDate = clientSales.length > 0 ? clientSales[0]['Date'] : '';
+                    
                     return {
                       email,
                       name: clientInfo ? `${clientInfo['First name']} ${clientInfo['Last name']}` : 'Unknown',
-                      date: clientSales[0]['Date'] || '',
+                      date: firstPurchaseDate, // This will be the purchase date (earliest sale after first visit)
                       value: totalValue,
+                      firstVisit: clientInfo ? clientInfo['First visit at'] : '',
                       membershipType: clientSales[0]['Item'] || ''
                     };
                   });
-                  
+
                   // Calculate conversion rate
                   const conversionRate = newClientsCount > 0 
                     ? (convertedClientsCount / newClientsCount) * 100 
