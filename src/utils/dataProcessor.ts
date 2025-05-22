@@ -515,6 +515,7 @@ export const processData = (
                       date: firstPurchaseDate, // This will be the purchase date (earliest sale after first visit)
                       value: totalValue,
                       firstVisit: clientInfo ? clientInfo['First visit at'] : '',
+                      firstPurchaseDate, // <-- ADD THIS LINE
                       membershipType: clientSales[0]['Item'] || ''
                     };
                   });
