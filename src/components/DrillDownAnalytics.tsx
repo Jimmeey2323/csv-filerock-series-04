@@ -7,7 +7,7 @@ import { UserRound } from "lucide-react";
 import { safeFormatDate } from "@/lib/utils";
 
 interface DrillDownAnalyticsProps {
-  data: {
+  data?: {
     newClientDetails?: Array<{
       name?: string;
       customerName?: string;
@@ -17,9 +17,19 @@ interface DrillDownAnalyticsProps {
       source?: string;
     }>;
   };
+  isOpen?: boolean;
+  onClose?: () => void;
+  type?: "teacher" | "studio" | "location" | "period" | "totals";
+  metricType?: "conversion" | "retention" | "all";
 }
 
-export const DrillDownAnalytics: React.FC<DrillDownAnalyticsProps> = ({ data }) => {
+export const DrillDownAnalytics: React.FC<DrillDownAnalyticsProps> = ({ 
+  data, 
+  isOpen, 
+  onClose,
+  type,
+  metricType
+}) => {
   return (
     <>
       {/* New member data in overview tab */}
@@ -31,7 +41,7 @@ export const DrillDownAnalytics: React.FC<DrillDownAnalyticsProps> = ({ data }) 
           </CardTitle>
         </CardHeader>
         <CardContent>
-          {data.newClientDetails && data.newClientDetails.length > 0 ? (
+          {data && data.newClientDetails && data.newClientDetails.length > 0 ? (
             <div className="max-h-80 overflow-auto">
               <Table>
                 <TableHeader>
@@ -45,7 +55,7 @@ export const DrillDownAnalytics: React.FC<DrillDownAnalyticsProps> = ({ data }) 
                 </TableHeader>
                 <TableBody>
                   {data.newClientDetails.slice(0, 5).map((client, idx) => (
-                    <TableRow key={`${client.email}-${idx}`}>
+                    <TableRow key={`${client.email || idx}-${idx}`}>
                       <TableCell>{client.name || client.customerName || 'N/A'}</TableCell>
                       <TableCell>{client.email || 'N/A'}</TableCell>
                       <TableCell>{safeFormatDate(client.firstVisit || client.date)}</TableCell>
