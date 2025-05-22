@@ -54,6 +54,10 @@ const CommandSearchInput: React.FC<CommandSearchInputProps> = ({
     }
   };
 
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    onChange(e.target.value);
+  };
+
   return (
     <div className={`relative ${className}`}>
       <Popover open={open && (inputFocused || history.length > 0)} onOpenChange={setOpen}>
@@ -65,7 +69,7 @@ const CommandSearchInput: React.FC<CommandSearchInputProps> = ({
               type="text"
               placeholder={placeholder}
               value={value}
-              onChange={(e) => onChange(e.target.value)}
+              onChange={handleInputChange}
               onFocus={() => {
                 setInputFocused(true);
                 setOpen(true);
@@ -84,6 +88,7 @@ const CommandSearchInput: React.FC<CommandSearchInputProps> = ({
             />
             {value && (
               <button
+                type="button"
                 onClick={clearInput}
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                 aria-label="Clear search"
@@ -93,7 +98,7 @@ const CommandSearchInput: React.FC<CommandSearchInputProps> = ({
             )}
           </div>
         </PopoverTrigger>
-        <PopoverContent className="p-0 w-[300px] md:w-[400px]" side="bottom" align="start">
+        <PopoverContent className="p-0 w-[300px] md:w-[400px] bg-white border border-slate-200 shadow-lg" side="bottom" align="start">
           <Command>
             <CommandList>
               {history.length > 0 && (

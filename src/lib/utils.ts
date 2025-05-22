@@ -107,6 +107,12 @@ export function daysBetweenDates(startDate: string | Date, endDate: string | Dat
   try {
     const start = new Date(startDate);
     const end = new Date(endDate);
+    
+    // Check if dates are valid
+    if (isNaN(start.getTime()) || isNaN(end.getTime())) {
+      return 0;
+    }
+    
     const diffTime = Math.abs(end.getTime() - start.getTime());
     return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
   } catch (error) {
@@ -121,9 +127,18 @@ export function calculateConversionSpan(firstVisitDate: string | Date, firstPurc
   if (!firstVisitDate || !firstPurchaseDate) return 'N/A';
   
   try {
+    const firstVisit = new Date(firstVisitDate);
+    const firstPurchase = new Date(firstPurchaseDate);
+    
+    // Check if dates are valid
+    if (isNaN(firstVisit.getTime()) || isNaN(firstPurchase.getTime())) {
+      return 'N/A';
+    }
+    
     const days = daysBetweenDates(firstVisitDate, firstPurchaseDate);
-    return `${days} days`;
+    return days > 0 ? `${days} days` : '0 days';
   } catch (error) {
+    console.error('Error calculating conversion span:', error, { firstVisitDate, firstPurchaseDate });
     return 'N/A';
   }
 }
@@ -135,11 +150,81 @@ export function calculateRetentionSpan(firstVisitDate: string | Date, lastVisitD
   if (!firstVisitDate || !lastVisitDate) return 'N/A';
   
   try {
+    const firstVisit = new Date(firstVisitDate);
+    const lastVisit = new Date(lastVisitDate);
+    
+    // Check if dates are valid
+    if (isNaN(firstVisit.getTime()) || isNaN(lastVisit.getTime())) {
+      return 'N/A';
+    }
+    
     const days = daysBetweenDates(firstVisitDate, lastVisitDate);
-    return `${days} days`;
+    return days > 0 ? `${days} days` : '0 days';
   } catch (error) {
+    console.error('Error calculating retention span:', error, { firstVisitDate, lastVisitDate });
     return 'N/A';
   }
+}
+
+/**
+ * Extract first visit post trial date from client data
+ */
+export function extractFirstVisitPostTrialDate(clientVisits: any[]): string {
+  if (!clientVisits || !Array.isArray(clientVisits) || clientVisits.length === 0) {
+    return '';
+  }
+  
+  try {
+    // Sort visits by date
+    const sortedVisits = [...clientVisits].sort((a, b) => {
+      const dateA = new Date(a.date || a.Date || a['Visit date'] || a.visitDate || '');
+      const dateB = new Date(b.date || b.Date || b['Visit date'] || b.visitDate || '');
+      
+      // Check if dates are valid
+      if (isNaN(dateA.getTime()) || isNaN(dateB.getTime())) {
+        return 0;
+      }
+      
+      return dateA.getTime() - dateB.getTime();
+    });
+    
+    // Return the earliest visit date that is not the first visit
+    if (sortedVisits.length > 1) {
+      const secondVisit = sortedVisits[1];
+      const date = secondVisit.date || secondVisit.Date || secondVisit['Visit date'] || secondVisit.visitDate || '';
+      
+      // Check if the returned date is valid
+      if (date && !isNaN(new Date(date).getTime())) {
+        return date;
+      }
+    }
+    
+    return '';
+  } catch (error) {
+    console.error('Error extracting first visit post trial date:', error);
+    return '';
+  }
+}
+
+/**
+ * Format client name from various data formats
+ */
+export function formatClientName(client: any): string {
+  if (!client) return 'Unknown';
+  
+  if (client['First name'] && client['Last name']) {
+    return `${client['First name']} ${client['Last name']}`;
+  } else if (client.firstName && client.lastName) {
+    return `${client.firstName} ${client.lastName}`;
+  } else if (client.name) {
+    return client.name;
+  } else if (client.customerName) {
+    return client.customerName;
+  } else if (client['Email'] || client.email) {
+    return client['Email'] || client.email;
+  }
+  
+  return 'Unknown';
 }
 
 /**
@@ -253,49 +338,4 @@ export function sortDataByColumn<T>(data: T[], column: keyof T, direction: 'asc'
     if (valueA > valueB) return direction === 'asc' ? 1 : -1;
     return 0;
   });
-}
-
-/**
- * Extract first visit post trial date from client data
- */
-export function extractFirstVisitPostTrialDate(clientVisits: any[]): string {
-  if (!clientVisits || !Array.isArray(clientVisits) || clientVisits.length === 0) {
-    return '';
-  }
-  
-  // Sort visits by date
-  const sortedVisits = [...clientVisits].sort((a, b) => {
-    const dateA = new Date(a.date || a.Date || a['Visit date'] || '');
-    const dateB = new Date(b.date || b.Date || b['Visit date'] || '');
-    return dateA.getTime() - dateB.getTime();
-  });
-  
-  // Return the earliest visit date that is not the first visit
-  if (sortedVisits.length > 1) {
-    const secondVisit = sortedVisits[1];
-    return secondVisit.date || secondVisit.Date || secondVisit['Visit date'] || '';
-  }
-  
-  return '';
-}
-
-/**
- * Format client name from various data formats
- */
-export function formatClientName(client: any): string {
-  if (!client) return 'Unknown';
-  
-  if (client['First name'] && client['Last name']) {
-    return `${client['First name']} ${client['Last name']}`;
-  } else if (client.firstName && client.lastName) {
-    return `${client.firstName} ${client.lastName}`;
-  } else if (client.name) {
-    return client.name;
-  } else if (client.customerName) {
-    return client.customerName;
-  } else if (client['Email'] || client.email) {
-    return client['Email'] || client.email;
-  }
-  
-  return 'Unknown';
 }

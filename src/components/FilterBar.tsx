@@ -114,7 +114,7 @@ const FilterBar: React.FC<FilterBarProps> = ({
                 <Switch 
                   id="data-view-toggle" 
                   checked={activeDataMode === 'studio'} 
-                  onCheckedChange={checked => onDataModeChange(checked ? 'studio' : 'teacher')} 
+                  onCheckedChange={(checked) => onDataModeChange(checked ? 'studio' : 'teacher')} 
                   className="mx-1"
                 />
                 <Label 
@@ -134,14 +134,17 @@ const FilterBar: React.FC<FilterBarProps> = ({
                     <ChevronDown className="h-3.5 w-3.5 opacity-70" />
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-56 p-3">
+                <PopoverContent className="w-56 p-3 bg-white border border-slate-200 shadow-lg rounded-lg">
                   <div className="space-y-3">
                     <p className="text-sm font-medium text-slate-700">Display Mode</p>
                     <div className="grid grid-cols-3 gap-1">
                       <Button 
                         variant={activeViewMode === 'table' ? 'default' : 'outline'} 
                         size="sm"
-                        onClick={() => onViewModeChange('table')}
+                        onClick={() => {
+                          onViewModeChange('table');
+                          setViewOptionsOpen(false);
+                        }}
                         className="w-full h-9"
                       >
                         <List className="h-3.5 w-3.5 mr-1.5" />
@@ -150,7 +153,10 @@ const FilterBar: React.FC<FilterBarProps> = ({
                       <Button 
                         variant={activeViewMode === 'cards' ? 'default' : 'outline'} 
                         size="sm"
-                        onClick={() => onViewModeChange('cards')}
+                        onClick={() => {
+                          onViewModeChange('cards');
+                          setViewOptionsOpen(false);
+                        }}
                         className="w-full h-9"
                       >
                         <Grid className="h-3.5 w-3.5 mr-1.5" />
@@ -159,7 +165,10 @@ const FilterBar: React.FC<FilterBarProps> = ({
                       <Button 
                         variant={activeViewMode === 'detailed' ? 'default' : 'outline'} 
                         size="sm"
-                        onClick={() => onViewModeChange('detailed')}
+                        onClick={() => {
+                          onViewModeChange('detailed');
+                          setViewOptionsOpen(false);
+                        }}
                         className="w-full h-9"
                       >
                         <BarChart3 className="h-3.5 w-3.5 mr-1.5" />
@@ -200,42 +209,54 @@ const FilterBar: React.FC<FilterBarProps> = ({
                 Active filters:
               </div>
               {filters.location && (
-                <Badge variant="active" className="flex items-center gap-1.5 px-3 py-1.5 group">
+                <Badge variant="active" className="flex items-center gap-1.5 group">
                   <MapPin className="h-3.5 w-3.5" />
                   {filters.location === 'all-locations' ? 'All Locations' : filters.location}
                   <X 
                     className="h-3.5 w-3.5 ml-1 opacity-70 hover:opacity-100 cursor-pointer" 
-                    onClick={() => handleFilterChange('location', '')}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleFilterChange('location', '');
+                    }}
                   />
                 </Badge>
               )}
               {filters.teacher && (
-                <Badge variant="active" className="flex items-center gap-1.5 px-3 py-1.5">
+                <Badge variant="active" className="flex items-center gap-1.5">
                   <User className="h-3.5 w-3.5" />
                   {filters.teacher === 'all-teachers' ? 'All Teachers' : filters.teacher}
                   <X 
                     className="h-3.5 w-3.5 ml-1 opacity-70 hover:opacity-100 cursor-pointer" 
-                    onClick={() => handleFilterChange('teacher', '')}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleFilterChange('teacher', '');
+                    }}
                   />
                 </Badge>
               )}
               {filters.period && (
-                <Badge variant="active" className="flex items-center gap-1.5 px-3 py-1.5">
+                <Badge variant="active" className="flex items-center gap-1.5">
                   <Calendar className="h-3.5 w-3.5" />
                   {filters.period === 'all-periods' ? 'All Periods' : filters.period}
                   <X 
                     className="h-3.5 w-3.5 ml-1 opacity-70 hover:opacity-100 cursor-pointer" 
-                    onClick={() => handleFilterChange('period', '')}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleFilterChange('period', '');
+                    }}
                   />
                 </Badge>
               )}
               {filters.search && (
-                <Badge variant="active" className="flex items-center gap-1.5 px-3 py-1.5">
+                <Badge variant="active" className="flex items-center gap-1.5">
                   <Search className="h-3.5 w-3.5" />
                   "{filters.search}"
                   <X 
                     className="h-3.5 w-3.5 ml-1 opacity-70 hover:opacity-100 cursor-pointer" 
-                    onClick={() => handleFilterChange('search', '')}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleFilterChange('search', '');
+                    }}
                   />
                 </Badge>
               )}
@@ -247,7 +268,7 @@ const FilterBar: React.FC<FilterBarProps> = ({
               <CommandSearchInput 
                 placeholder="Search teacher..." 
                 value={filters.search} 
-                onChange={value => handleFilterChange('search', value)} 
+                onChange={(value) => handleFilterChange('search', value)} 
                 className="flex-1 shadow-sm transition-all duration-300 focus-within:shadow-md"
               />
             </div>
@@ -257,7 +278,7 @@ const FilterBar: React.FC<FilterBarProps> = ({
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <div>
-                      <Select value={filters.location} onValueChange={value => handleFilterChange('location', value)}>
+                      <Select value={filters.location} onValueChange={(value) => handleFilterChange('location', value)}>
                         <SelectTrigger 
                           className={`w-full transition-all duration-300 ${filters.location ? 'border-blue-500 ring-1 ring-blue-500 bg-blue-50' : ''}`}
                         >
@@ -266,7 +287,7 @@ const FilterBar: React.FC<FilterBarProps> = ({
                             <SelectValue placeholder="Location" />
                           </div>
                         </SelectTrigger>
-                        <SelectContent className="max-h-[300px]">
+                        <SelectContent className="max-h-[300px] bg-white border border-slate-200 shadow-lg">
                           <SelectItem value="all-locations" className="flex items-center">
                             <MapPin className="h-3.5 w-3.5 mr-2" />
                             All Locations
@@ -290,7 +311,7 @@ const FilterBar: React.FC<FilterBarProps> = ({
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <div>
-                      <Select value={filters.teacher} onValueChange={value => handleFilterChange('teacher', value)}>
+                      <Select value={filters.teacher} onValueChange={(value) => handleFilterChange('teacher', value)}>
                         <SelectTrigger 
                           className={`w-full transition-all duration-300 ${filters.teacher ? 'border-blue-500 ring-1 ring-blue-500 bg-blue-50' : ''}`}
                         >
@@ -299,7 +320,7 @@ const FilterBar: React.FC<FilterBarProps> = ({
                             <SelectValue placeholder="Teacher" />
                           </div>
                         </SelectTrigger>
-                        <SelectContent className="max-h-[300px]">
+                        <SelectContent className="max-h-[300px] bg-white border border-slate-200 shadow-lg">
                           <SelectItem value="all-teachers" className="flex items-center">
                             <User className="h-3.5 w-3.5 mr-2" />
                             All Teachers
@@ -323,7 +344,7 @@ const FilterBar: React.FC<FilterBarProps> = ({
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <div>
-                      <Select value={filters.period} onValueChange={value => handleFilterChange('period', value)}>
+                      <Select value={filters.period} onValueChange={(value) => handleFilterChange('period', value)}>
                         <SelectTrigger 
                           className={`w-full transition-all duration-300 ${filters.period ? 'border-blue-500 ring-1 ring-blue-500 bg-blue-50' : ''}`}
                         >
@@ -332,7 +353,7 @@ const FilterBar: React.FC<FilterBarProps> = ({
                             <SelectValue placeholder="Period" />
                           </div>
                         </SelectTrigger>
-                        <SelectContent className="max-h-[300px]">
+                        <SelectContent className="max-h-[300px] bg-white border border-slate-200 shadow-lg">
                           <SelectItem value="all-periods" className="flex items-center">
                             <Calendar className="h-3.5 w-3.5 mr-2" />
                             All Periods
