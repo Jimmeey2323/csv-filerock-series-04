@@ -44,7 +44,7 @@ const TableFooter = React.forwardRef<
   <tfoot
     ref={ref}
     className={cn(
-      "sticky bottom-0 z-10 bg-primary/90 backdrop-blur-lg text-primary-foreground font-medium [&>tr]:last:border-b-0 shadow-[0_-4px_10px_rgba(0,0,0,0.05)] border-t-2 border-primary/20",
+      "sticky bottom-0 z-10 bg-primary/90 backdrop-blur-lg text-primary-foreground font-medium [&>tr]:last:border-b-0 shadow-[0_-4px_10px_rgba(0,0,0,0.05)]",
       isClickable && "cursor-pointer hover:bg-primary/95 transition-colors",
       className
     )}
@@ -82,42 +82,33 @@ interface TableHeadProps extends React.ThHTMLAttributes<HTMLTableCellElement> {
 }
 
 const TableHead = React.forwardRef<HTMLTableCellElement, TableHeadProps>(
-  ({ className, children, sortable = false, sortDirection, onSort, ...props }, ref) => {
-    const handleSort = React.useCallback((e: React.MouseEvent) => {
-      if (sortable && onSort) {
-        e.preventDefault();
-        onSort();
-      }
-    }, [sortable, onSort]);
-    
-    return (
-      <th
-        ref={ref}
-        className={cn(
-          "h-10 px-4 py-3 text-left align-middle font-medium text-slate-700 whitespace-nowrap [&:has([role=checkbox])]:pr-0 transition-all duration-300",
-          sortable && "cursor-pointer hover:bg-slate-200/50 select-none hover:text-slate-900 transition-colors duration-200",
-          className
+  ({ className, children, sortable = false, sortDirection, onSort, ...props }, ref) => (
+    <th
+      ref={ref}
+      className={cn(
+        "h-10 px-4 py-3 text-left align-middle font-medium text-slate-700 whitespace-nowrap [&:has([role=checkbox])]:pr-0 transition-all duration-300",
+        sortable && "cursor-pointer hover:bg-slate-200/50 select-none hover:text-slate-900 transition-colors duration-200",
+        className
+      )}
+      onClick={sortable ? onSort : undefined}
+      {...props}
+    >
+      <div className="flex items-center gap-1">
+        {children}
+        {sortable && (
+          <div className="flex items-center">
+            {sortDirection === 'asc' ? (
+              <ChevronUp className="h-4 w-4 text-blue-600 animate-fade-in" />
+            ) : sortDirection === 'desc' ? (
+              <ChevronDown className="h-4 w-4 text-blue-600 animate-fade-in" />
+            ) : (
+              <ChevronsUpDown className="h-4 w-4 text-slate-400 opacity-60 transition-opacity duration-200 hover:opacity-100" />
+            )}
+          </div>
         )}
-        onClick={handleSort}
-        {...props}
-      >
-        <div className="flex items-center gap-1">
-          {children}
-          {sortable && (
-            <div className="flex items-center">
-              {sortDirection === 'asc' ? (
-                <ChevronUp className="h-4 w-4 text-blue-600 animate-fade-in" />
-              ) : sortDirection === 'desc' ? (
-                <ChevronDown className="h-4 w-4 text-blue-600 animate-fade-in" />
-              ) : (
-                <ChevronsUpDown className="h-4 w-4 text-slate-400 opacity-60 transition-opacity duration-200 hover:opacity-100" />
-              )}
-            </div>
-          )}
-        </div>
-      </th>
-    );
-  }
+      </div>
+    </th>
+  )
 );
 TableHead.displayName = "TableHead"
 
