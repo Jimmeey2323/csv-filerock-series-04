@@ -1,4 +1,3 @@
-
 import React, { useMemo, useState, useCallback } from 'react';
 import {
   Table,
@@ -75,15 +74,15 @@ const ResultsTable: React.FC<ResultsTableProps> = ({
   const [drillDownType, setDrillDownType] = useState<'teacher' | 'studio' | 'location' | 'period' | 'totals'>('teacher');
   const [drillDownMetricType, setDrillDownMetricType] = useState<'conversion' | 'retention' | 'all'>('all');
   
-  // State for advanced table options
-  const [activeGroupBy, setActiveGroupBy] = useState<string>(dataMode === 'teacher' ? 'teacher' : 'studio');
+  // State for advanced table options - show all columns by default
+  const [activeGroupBy, setActiveGroupBy] = useState<string>('none');
   const [sortConfig, setSortConfig] = useState<{ column: string; direction: 'asc' | 'desc' }>({
     column: 'totalRevenue',
     direction: 'desc'
   });
   const [advancedFilters, setAdvancedFilters] = useState<Record<string, any>>({});
   
-  // Available columns and visible columns
+  // Available columns and visible columns - show all by default
   const allAvailableColumns = [
     'teacherName', 'location', 'period', 'newClients', 'retainedClients', 
     'retentionRate', 'convertedClients', 'conversionRate', 'totalRevenue',
@@ -91,10 +90,7 @@ const ResultsTable: React.FC<ResultsTableProps> = ({
     'averageRevenuePerClient', 'noShowRate', 'lateCancellationRate'
   ];
   
-  const [visibleColumns, setVisibleColumns] = useState<string[]>([
-    'teacherName', 'location', 'period', 'newClients', 'retainedClients', 
-    'retentionRate', 'convertedClients', 'conversionRate', 'totalRevenue'
-  ]);
+  const [visibleColumns, setVisibleColumns] = useState<string[]>(allAvailableColumns);
 
   // Handlers for modals and drill-down
   const handleOpenClientModal = (teacherName: string, type: 'new' | 'retained' | 'converted') => {
@@ -227,15 +223,36 @@ const ResultsTable: React.FC<ResultsTableProps> = ({
       });
     }
   };
+
+  // Header sort handler
+  const handleHeaderSort = (column: string) => {
+    if (sortConfig.column === column) {
+      setSortConfig({
+        column,
+        direction: sortConfig.direction === 'asc' ? 'desc' : 'asc'
+      });
+    } else {
+      setSortConfig({
+        column,
+        direction: 'desc'
+      });
+    }
+  };
+
+  // Group by handler
+  const handleGroupByChange = (groupBy: string) => {
+    setActiveGroupBy(groupBy);
+    console.log('Grouping by:', groupBy);
+  };
   
-  // Update the displayData to handle studio view and sorting
+  // Update the displayData to handle studio view, sorting, and grouping
   const displayData = useMemo(() => {
     let filteredData = dataMode === 'studio' 
       ? data.filter(item => item.teacherName === 'All Teachers')
       : data.filter(item => item.teacherName !== 'All Teachers');
     
     // Apply sorting
-    return [...filteredData].sort((a, b) => {
+    const sortedData = [...filteredData].sort((a, b) => {
       const aValue = a[sortConfig.column as keyof ProcessedTeacherData];
       const bValue = b[sortConfig.column as keyof ProcessedTeacherData];
       
@@ -251,11 +268,41 @@ const ResultsTable: React.FC<ResultsTableProps> = ({
       
       return 0;
     });
-  }, [data, dataMode, sortConfig]);
+
+    // Apply grouping if not 'none'
+    if (activeGroupBy && activeGroupBy !== 'none') {
+      const grouped = sortedData.reduce((groups, item) => {
+        const groupKey = item[activeGroupBy as keyof ProcessedTeacherData] as string;
+        if (!groups[groupKey]) {
+          groups[groupKey] = [];
+        }
+        groups[groupKey].push(item);
+        return groups;
+      }, {} as Record<string, ProcessedTeacherData[]>);
+
+      // Flatten with group headers
+      const result: ProcessedTeacherData[] = [];
+      Object.entries(grouped).forEach(([groupKey, groupItems]) => {
+        // Add group header
+        result.push({
+          ...groupItems[0],
+          teacherName: `${groupKey} (${groupItems.length} items)`,
+          isGroupHeader: true
+        } as ProcessedTeacherData & { isGroupHeader: boolean });
+        
+        // Add group items
+        result.push(...groupItems);
+      });
+      
+      return result;
+    }
+
+    return sortedData;
+  }, [data, dataMode, sortConfig, activeGroupBy]);
   
   // Calculate totals for the footer
   const totals = useMemo(() => {
-    return displayData.reduce((acc, item) => {
+    return displayData.filter(item => !(item as any).isGroupHeader).reduce((acc, item) => {
       return {
         newClients: acc.newClients + item.newClients,
         retainedClients: acc.retainedClients + item.retainedClients,
@@ -341,70 +388,185 @@ const ResultsTable: React.FC<ResultsTableProps> = ({
           <span>Performance Data</span>
           <AdvancedFilters 
             locations={locations}
-            teachers={displayData.map(item => item.teacherName)}
-            periods={Array.from(new Set(displayData.map(item => item.period)))}
+            teachers={displayData.filter(item => !(item as any).isGroupHeader).map(item => item.teacherName)}
+            periods={Array.from(new Set(displayData.filter(item => !(item as any).isGroupHeader).map(item => item.period)))}
             onApplyFilters={handleApplyAdvancedFilters}
             activeFilters={advancedFilters}
           />
         </CardTitle>
       </CardHeader>
       <CardContent className="p-0">
-        <ScrollArea className="max-h-[600px]">
+        <div className="max-h-[600px] overflow-auto">
           <Table>
             <TableHeader>
               <TableRow>
                 {visibleColumns.includes('teacherName') && (
-                  <TableHead className="w-[200px]">
+                  <TableHead 
+                    className="w-[200px]"
+                    sortable
+                    sortDirection={sortConfig.column === 'teacherName' ? sortConfig.direction : undefined}
+                    onSort={() => handleHeaderSort('teacherName')}
+                  >
                     {dataMode === 'teacher' ? 'Teacher' : 'Studio'}
                   </TableHead>
                 )}
                 {visibleColumns.includes('location') && (
-                  <TableHead>Location</TableHead>
+                  <TableHead
+                    sortable
+                    sortDirection={sortConfig.column === 'location' ? sortConfig.direction : undefined}
+                    onSort={() => handleHeaderSort('location')}
+                  >
+                    Location
+                  </TableHead>
                 )}
                 {visibleColumns.includes('period') && (
-                  <TableHead>Period</TableHead>
+                  <TableHead
+                    sortable
+                    sortDirection={sortConfig.column === 'period' ? sortConfig.direction : undefined}
+                    onSort={() => handleHeaderSort('period')}
+                  >
+                    Period
+                  </TableHead>
                 )}
                 {visibleColumns.includes('newClients') && (
-                  <TableHead className="text-center">New Clients</TableHead>
+                  <TableHead 
+                    className="text-center"
+                    sortable
+                    sortDirection={sortConfig.column === 'newClients' ? sortConfig.direction : undefined}
+                    onSort={() => handleHeaderSort('newClients')}
+                  >
+                    New Clients
+                  </TableHead>
                 )}
                 {visibleColumns.includes('retainedClients') && (
-                  <TableHead className="text-center">Retained Clients</TableHead>
+                  <TableHead 
+                    className="text-center"
+                    sortable
+                    sortDirection={sortConfig.column === 'retainedClients' ? sortConfig.direction : undefined}
+                    onSort={() => handleHeaderSort('retainedClients')}
+                  >
+                    Retained Clients
+                  </TableHead>
                 )}
                 {visibleColumns.includes('retentionRate') && (
-                  <TableHead className="text-center">Retention Rate</TableHead>
+                  <TableHead 
+                    className="text-center"
+                    sortable
+                    sortDirection={sortConfig.column === 'retentionRate' ? sortConfig.direction : undefined}
+                    onSort={() => handleHeaderSort('retentionRate')}
+                  >
+                    Retention Rate
+                  </TableHead>
                 )}
                 {visibleColumns.includes('convertedClients') && (
-                  <TableHead className="text-center">Converted Clients</TableHead>
+                  <TableHead 
+                    className="text-center"
+                    sortable
+                    sortDirection={sortConfig.column === 'convertedClients' ? sortConfig.direction : undefined}
+                    onSort={() => handleHeaderSort('convertedClients')}
+                  >
+                    Converted Clients
+                  </TableHead>
                 )}
                 {visibleColumns.includes('conversionRate') && (
-                  <TableHead className="text-center">Conversion Rate</TableHead>
+                  <TableHead 
+                    className="text-center"
+                    sortable
+                    sortDirection={sortConfig.column === 'conversionRate' ? sortConfig.direction : undefined}
+                    onSort={() => handleHeaderSort('conversionRate')}
+                  >
+                    Conversion Rate
+                  </TableHead>
                 )}
                 {visibleColumns.includes('totalRevenue') && (
-                  <TableHead className="text-center">Total Revenue</TableHead>
+                  <TableHead 
+                    className="text-center"
+                    sortable
+                    sortDirection={sortConfig.column === 'totalRevenue' ? sortConfig.direction : undefined}
+                    onSort={() => handleHeaderSort('totalRevenue')}
+                  >
+                    Total Revenue
+                  </TableHead>
                 )}
                 {visibleColumns.includes('trials') && (
-                  <TableHead className="text-center">Trials</TableHead>
+                  <TableHead 
+                    className="text-center"
+                    sortable
+                    sortDirection={sortConfig.column === 'trials' ? sortConfig.direction : undefined}
+                    onSort={() => handleHeaderSort('trials')}
+                  >
+                    Trials
+                  </TableHead>
                 )}
                 {visibleColumns.includes('referrals') && (
-                  <TableHead className="text-center">Referrals</TableHead>
+                  <TableHead 
+                    className="text-center"
+                    sortable
+                    sortDirection={sortConfig.column === 'referrals' ? sortConfig.direction : undefined}
+                    onSort={() => handleHeaderSort('referrals')}
+                  >
+                    Referrals
+                  </TableHead>
                 )}
                 {visibleColumns.includes('hosted') && (
-                  <TableHead className="text-center">Hosted Events</TableHead>
+                  <TableHead 
+                    className="text-center"
+                    sortable
+                    sortDirection={sortConfig.column === 'hosted' ? sortConfig.direction : undefined}
+                    onSort={() => handleHeaderSort('hosted')}
+                  >
+                    Hosted Events
+                  </TableHead>
                 )}
                 {visibleColumns.includes('influencerSignups') && (
-                  <TableHead className="text-center">Influencer Signups</TableHead>
+                  <TableHead 
+                    className="text-center"
+                    sortable
+                    sortDirection={sortConfig.column === 'influencerSignups' ? sortConfig.direction : undefined}
+                    onSort={() => handleHeaderSort('influencerSignups')}
+                  >
+                    Influencer Signups
+                  </TableHead>
                 )}
                 {visibleColumns.includes('others') && (
-                  <TableHead className="text-center">Others</TableHead>
+                  <TableHead 
+                    className="text-center"
+                    sortable
+                    sortDirection={sortConfig.column === 'others' ? sortConfig.direction : undefined}
+                    onSort={() => handleHeaderSort('others')}
+                  >
+                    Others
+                  </TableHead>
                 )}
                 {visibleColumns.includes('averageRevenuePerClient') && (
-                  <TableHead className="text-center">Avg. Revenue/Client</TableHead>
+                  <TableHead 
+                    className="text-center"
+                    sortable
+                    sortDirection={sortConfig.column === 'averageRevenuePerClient' ? sortConfig.direction : undefined}
+                    onSort={() => handleHeaderSort('averageRevenuePerClient')}
+                  >
+                    Avg. Revenue/Client
+                  </TableHead>
                 )}
                 {visibleColumns.includes('noShowRate') && (
-                  <TableHead className="text-center">No Show Rate</TableHead>
+                  <TableHead 
+                    className="text-center"
+                    sortable
+                    sortDirection={sortConfig.column === 'noShowRate' ? sortConfig.direction : undefined}
+                    onSort={() => handleHeaderSort('noShowRate')}
+                  >
+                    No Show Rate
+                  </TableHead>
                 )}
                 {visibleColumns.includes('lateCancellationRate') && (
-                  <TableHead className="text-center">Late Cancellation Rate</TableHead>
+                  <TableHead 
+                    className="text-center"
+                    sortable
+                    sortDirection={sortConfig.column === 'lateCancellationRate' ? sortConfig.direction : undefined}
+                    onSort={() => handleHeaderSort('lateCancellationRate')}
+                  >
+                    Late Cancellation Rate
+                  </TableHead>
                 )}
                 <TableHead className="w-[70px]"></TableHead>
               </TableRow>
@@ -412,9 +574,10 @@ const ResultsTable: React.FC<ResultsTableProps> = ({
             <TableBody>
               {displayData.map((item, idx) => (
                 <TableRow 
-                  key={`${item.teacherName}-${item.location}-${item.period}`}
-                  isClickable={true}
-                  onClick={() => handleRowClick(item)}
+                  key={`${item.teacherName}-${item.location}-${item.period}-${idx}`}
+                  isClickable={!(item as any).isGroupHeader}
+                  isGroupHeader={(item as any).isGroupHeader}
+                  onClick={!(item as any).isGroupHeader ? () => handleRowClick(item) : undefined}
                   className="animate-fade-in"
                   style={{ animationDelay: `${idx * 30}ms` }}
                 >
@@ -422,124 +585,140 @@ const ResultsTable: React.FC<ResultsTableProps> = ({
                     <TableCell className="font-medium">{dataMode === 'teacher' ? item.teacherName : item.location}</TableCell>
                   )}
                   {visibleColumns.includes('location') && (
-                    <TableCell>{item.location}</TableCell>
+                    <TableCell>{(item as any).isGroupHeader ? '' : item.location}</TableCell>
                   )}
                   {visibleColumns.includes('period') && (
-                    <TableCell>{item.period}</TableCell>
+                    <TableCell>{(item as any).isGroupHeader ? '' : item.period}</TableCell>
                   )}
                   {visibleColumns.includes('newClients') && (
-                    <TableCell className="text-center">{item.newClients}</TableCell>
+                    <TableCell className="text-center">{(item as any).isGroupHeader ? '' : item.newClients}</TableCell>
                   )}
                   {visibleColumns.includes('retainedClients') && (
-                    <TableCell className="text-center">{item.retainedClients}</TableCell>
+                    <TableCell className="text-center">{(item as any).isGroupHeader ? '' : item.retainedClients}</TableCell>
                   )}
                   {visibleColumns.includes('retentionRate') && (
                     <TableCell className="text-center">
-                      <Badge 
-                        variant={item.retentionRate > 50 ? "success" : "destructive"} 
-                        className="cursor-pointer hover:bg-muted flex items-center gap-1 animate-scale-in"
-                        onClick={(e) => handleMetricClick(item, 'retention')}
-                      >
-                        {item.retentionRate > 50 ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
-                        {safeToFixed(item.retentionRate, 1)}%
-                      </Badge>
+                      {!(item as any).isGroupHeader && (
+                        <Badge 
+                          variant={item.retentionRate > 50 ? "success" : "destructive"} 
+                          className="cursor-pointer hover:bg-muted flex items-center gap-1 animate-scale-in"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleMetricClick(item, 'retention');
+                          }}
+                        >
+                          {item.retentionRate > 50 ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
+                          {safeToFixed(item.retentionRate, 1)}%
+                        </Badge>
+                      )}
                     </TableCell>
                   )}
                   {visibleColumns.includes('convertedClients') && (
-                    <TableCell className="text-center">{item.convertedClients}</TableCell>
+                    <TableCell className="text-center">{(item as any).isGroupHeader ? '' : item.convertedClients}</TableCell>
                   )}
                   {visibleColumns.includes('conversionRate') && (
                     <TableCell className="text-center">
-                      <Badge 
-                        variant={item.conversionRate > 10 ? "success" : "destructive"} 
-                        className="cursor-pointer hover:bg-muted flex items-center gap-1 animate-scale-in"
-                        onClick={(e) => handleMetricClick(item, 'conversion')}
-                      >
-                        {item.conversionRate > 10 ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
-                        {safeToFixed(item.conversionRate, 1)}%
-                      </Badge>
+                      {!(item as any).isGroupHeader && (
+                        <Badge 
+                          variant={item.conversionRate > 10 ? "success" : "destructive"} 
+                          className="cursor-pointer hover:bg-muted flex items-center gap-1 animate-scale-in"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleMetricClick(item, 'conversion');
+                          }}
+                        >
+                          {item.conversionRate > 10 ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
+                          {safeToFixed(item.conversionRate, 1)}%
+                        </Badge>
+                      )}
                     </TableCell>
                   )}
                   {visibleColumns.includes('totalRevenue') && (
-                    <TableCell className="text-center">{safeFormatCurrency(item.totalRevenue)}</TableCell>
+                    <TableCell className="text-center">{(item as any).isGroupHeader ? '' : safeFormatCurrency(item.totalRevenue)}</TableCell>
                   )}
                   {visibleColumns.includes('trials') && (
-                    <TableCell className="text-center">{item.trials}</TableCell>
+                    <TableCell className="text-center">{(item as any).isGroupHeader ? '' : item.trials}</TableCell>
                   )}
                   {visibleColumns.includes('referrals') && (
-                    <TableCell className="text-center">{item.referrals}</TableCell>
+                    <TableCell className="text-center">{(item as any).isGroupHeader ? '' : item.referrals}</TableCell>
                   )}
                   {visibleColumns.includes('hosted') && (
-                    <TableCell className="text-center">{item.hosted}</TableCell>
+                    <TableCell className="text-center">{(item as any).isGroupHeader ? '' : item.hosted}</TableCell>
                   )}
                   {visibleColumns.includes('influencerSignups') && (
-                    <TableCell className="text-center">{item.influencerSignups}</TableCell>
+                    <TableCell className="text-center">{(item as any).isGroupHeader ? '' : item.influencerSignups}</TableCell>
                   )}
                   {visibleColumns.includes('others') && (
-                    <TableCell className="text-center">{item.others}</TableCell>
+                    <TableCell className="text-center">{(item as any).isGroupHeader ? '' : item.others}</TableCell>
                   )}
                   {visibleColumns.includes('averageRevenuePerClient') && (
                     <TableCell className="text-center">
-                      {safeFormatCurrency(item.averageRevenuePerClient)}
+                      {(item as any).isGroupHeader ? '' : safeFormatCurrency(item.averageRevenuePerClient)}
                     </TableCell>
                   )}
                   {visibleColumns.includes('noShowRate') && (
                     <TableCell className="text-center">
-                      <span className="flex items-center justify-center gap-1">
-                        {item.noShowRate < 10 ? <TrendingDown className="h-3 w-3 text-green-500" /> : <TrendingUp className="h-3 w-3 text-red-500" />}
-                        {safeToFixed(item.noShowRate, 1)}%
-                      </span>
+                      {!(item as any).isGroupHeader && (
+                        <span className="flex items-center justify-center gap-1">
+                          {item.noShowRate < 10 ? <TrendingDown className="h-3 w-3 text-green-500" /> : <TrendingUp className="h-3 w-3 text-red-500" />}
+                          {safeToFixed(item.noShowRate, 1)}%
+                        </span>
+                      )}
                     </TableCell>
                   )}
                   {visibleColumns.includes('lateCancellationRate') && (
                     <TableCell className="text-center">
-                      <span className="flex items-center justify-center gap-1">
-                        {item.lateCancellationRate < 10 ? <TrendingDown className="h-3 w-3 text-green-500" /> : <TrendingUp className="h-3 w-3 text-red-500" />}
-                        {safeToFixed(item.lateCancellationRate, 1)}%
-                      </span>
+                      {!(item as any).isGroupHeader && (
+                        <span className="flex items-center justify-center gap-1">
+                          {item.lateCancellationRate < 10 ? <TrendingDown className="h-3 w-3 text-green-500" /> : <TrendingUp className="h-3 w-3 text-red-500" />}
+                          {safeToFixed(item.lateCancellationRate, 1)}%
+                        </span>
+                      )}
                     </TableCell>
                   )}
                   <TableCell>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" className="h-8 w-8 p-0" onClick={(e) => e.stopPropagation()}>
-                          <span className="sr-only">Open menu</span>
-                          <MoreHorizontal className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                        <DropdownMenuItem onClick={(e) => {
-                          e.stopPropagation();
-                          handleOpenClientModal(dataMode === 'teacher' ? item.teacherName : item.location, 'new');
-                        }}>
-                          <User2 className="mr-2 h-4 w-4" />
-                          View New Clients
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={(e) => {
-                          e.stopPropagation();
-                          handleOpenClientModal(dataMode === 'teacher' ? item.teacherName : item.location, 'retained');
-                        }}>
-                          <Users2 className="mr-2 h-4 w-4" />
-                          View Retained Clients
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={(e) => {
-                          e.stopPropagation();
-                          handleOpenClientModal(dataMode === 'teacher' ? item.teacherName : item.location, 'converted');
-                        }}>
-                          <FileText className="mr-2 h-4 w-4" />
-                          View Converted Clients
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem onClick={(e) => {
-                          e.stopPropagation();
-                          handleRowClick(item);
-                        }}>
-                          <LayoutDashboard className="mr-2 h-4 w-4" />
-                          View Detailed Analytics
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
+                    {!(item as any).isGroupHeader && (
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" className="h-8 w-8 p-0" onClick={(e) => e.stopPropagation()}>
+                            <span className="sr-only">Open menu</span>
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                          <DropdownMenuItem onClick={(e) => {
+                            e.stopPropagation();
+                            handleOpenClientModal(dataMode === 'teacher' ? item.teacherName : item.location, 'new');
+                          }}>
+                            <User2 className="mr-2 h-4 w-4" />
+                            View New Clients
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={(e) => {
+                            e.stopPropagation();
+                            handleOpenClientModal(dataMode === 'teacher' ? item.teacherName : item.location, 'retained');
+                          }}>
+                            <Users2 className="mr-2 h-4 w-4" />
+                            View Retained Clients
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={(e) => {
+                            e.stopPropagation();
+                            handleOpenClientModal(dataMode === 'teacher' ? item.teacherName : item.location, 'converted');
+                          }}>
+                            <FileText className="mr-2 h-4 w-4" />
+                            View Converted Clients
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem onClick={(e) => {
+                            e.stopPropagation();
+                            handleRowClick(item);
+                          }}>
+                            <LayoutDashboard className="mr-2 h-4 w-4" />
+                            View Detailed Analytics
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    )}
                   </TableCell>
                 </TableRow>
               ))}
@@ -589,27 +768,27 @@ const ResultsTable: React.FC<ResultsTableProps> = ({
                 )}
                 {visibleColumns.includes('trials') && (
                   <TableCell className="text-center font-bold">
-                    {displayData.reduce((sum, item) => sum + (item.trials || 0), 0)}
+                    {displayData.filter(item => !(item as any).isGroupHeader).reduce((sum, item) => sum + (item.trials || 0), 0)}
                   </TableCell>
                 )}
                 {visibleColumns.includes('referrals') && (
                   <TableCell className="text-center font-bold">
-                    {displayData.reduce((sum, item) => sum + (item.referrals || 0), 0)}
+                    {displayData.filter(item => !(item as any).isGroupHeader).reduce((sum, item) => sum + (item.referrals || 0), 0)}
                   </TableCell>
                 )}
                 {visibleColumns.includes('hosted') && (
                   <TableCell className="text-center font-bold">
-                    {displayData.reduce((sum, item) => sum + (item.hosted || 0), 0)}
+                    {displayData.filter(item => !(item as any).isGroupHeader).reduce((sum, item) => sum + (item.hosted || 0), 0)}
                   </TableCell>
                 )}
                 {visibleColumns.includes('influencerSignups') && (
                   <TableCell className="text-center font-bold">
-                    {displayData.reduce((sum, item) => sum + (item.influencerSignups || 0), 0)}
+                    {displayData.filter(item => !(item as any).isGroupHeader).reduce((sum, item) => sum + (item.influencerSignups || 0), 0)}
                   </TableCell>
                 )}
                 {visibleColumns.includes('others') && (
                   <TableCell className="text-center font-bold">
-                    {displayData.reduce((sum, item) => sum + (item.others || 0), 0)}
+                    {displayData.filter(item => !(item as any).isGroupHeader).reduce((sum, item) => sum + (item.others || 0), 0)}
                   </TableCell>
                 )}
                 {visibleColumns.includes('averageRevenuePerClient') && (
@@ -649,7 +828,7 @@ const ResultsTable: React.FC<ResultsTableProps> = ({
               </TableRow>
             </TableFooter>
           </Table>
-        </ScrollArea>
+        </div>
       </CardContent>
     </Card>
   );
@@ -1267,7 +1446,7 @@ const ResultsTable: React.FC<ResultsTableProps> = ({
       <TableViewOptions
         activeView={viewMode}
         onViewChange={setViewMode}
-        onGroupByChange={setActiveGroupBy}
+        onGroupByChange={handleGroupByChange}
         onVisibilityChange={setVisibleColumns}
         onSortChange={(column, direction) => setSortConfig({ column, direction })}
         availableColumns={allAvailableColumns}

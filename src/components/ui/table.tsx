@@ -6,8 +6,8 @@ import { cn } from "@/lib/utils"
 const Table = React.forwardRef<
   HTMLTableElement,
   React.HTMLAttributes<HTMLTableElement> & { maxHeight?: string }
->(({ className, maxHeight, ...props }, ref) => (
-  <div className={`relative w-full overflow-auto rounded-xl shadow-md ${maxHeight ? `max-h-[${maxHeight}]` : ""}`}>
+>(({ className, maxHeight = "600px", ...props }, ref) => (
+  <div className={cn("relative w-full overflow-auto rounded-xl shadow-md", `max-h-[${maxHeight}]`)}>
     <table
       ref={ref}
       className={cn("w-full caption-bottom text-sm bg-white/90 backdrop-blur-sm border border-slate-200", className)}

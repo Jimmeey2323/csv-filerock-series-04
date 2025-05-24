@@ -75,7 +75,18 @@ const TableViewOptions: React.FC<TableViewOptionsProps> = ({
   };
 
   const handleGroupByChange = (value: string) => {
+    console.log('TableViewOptions: Group by changed to:', value);
     onGroupByChange(value);
+  };
+
+  const getGroupByDisplayName = (value: string) => {
+    switch (value) {
+      case 'teacherName': return 'Teacher';
+      case 'location': return 'Location';
+      case 'period': return 'Period';
+      case 'none': return 'None';
+      default: return value.charAt(0).toUpperCase() + value.slice(1);
+    }
   };
 
   return (
@@ -112,22 +123,22 @@ const TableViewOptions: React.FC<TableViewOptionsProps> = ({
                 <DropdownMenuSubTrigger className="hover:bg-slate-100">
                   <SlidersHorizontal className="mr-2 h-4 w-4 text-blue-500" />
                   <span>Group By</span>
-                  {activeGroupBy && (
+                  {activeGroupBy && activeGroupBy !== 'none' && (
                     <Badge variant="outline" className="ml-auto bg-blue-50 text-blue-700 border-blue-200">
-                      {activeGroupBy.charAt(0).toUpperCase() + activeGroupBy.slice(1)}
+                      {getGroupByDisplayName(activeGroupBy)}
                     </Badge>
                   )}
                 </DropdownMenuSubTrigger>
                 <DropdownMenuPortal>
                   <DropdownMenuSubContent className="bg-white border-slate-200 shadow-lg animate-scale-in">
                     <DropdownMenuRadioGroup value={activeGroupBy} onValueChange={handleGroupByChange}>
-                      <DropdownMenuRadioItem value="teacher" className="hover:bg-slate-100 transition-colors duration-200">
+                      <DropdownMenuRadioItem value="none" className="hover:bg-slate-100 transition-colors duration-200">
+                        <span className="mr-2 h-4 w-4" />
+                        None
+                      </DropdownMenuRadioItem>
+                      <DropdownMenuRadioItem value="teacherName" className="hover:bg-slate-100 transition-colors duration-200">
                         <User className="mr-2 h-4 w-4 text-indigo-500" />
                         Teacher
-                      </DropdownMenuRadioItem>
-                      <DropdownMenuRadioItem value="studio" className="hover:bg-slate-100 transition-colors duration-200">
-                        <Store className="mr-2 h-4 w-4 text-blue-500" />
-                        Studio
                       </DropdownMenuRadioItem>
                       <DropdownMenuRadioItem value="location" className="hover:bg-slate-100 transition-colors duration-200">
                         <MapPin className="mr-2 h-4 w-4 text-green-500" />
