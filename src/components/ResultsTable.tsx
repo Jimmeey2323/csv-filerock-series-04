@@ -166,7 +166,6 @@ const ResultsTable: React.FC<ResultsTableProps> = ({
         visibleColumns={visibleColumns}
         activeGroupBy={activeGroupBy}
         activeSort={activeSort}
-        data={data}
       />
 
       {currentView === 'table' && (
