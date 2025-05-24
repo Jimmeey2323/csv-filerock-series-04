@@ -653,6 +653,12 @@ const ResultsTable: React.FC<ResultsTableProps> = ({
       </CardContent>
     </Card>
   );
+
+  import Intercom from '@intercom/messenger-js-sdk';
+
+  Intercom({
+    app_id: 'ggboj39d',
+  });
   
   const renderCards = () => (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
