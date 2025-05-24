@@ -51,7 +51,7 @@ const ResultsTable: React.FC<ResultsTableProps> = ({
     'totalRevenue'
   ]);
   const [activeGroupBy, setActiveGroupBy] = useState('');
-  const [currentView, setCurrentView] = useState(viewMode);
+  const [currentView, setCurrentView] = useState<'table' | 'cards' | 'detailed'>(viewMode);
 
   const availableColumns = useMemo(() => {
     if (dataMode === 'teacher') {
@@ -138,6 +138,10 @@ const ResultsTable: React.FC<ResultsTableProps> = ({
     setActiveGroupBy(field);
   };
 
+  const handleViewChange = (view: string) => {
+    setCurrentView(view as 'table' | 'cards' | 'detailed');
+  };
+
   if (isLoading) {
     return <div className="text-center py-10">Loading data...</div>;
   }
@@ -154,7 +158,7 @@ const ResultsTable: React.FC<ResultsTableProps> = ({
     <div className="space-y-4">
       <TableViewOptions
         activeView={currentView}
-        onViewChange={setCurrentView}
+        onViewChange={handleViewChange}
         onGroupByChange={handleGroupByChange}
         onVisibilityChange={handleVisibilityChange}
         onSortChange={handleSortChange}
@@ -162,7 +166,7 @@ const ResultsTable: React.FC<ResultsTableProps> = ({
         visibleColumns={visibleColumns}
         activeGroupBy={activeGroupBy}
         activeSort={activeSort}
-        data={data} // Add this line
+        data={data}
       />
 
       {currentView === 'table' && (
@@ -201,11 +205,11 @@ const ResultsTable: React.FC<ResultsTableProps> = ({
                         {group} <Badge variant="secondary">{items.length} items</Badge>
                       </TableCell>
                     </TableRow>
-                    {items.map(item => (
-                      <TableRow key={item.id}>
+                    {items.map((item, itemIndex) => (
+                      <TableRow key={`${group}-${itemIndex}`}>
                         <TableCell>{item.teacherName}</TableCell>
                         {visibleColumns.map(column => (
-                          <TableCell key={`${item.id}-${column}`}>
+                          <TableCell key={`${group}-${itemIndex}-${column}`}>
                             {column === 'totalRevenue' ? safeFormatCurrency(item[column as keyof ProcessedTeacherData] as number) : 
                               (column === 'conversionRate' || column === 'retentionRate') ? safeToFixed(item[column as keyof ProcessedTeacherData] as number, 1) + '%' :
                               item[column as keyof ProcessedTeacherData]}
@@ -216,10 +220,10 @@ const ResultsTable: React.FC<ResultsTableProps> = ({
                   </React.Fragment>
                 ))
               ) : (
-                sortedData.map(item => (
-                  <TableRow key={item.id}>
+                sortedData.map((item, index) => (
+                  <TableRow key={index}>
                     {visibleColumns.map(column => (
-                      <TableCell key={`${item.id}-${column}`}>
+                      <TableCell key={`${index}-${column}`}>
                         {column === 'totalRevenue' ? safeFormatCurrency(item[column as keyof ProcessedTeacherData] as number) : 
                           (column === 'conversionRate' || column === 'retentionRate') ? safeToFixed(item[column as keyof ProcessedTeacherData] as number, 1) + '%' :
                           item[column as keyof ProcessedTeacherData]}
