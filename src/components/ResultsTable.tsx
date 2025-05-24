@@ -14,6 +14,7 @@ import { ProcessedTeacherData } from '@/utils/dataProcessor';
 import TableViewOptions from '@/components/TableViewOptions';
 import DataCardsView from '@/components/DataCardsView';
 import DetailedDataView from '@/components/DetailedDataView';
+import DrillDownAnalytics from '@/components/DrillDownAnalytics';
 
 interface ResultsTableProps {
   data: ProcessedTeacherData[];
@@ -52,6 +53,9 @@ const ResultsTable: React.FC<ResultsTableProps> = ({
   ]);
   const [activeGroupBy, setActiveGroupBy] = useState('');
   const [currentView, setCurrentView] = useState<'table' | 'cards' | 'detailed'>(viewMode);
+  const [drillDownData, setDrillDownData] = useState<ProcessedTeacherData | null>(null);
+  const [isDrillDownOpen, setIsDrillDownOpen] = useState(false);
+  const [drillDownType, setDrillDownType] = useState<'teacher' | 'studio' | 'location' | 'period' | 'totals'>('teacher');
 
   const availableColumns = useMemo(() => {
     if (dataMode === 'teacher') {
@@ -142,6 +146,17 @@ const ResultsTable: React.FC<ResultsTableProps> = ({
     setCurrentView(view as 'table' | 'cards' | 'detailed');
   };
 
+  const handleRowClick = useCallback((item: ProcessedTeacherData) => {
+    setDrillDownData(item);
+    setDrillDownType(dataMode === 'teacher' ? 'teacher' : 'studio');
+    setIsDrillDownOpen(true);
+  }, [dataMode]);
+
+  const handleCloseDrillDown = () => {
+    setIsDrillDownOpen(false);
+    setDrillDownData(null);
+  };
+
   if (isLoading) {
     return <div className="text-center py-10">Loading data...</div>;
   }
@@ -201,7 +216,12 @@ const ResultsTable: React.FC<ResultsTableProps> = ({
                       </TableCell>
                     </TableRow>
                     {items.map((item, itemIndex) => (
-                      <TableRow key={`${group}-${itemIndex}`}>
+                      <TableRow 
+                        key={`${group}-${itemIndex}`}
+                        isClickable
+                        onClick={() => handleRowClick(item)}
+                        className="cursor-pointer hover:bg-muted/50"
+                      >
                         <TableCell>{item.teacherName}</TableCell>
                         {visibleColumns.map(column => (
                           <TableCell key={`${group}-${itemIndex}-${column}`}>
@@ -216,7 +236,12 @@ const ResultsTable: React.FC<ResultsTableProps> = ({
                 ))
               ) : (
                 sortedData.map((item, index) => (
-                  <TableRow key={index}>
+                  <TableRow 
+                    key={index}
+                    isClickable
+                    onClick={() => handleRowClick(item)}
+                    className="cursor-pointer hover:bg-muted/50"
+                  >
                     {visibleColumns.map(column => (
                       <TableCell key={`${index}-${column}`}>
                         {column === 'totalRevenue' ? safeFormatCurrency(item[column as keyof ProcessedTeacherData] as number) : 
@@ -231,6 +256,13 @@ const ResultsTable: React.FC<ResultsTableProps> = ({
           </Table>
         </div>
       )}
+
+      <DrillDownAnalytics
+        isOpen={isDrillDownOpen}
+        onClose={handleCloseDrillDown}
+        data={drillDownData}
+        type={drillDownType}
+      />
     </div>
   );
 };
