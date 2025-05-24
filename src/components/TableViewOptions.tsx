@@ -31,7 +31,8 @@ import {
   MapPin,
   Eye,
   ArrowUpDown,
-  Settings
+  Settings,
+  TableProperties
 } from 'lucide-react';
 
 interface TableViewOptionsProps {
@@ -63,7 +64,7 @@ const TableViewOptions: React.FC<TableViewOptionsProps> = ({
     { id: 'detailed', label: 'Detailed', icon: List },
     { id: 'analytics', label: 'Analytics', icon: BarChart },
     { id: 'calendar', label: 'Calendar', icon: Calendar },
-    { id: 'trends', label: 'Trends', icon: PieChart },
+    { id: 'pivot', label: 'Pivot Builder', icon: TableProperties },
   ];
 
   const handleColumnVisibilityChange = (column: string, isChecked: boolean) => {

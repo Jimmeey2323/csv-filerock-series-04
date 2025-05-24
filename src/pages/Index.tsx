@@ -291,37 +291,51 @@ const Index = () => {
     period?: string;
     search?: string;
   }) => {
+    console.log('Filter change triggered:', filters);
+    
     const newFilters = {
-      location: filters.location || '',
-      teacher: filters.teacher || '',
-      period: filters.period || '',
-      search: filters.search || ''
+      location: filters.location || activeFilters.location || '',
+      teacher: filters.teacher || activeFilters.teacher || '',
+      period: filters.period || activeFilters.period || '',
+      search: filters.search !== undefined ? filters.search : activeFilters.search || ''
     };
+    
+    console.log('New filters applied:', newFilters);
     setActiveFilters(newFilters);
+    
     let filtered = [...processedData];
 
     // Filter by location
-    if (newFilters.location && newFilters.location !== 'all-locations') {
+    if (newFilters.location && newFilters.location !== 'all-locations' && newFilters.location !== '') {
       filtered = filtered.filter(item => item.location === newFilters.location);
+      console.log('After location filter:', filtered.length);
     }
 
     // Filter by teacher
-    if (newFilters.teacher && newFilters.teacher !== 'all-teachers') {
+    if (newFilters.teacher && newFilters.teacher !== 'all-teachers' && newFilters.teacher !== '') {
       filtered = filtered.filter(item => item.teacherName === newFilters.teacher);
+      console.log('After teacher filter:', filtered.length);
     }
 
     // Filter by period
-    if (newFilters.period && newFilters.period !== 'all-periods') {
+    if (newFilters.period && newFilters.period !== 'all-periods' && newFilters.period !== '') {
       filtered = filtered.filter(item => item.period === newFilters.period);
+      console.log('After period filter:', filtered.length);
     }
 
-    // Filter by search (teacher name)
-    if (newFilters.search) {
+    // Filter by search (teacher name or location)
+    if (newFilters.search && newFilters.search.trim() !== '') {
       const searchLower = newFilters.search.toLowerCase();
-      filtered = filtered.filter(item => item.teacherName && item.teacherName.toLowerCase().includes(searchLower) || item.location && item.location.toLowerCase().includes(searchLower));
+      filtered = filtered.filter(item => 
+        (item.teacherName && item.teacherName.toLowerCase().includes(searchLower)) || 
+        (item.location && item.location.toLowerCase().includes(searchLower))
+      );
+      console.log('After search filter:', filtered.length);
     }
+    
+    console.log('Final filtered data:', filtered.length);
     setFilteredData(filtered);
-  }, [processedData]);
+  }, [processedData, activeFilters]);
 
   // Apply fade-in animation on mount
   useEffect(() => {
@@ -432,9 +446,26 @@ const Index = () => {
               
               <TabsContent value="analytics" className="mt-0">
                 <div className="space-y-6">
-                  <FilterBar locations={locations} teachers={teachers} periods={periods} activeViewMode={viewMode} activeDataMode={dataMode} onViewModeChange={setViewMode} onDataModeChange={setDataMode} onFilterChange={handleFilterChange} initialSearch={activeFilters.search} />
+                  <FilterBar 
+                    locations={locations} 
+                    teachers={teachers} 
+                    periods={periods} 
+                    activeViewMode={viewMode} 
+                    activeDataMode={dataMode} 
+                    onViewModeChange={setViewMode} 
+                    onDataModeChange={setDataMode} 
+                    onFilterChange={handleFilterChange} 
+                    initialSearch={activeFilters.search} 
+                  />
                   
-                  <ResultsTable data={filteredData} locations={locations} isLoading={false} viewMode={viewMode} dataMode={dataMode} onFilterChange={handleFilterChange} />
+                  <ResultsTable 
+                    data={filteredData} 
+                    locations={locations} 
+                    isLoading={false} 
+                    viewMode={viewMode} 
+                    dataMode={dataMode} 
+                    onFilterChange={handleFilterChange} 
+                  />
                 </div>
               </TabsContent>
               

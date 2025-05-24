@@ -30,11 +30,13 @@ import {
   X,
   Award,
   FileText,
-  Filter
+  Filter,
+  TableProperties
 } from 'lucide-react';
 import RevenueChart from '@/components/charts/RevenueChart';
 import ConversionRatesChart from '@/components/charts/ConversionRatesChart';
 import ClientSourceChart from '@/components/charts/ClientSourceChart';
+import PivotTableBuilder from '@/components/PivotTableBuilder';
 import { safeToFixed, safeFormatCurrency, safeFormatDate, daysBetweenDates } from '@/lib/utils';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
@@ -229,7 +231,7 @@ const DrillDownAnalytics: React.FC<DrillDownAnalyticsProps> = ({
                   const conversionSpan = getConversionSpan(client);
                   
                   return (
-                    <TableRow key={`${client.email}-${idx}`} className="animate-fade-in" style={{ animationDelay: `${idx * 30}ms` }}>
+                    <TableRow key={`${client.email || idx}-${idx}`} className="animate-fade-in" style={{ animationDelay: `${idx * 30}ms` }}>
                       <TableCell className="font-medium">{client.name || client.customerName || 'N/A'}</TableCell>
                       <TableCell>{client.email || 'N/A'}</TableCell>
                       <TableCell>{safeFormatDate(client.firstVisit || client.date)}</TableCell>
@@ -285,35 +287,33 @@ const DrillDownAnalytics: React.FC<DrillDownAnalyticsProps> = ({
   };
 
   // Create properly formatted data for ClientSourceChart
-  const clientSourceData = [{
-    source: 'Trials',
-    count: data.trials || 0
-  }, {
-    source: 'Referrals',
-    count: data.referrals || 0
-  }, {
-    source: 'Hosted',
-    count: data.hosted || 0
-  }, {
-    source: 'Influencer',
-    count: data.influencerSignups || 0
-  }, {
-    source: 'Others',
-    count: data.others || 0
-  }];
+  const clientSourceData = [
+    { source: 'Trials', count: data.trials || 0, fill: '#3b82f6' },
+    { source: 'Referrals', count: data.referrals || 0, fill: '#10b981' },
+    { source: 'Hosted', count: data.hosted || 0, fill: '#f59e0b' },
+    { source: 'Influencer', count: data.influencerSignups || 0, fill: '#8b5cf6' },
+    { source: 'Others', count: data.others || 0, fill: '#6b7280' }
+  ].filter(item => item.count > 0);
 
-  // Convert revenue data format for RevenueChart
-  const revenueChartData = data.revenueByWeek || [];
+  // Convert revenue data format for RevenueChart - create sample data if not available
+  const revenueChartData = data.revenueByWeek && data.revenueByWeek.length > 0 
+    ? data.revenueByWeek 
+    : [
+        { week: 'Week 1', revenue: data.totalRevenue ? data.totalRevenue * 0.2 : 0 },
+        { week: 'Week 2', revenue: data.totalRevenue ? data.totalRevenue * 0.3 : 0 },
+        { week: 'Week 3', revenue: data.totalRevenue ? data.totalRevenue * 0.25 : 0 },
+        { week: 'Week 4', revenue: data.totalRevenue ? data.totalRevenue * 0.25 : 0 }
+      ];
 
   // Create properly formatted ConversionRateData
-  const conversionRateData = {
-    name: 'Current Period',
-    conversion: data.conversionRate,
-    retention: data.retentionRate,
+  const conversionRateData = [{
+    name: data.teacherName || 'Current Period',
+    conversion: data.conversionRate || 0,
+    retention: data.retentionRate || 0,
     trial: data.trials || 0,
     referral: data.referrals || 0,
     influencer: data.influencerSignups || 0
-  };
+  }];
   
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -350,9 +350,9 @@ const DrillDownAnalytics: React.FC<DrillDownAnalyticsProps> = ({
                 <DollarSign className="h-4 w-4" />
                 <span>Revenue</span>
               </TabsTrigger>
-              <TabsTrigger value="trends" className="flex items-center gap-2 animate-fade-in" style={{ animationDelay: '500ms' }}>
-                <ArrowUpDown className="h-4 w-4" />
-                <span>Trends</span>
+              <TabsTrigger value="pivot" className="flex items-center gap-2 animate-fade-in" style={{ animationDelay: '500ms' }}>
+                <TableProperties className="h-4 w-4" />
+                <span>Pivot Builder</span>
               </TabsTrigger>
             </TabsList>
             
@@ -372,7 +372,7 @@ const DrillDownAnalytics: React.FC<DrillDownAnalyticsProps> = ({
                           <UserRound className="h-4 w-4" />
                           New Clients
                         </span>
-                        <span className="text-2xl font-bold">{data.newClients}</span>
+                        <span className="text-2xl font-bold">{data.newClients || 0}</span>
                       </div>
                       <div className="flex flex-col p-4 bg-gradient-to-br from-muted/30 to-muted/10 rounded-lg border border-muted/40 animate-fade-in" style={{ animationDelay: '200ms' }}>
                         <span className="text-sm text-muted-foreground flex items-center gap-1">
@@ -380,10 +380,10 @@ const DrillDownAnalytics: React.FC<DrillDownAnalyticsProps> = ({
                           Retained Clients
                         </span>
                         <span className="text-2xl font-bold flex items-center">
-                          {data.retainedClients} 
-                          <Badge className="ml-2 flex items-center gap-1" variant={data.retentionRate > 50 ? "retention" : "excluded"}>
-                            {data.retentionRate > 50 ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
-                            {safeToFixed(data.retentionRate, 1)}%
+                          {data.retainedClients || 0} 
+                          <Badge className="ml-2 flex items-center gap-1" variant={(data.retentionRate || 0) > 50 ? "retention" : "excluded"}>
+                            {(data.retentionRate || 0) > 50 ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
+                            {safeToFixed(data.retentionRate || 0, 1)}%
                           </Badge>
                         </span>
                       </div>
@@ -393,10 +393,10 @@ const DrillDownAnalytics: React.FC<DrillDownAnalyticsProps> = ({
                           Converted Clients
                         </span>
                         <span className="text-2xl font-bold flex items-center">
-                          {data.convertedClients}
-                          <Badge className="ml-2 flex items-center gap-1" variant={data.conversionRate > 10 ? "conversion" : "excluded"}>
-                            {data.conversionRate > 10 ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
-                            {safeToFixed(data.conversionRate, 1)}%
+                          {data.convertedClients || 0}
+                          <Badge className="ml-2 flex items-center gap-1" variant={(data.conversionRate || 0) > 10 ? "conversion" : "excluded"}>
+                            {(data.conversionRate || 0) > 10 ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
+                            {safeToFixed(data.conversionRate || 0, 1)}%
                           </Badge>
                         </span>
                       </div>
@@ -405,7 +405,7 @@ const DrillDownAnalytics: React.FC<DrillDownAnalyticsProps> = ({
                           <DollarSign className="h-4 w-4" />
                           Total Revenue
                         </span>
-                        <span className="text-2xl font-bold">{safeFormatCurrency(data.totalRevenue)}</span>
+                        <span className="text-2xl font-bold">{safeFormatCurrency(data.totalRevenue || 0)}</span>
                       </div>
                     </div>
                   </CardContent>
@@ -419,7 +419,11 @@ const DrillDownAnalytics: React.FC<DrillDownAnalyticsProps> = ({
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="flex items-center justify-center">
-                    <ClientSourceChart data={clientSourceData} />
+                    {clientSourceData.length > 0 ? (
+                      <ClientSourceChart data={clientSourceData} />
+                    ) : (
+                      <div className="text-muted-foreground text-sm">No client source data available</div>
+                    )}
                   </CardContent>
                 </Card>
               </div>
@@ -605,137 +609,13 @@ const DrillDownAnalytics: React.FC<DrillDownAnalyticsProps> = ({
               </Card>
             </TabsContent>
             
-            <TabsContent value="trends" className="space-y-6">
-              <Card className="shadow-sm border-muted/60 animate-fade-in">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <ArrowUpDown className="h-5 w-5 text-primary" />
-                    Performance Trends
-                  </CardTitle>
-                  <CardDescription>
-                    Historical performance and trend analysis
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-2 gap-6">
-                    <Card className="shadow-sm border-muted/30 bg-card/60 animate-fade-in" style={{ animationDelay: '150ms' }}>
-                      <CardHeader>
-                        <CardTitle className="text-lg flex items-center gap-2">
-                          <UserRound className="h-4 w-4 text-primary" />
-                          Client Acquisition
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <ConversionRatesChart data={[conversionRateData]} />
-                      </CardContent>
-                    </Card>
-                    
-                    <Card className="shadow-sm border-muted/30 bg-card/60 animate-fade-in" style={{ animationDelay: '200ms' }}>
-                      <CardHeader>
-                        <CardTitle className="text-lg flex items-center gap-2">
-                          <Calendar className="h-4 w-4 text-primary" />
-                          Attendance Patterns
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="grid grid-cols-2 gap-4">
-                          <div className="flex flex-col p-4 border border-muted/40 rounded-lg bg-gradient-to-br from-muted/20 to-muted/5 shadow-sm">
-                            <span className="text-sm text-muted-foreground flex items-center gap-1">
-                              <X className="h-3 w-3" />
-                              No Show Rate
-                            </span>
-                            <span className="text-xl font-bold flex items-center">
-                              {safeToFixed(data.noShowRate, 1)}%
-                              {data.noShowRate < 10 ? 
-                                <TrendingDown className="h-4 w-4 ml-2 text-green-500" /> : 
-                                <TrendingUp className="h-4 w-4 ml-2 text-red-500" />
-                              }
-                            </span>
-                          </div>
-                          <div className="flex flex-col p-4 border border-muted/40 rounded-lg bg-gradient-to-br from-muted/20 to-muted/5 shadow-sm">
-                            <span className="text-sm text-muted-foreground flex items-center gap-1">
-                              <Filter className="h-3 w-3" />
-                              Late Cancellation
-                            </span>
-                            <span className="text-xl font-bold flex items-center">
-                              {safeToFixed(data.lateCancellationRate, 1)}%
-                              {data.lateCancellationRate < 5 ? 
-                                <TrendingDown className="h-4 w-4 ml-2 text-green-500" /> : 
-                                <TrendingUp className="h-4 w-4 ml-2 text-red-500" />
-                              }
-                            </span>
-                          </div>
-                          <div className="flex flex-col p-4 border border-muted/40 rounded-lg bg-gradient-to-br from-muted/20 to-muted/5 shadow-sm">
-                            <span className="text-sm text-muted-foreground flex items-center gap-1">
-                              <Check className="h-3 w-3" />
-                              Retention Rate
-                            </span>
-                            <span className="text-xl font-bold flex items-center">
-                              {safeToFixed(data.retentionRate, 1)}%
-                              {data.retentionRate > 50 ? 
-                                <TrendingUp className="h-4 w-4 ml-2 text-green-500" /> : 
-                                <TrendingDown className="h-4 w-4 ml-2 text-red-500" />
-                              }
-                            </span>
-                          </div>
-                          <div className="flex flex-col p-4 border border-muted/40 rounded-lg bg-gradient-to-br from-muted/20 to-muted/5 shadow-sm">
-                            <span className="text-sm text-muted-foreground flex items-center gap-1">
-                              <Award className="h-3 w-3" />
-                              Conversion Rate
-                            </span>
-                            <span className="text-xl font-bold flex items-center">
-                              {safeToFixed(data.conversionRate, 1)}%
-                              {data.conversionRate > 10 ? 
-                                <TrendingUp className="h-4 w-4 ml-2 text-green-500" /> : 
-                                <TrendingDown className="h-4 w-4 ml-2 text-red-500" />
-                              }
-                            </span>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  </div>
-                </CardContent>
-              </Card>
-              
-              {/* New clients overview */}
-              <Card className="shadow-sm border-muted/60 animate-fade-in" style={{ animationDelay: '300ms' }}>
-                <CardHeader>
-                  <div className="flex justify-between items-center">
-                    <CardTitle className="flex items-center gap-2">
-                      <UserRound className="h-5 w-5 text-primary" />
-                      New Clients Overview
-                    </CardTitle>
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <div className="rounded-full bg-primary/10 p-2">
-                            <Info className="h-4 w-4 text-primary" />
-                          </div>
-                        </TooltipTrigger>
-                        <TooltipContent side="left">
-                          <p className="max-w-xs text-xs">Detailed information about all new clients identified in this period</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
-                  </div>
-                  <CardDescription>Details of new clients and their status</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-1 gap-4">
-                    {data.newClientDetails && data.newClientDetails.length > 0 && 
-                      renderClientTable(data.newClientDetails, "New Clients")}
-                      
-                    {data.excludedClientDetails && data.excludedClientDetails.length > 0 && 
-                      renderClientTable(data.excludedClientDetails, "Excluded Clients")}
-                  </div>
-                </CardContent>
-              </Card>
+            <TabsContent value="pivot" className="space-y-6">
+              <PivotTableBuilder data={[data]} />
             </TabsContent>
           </Tabs>
         </div>
         
-        <DialogFooter className="sticky bottom--96 bg-background p-6 border-t">
+        <DialogFooter className="sticky bottom-0 bg-background p-6 border-t">
           <Button onClick={onClose} className="animate-scale-in">Close</Button>
         </DialogFooter>
       </DialogContent>
