@@ -146,14 +146,6 @@ const ResultsTable: React.FC<ResultsTableProps> = ({
     return <div className="text-center py-10">Loading data...</div>;
   }
 
-  if (currentView === 'cards') {
-    return <DataCardsView data={data} />;
-  }
-
-  if (currentView === 'detailed') {
-    return <DetailedDataView data={data} />;
-  }
-
   return (
     <div className="space-y-4">
       <TableViewOptions
@@ -167,6 +159,10 @@ const ResultsTable: React.FC<ResultsTableProps> = ({
         activeGroupBy={activeGroupBy}
         activeSort={activeSort}
       />
+
+      {currentView === 'cards' && <DataCardsView data={data} />}
+      
+      {currentView === 'detailed' && <DetailedDataView data={data} />}
 
       {currentView === 'table' && (
         <div className="rounded-md border">
