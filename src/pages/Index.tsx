@@ -291,76 +291,37 @@ const Index = () => {
     period?: string;
     search?: string;
   }) => {
-    console.log('Filter change triggered:', filters);
-    
     const newFilters = {
-      location: filters.location || activeFilters.location || '',
-      teacher: filters.teacher || activeFilters.teacher || '',
-      period: filters.period || activeFilters.period || '',
-      search: filters.search !== undefined ? filters.search : activeFilters.search || ''
+      location: filters.location || '',
+      teacher: filters.teacher || '',
+      period: filters.period || '',
+      search: filters.search || ''
     };
-    
-    console.log('New filters applied:', newFilters);
     setActiveFilters(newFilters);
-    
     let filtered = [...processedData];
 
     // Filter by location
-    if (newFilters.location && newFilters.location !== 'all-locations' && newFilters.location !== '') {
+    if (newFilters.location && newFilters.location !== 'all-locations') {
       filtered = filtered.filter(item => item.location === newFilters.location);
-      console.log('After location filter:', filtered.length);
     }
 
     // Filter by teacher
-    if (newFilters.teacher && newFilters.teacher !== 'all-teachers' && newFilters.teacher !== '') {
+    if (newFilters.teacher && newFilters.teacher !== 'all-teachers') {
       filtered = filtered.filter(item => item.teacherName === newFilters.teacher);
-      console.log('After teacher filter:', filtered.length);
     }
 
-    // Filter by period - fix the period filtering logic
-    if (newFilters.period && newFilters.period !== 'all-periods' && newFilters.period !== '') {
-      // For quick period filters, we need to handle them differently
-      const now = new Date();
-      const currentYear = now.getFullYear();
-      const currentMonth = now.getMonth();
-      
-      switch (newFilters.period) {
-        case 'this-week':
-          // Keep all data for now since we don't have date filtering implemented
-          break;
-        case 'this-month':
-          // Keep all data for now since we don't have date filtering implemented
-          break;
-        case 'last-month':
-          // Keep all data for now since we don't have date filtering implemented
-          break;
-        case 'q2-2023':
-          // Keep all data for now since we don't have date filtering implemented
-          break;
-        case 'all-time':
-          // Keep all data
-          break;
-        default:
-          // For actual period values from the data
-          filtered = filtered.filter(item => item.period === newFilters.period);
-          break;
-      }
-      console.log('After period filter:', filtered.length);
+    // Filter by period
+    if (newFilters.period && newFilters.period !== 'all-periods') {
+      filtered = filtered.filter(item => item.period === newFilters.period);
     }
 
-    // Filter by search (teacher name or location)
-    if (newFilters.search && newFilters.search.trim() !== '') {
+    // Filter by search (teacher name)
+    if (newFilters.search) {
       const searchLower = newFilters.search.toLowerCase();
-      filtered = filtered.filter(item => 
-        (item.teacherName && item.teacherName.toLowerCase().includes(searchLower)) || 
-        (item.location && item.location.toLowerCase().includes(searchLower))
-      );
-      console.log('After search filter:', filtered.length);
+      filtered = filtered.filter(item => item.teacherName && item.teacherName.toLowerCase().includes(searchLower) || item.location && item.location.toLowerCase().includes(searchLower));
     }
-    
-    console.log('Final filtered data:', filtered.length);
     setFilteredData(filtered);
-  }, [processedData, activeFilters]);
+  }, [processedData]);
 
   // Apply fade-in animation on mount
   useEffect(() => {
@@ -471,26 +432,9 @@ const Index = () => {
               
               <TabsContent value="analytics" className="mt-0">
                 <div className="space-y-6">
-                  <FilterBar 
-                    locations={locations} 
-                    teachers={teachers} 
-                    periods={periods} 
-                    activeViewMode={viewMode} 
-                    activeDataMode={dataMode} 
-                    onViewModeChange={setViewMode} 
-                    onDataModeChange={setDataMode} 
-                    onFilterChange={handleFilterChange} 
-                    initialSearch={activeFilters.search} 
-                  />
+                  <FilterBar locations={locations} teachers={teachers} periods={periods} activeViewMode={viewMode} activeDataMode={dataMode} onViewModeChange={setViewMode} onDataModeChange={setDataMode} onFilterChange={handleFilterChange} initialSearch={activeFilters.search} />
                   
-                  <ResultsTable 
-                    data={filteredData} 
-                    locations={locations} 
-                    isLoading={false} 
-                    viewMode={viewMode} 
-                    dataMode={dataMode} 
-                    onFilterChange={handleFilterChange} 
-                  />
+                  <ResultsTable data={filteredData} locations={locations} isLoading={false} viewMode={viewMode} dataMode={dataMode} onFilterChange={handleFilterChange} />
                 </div>
               </TabsContent>
               

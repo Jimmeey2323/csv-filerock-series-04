@@ -309,11 +309,12 @@ export const processData = (
                     membershipType: client['Membership used']
                   }));
                   
-                  // UPDATED RETENTION LOGIC: Check visits after first visit based on "2 For 1" requirement
+                  // FIXED: Find return visits in bookings data - only count visits AFTER first visit 
+                  // and where all 3 cancellation fields are "NO"
                   const returnVisits = cleanedBookingsData.filter(booking => {
                     // Get matching client record
                     const matchingClient = teacherNewClients.find(client => 
-                      client['Email'] === booking['Customer Email']
+                      client['Email'] === booking['Customer Email'] // Corrected field name
                     );
                     
                     if (!matchingClient) return false;
@@ -326,63 +327,58 @@ export const processData = (
                     const notLateCancelled = booking['Late Cancelled'] === 'NO';
                     const notNoShow = booking['No Show'] === 'NO'; 
                     
+                    // Log for debugging
+                    if (booking['Customer Email'] === matchingClient['Email']) {
+                      console.log(`Return visit check for ${booking['Customer Email']}:`, {
+                        isAfterFirstVisit,
+                        notCancelled,
+                        notLateCancelled,
+                        notNoShow,
+                        firstVisit: matchingClient['First visit at'],
+                        bookingDate: booking['Class Date']
+                      });
+                    }
+                    
                     return isAfterFirstVisit && notCancelled && notLateCancelled && notNoShow;
                   });
                   
                   console.log(`Found ${returnVisits.length} return visits for all clients of ${teacher}`);
                   
-                  // NEW RETENTION LOGIC: Apply "2 For 1" specific rules
-                  const retainedClientEmails = [];
+                  // Count unique emails with return visits
+                  const returnClientEmails = [...new Set(returnVisits.map(visit => visit['Customer Email']))]; // Corrected field name
+                  const retainedClientsCount = returnClientEmails.length;
                   
-                  teacherNewClients.forEach(client => {
-                    const clientEmail = client['Email'];
-                    const firstVisitValue = client['First visit'] || '';
-                    const clientReturnVisits = returnVisits.filter(visit => visit['Customer Email'] === clientEmail);
+                  console.log(`Found ${retainedClientsCount} unique retained clients for ${teacher}`);
+                  
+                  // Create detailed retained client list and add to retainedClientRecords array
+                  const retainedClientDetails = returnClientEmails.map(email => {
+                    const clientVisits = returnVisits.filter(visit => visit['Customer Email'] === email); // Corrected field name
+                    const clientInfo = teacherNewClients.find(client => client['Email'] === email);
                     
-                    console.log(`Checking retention for ${clientEmail}: First visit "${firstVisitValue}", Return visits: ${clientReturnVisits.length}`);
-                    
-                    let isRetained = false;
-                    
-                    // Check if first visit contains "2 For 1"
-                    if (firstVisitValue.toLowerCase().includes('2 for 1')) {
-                      // Needs 2 visits after first visit to be retained
-                      isRetained = clientReturnVisits.length >= 2;
-                      console.log(`"2 For 1" client ${clientEmail}: ${clientReturnVisits.length} return visits, retained: ${isRetained}`);
-                    } else {
-                      // Needs 1 visit after first visit to be retained
-                      isRetained = clientReturnVisits.length >= 1;
-                      console.log(`Non-"2 For 1" client ${clientEmail}: ${clientReturnVisits.length} return visits, retained: ${isRetained}`);
-                    }
-                    
-                    if (isRetained) {
-                      retainedClientEmails.push(clientEmail);
-                      
-                      // Add this client to retained records with full client information
+                    // Add this client to retained records with full client information
+                    if (clientInfo) {
                       const retainedClient = {
-                        ...client,
-                        visitsCount: clientReturnVisits.length,
-                        reason: firstVisitValue.toLowerCase().includes('2 for 1') 
-                          ? "Had 2+ return visits after '2 For 1' trial" 
-                          : "Had 1+ return visits after initial trial",
-                        firstVisitPostTrial: clientReturnVisits[0]?.['Class Date'] || 'N/A'
+                        ...clientInfo,
+                        visitsCount: clientVisits.length,
+                        reason: "Had return visits after initial trial",
+                        firstVisitPostTrial: clientVisits[0]['Class Date'] || 'N/A'
                       };
                       retainedClientRecords.push(retainedClient);
+                      
+                      return {
+                        email,
+                        name: `${clientInfo['First name']} ${clientInfo['Last name']}`,
+                        date: clientVisits[0]['Class Date'],
+                        visitCount: clientVisits.length,
+                        membershipType: clientInfo['Membership used']
+                      };
                     }
-                  });
-                  
-                  const retainedClientsCount = retainedClientEmails.length;
-                  
-                  // Create detailed retained client list
-                  const retainedClientDetails = retainedClientEmails.map(email => {
-                    const clientVisits = returnVisits.filter(visit => visit['Customer Email'] === email);
-                    const clientInfo = teacherNewClients.find(client => client['Email'] === email);
                     
                     return {
                       email,
-                      name: clientInfo ? `${clientInfo['First name']} ${clientInfo['Last name']}` : 'Unknown',
-                      date: clientVisits[0]?.['Class Date'] || '',
-                      visitCount: clientVisits.length,
-                      membershipType: clientInfo?.['Membership used'] || ''
+                      name: 'Unknown',
+                      date: clientVisits[0]['Class Date'],
+                      visitCount: clientVisits.length
                     };
                   });
                   
@@ -393,16 +389,21 @@ export const processData = (
                   
                   console.log(`Retention: ${retainedClientsCount}/${newClientsCount} (${retentionRate.toFixed(1)}%)`);
                   
-                  // UPDATED CONVERSION LOGIC: Exclude specific categories and items
+                  // Find converted clients (purchased after first visit)
                   if (cleanedSalesData.length === 0) {
                     console.error("No sales data available for calculating conversions");
                   } else {
                     console.log(`Processing ${cleanedSalesData.length} sales records for conversion metrics`);
                   }
                   
-                  // Find converted clients with updated exclusion logic
+                  // Log a sample of sales data for debugging
+                  if (cleanedSalesData.length > 0) {
+                    console.log("Sample sales data for debugging:", cleanedSalesData.slice(0, 5));
+                  }
+                  
+                  // Find converted clients (purchased after first visit) with improved logic
                   const convertedClients = cleanedSalesData.filter(sale => {
-                    // Find matching new client record
+                    // Find matching new client record - use correct field names from sales sheet
                     const matchingClient = teacherNewClients.find(client => {
                       const emailMatch = (
                         client['Email'] === sale['Customer email'] || 
@@ -416,19 +417,29 @@ export const processData = (
                       return false;
                     }
                     
+                    // Debug matched client
+                    console.log("Found potential conversion match:", {
+                      clientEmail: matchingClient['Email'],
+                      saleEmail: sale['Customer email'] || sale['Paying Customer email'],
+                      firstVisit: matchingClient['First visit at'],
+                      saleDate: sale['Date'],
+                      category: sale['Category'],
+                      item: sale['Item'],
+                      saleValue: sale['Sale value']
+                    });
+                    
                     // Check conditions:
                     // 1. Sale date > First visit date
                     const saleDate = sale['Date'] || '';
                     const firstVisitDate = matchingClient['First visit at'];
                     const saleDateAfterVisit = isDateAfter(saleDate, firstVisitDate);
                     
-                    // 2. UPDATED: Category doesn't contain 'product' or 'money credits' (case insensitive)
+                    // 2. Category doesn't contain 'product' or 'money-credit'
                     const category = (sale['Category'] || '').toLowerCase();
-                    const notExcludedCategory = !category.includes('product') && !category.includes('money credits');
+                    const notProductOrMoneyCredit = !matchesPattern(category, "product|money-credit");
                     
-                    // 3. UPDATED: Item doesn't contain '2 for 1' (case insensitive)
-                    const item = (sale['Item'] || '').toLowerCase();
-                    const not2For1Item = !item.includes('2 for 1');
+                    // 3. Item doesn't contain '2 for 1'
+                    const not2For1 = !sale['Item'] || !matchesPattern(sale['Item'] || '', "2 for 1");
                     
                     // 4. Sale value > 0
                     const saleValue = typeof sale['Sale value'] === 'number' ? 
@@ -440,29 +451,27 @@ export const processData = (
                     
                     // Log detailed diagnostics
                     console.log("Conversion conditions check:", {
-                      email: matchingClient['Email'],
                       saleDateAfterVisit,
-                      notExcludedCategory,
-                      not2For1Item,
+                      notProductOrMoneyCredit,
+                      not2For1,
                       hasSaleValue,
                       notRefunded,
                       saleValue,
                       category,
-                      item,
                       refunded: sale['Refunded']
                     });
                     
-                    const isConverted = saleDateAfterVisit && notExcludedCategory && not2For1Item && hasSaleValue && notRefunded;
+                    const isConverted = saleDateAfterVisit && notProductOrMoneyCredit && not2For1 && hasSaleValue && notRefunded;
                     
-                    // Add to converted records if it matches all criteria
+                    // Add to converted records if it matches all criteria - with full client information
                     if (isConverted && matchingClient) {
                       const convertedClient = {
                         ...matchingClient,
                         purchaseDate: sale['Date'],
                         saleValue: saleValue,
                         purchaseItem: sale['Item'],
-                        firstPurchaseDate: sale['Date'],
-                        reason: "Made qualifying purchase after initial visit"
+                        firstPurchaseDate: sale['Date'], // Add this explicitly for clarity
+                        reason: "Made purchase after initial visit"
                       };
                       convertedClientRecords.push(convertedClient);
                     }
@@ -477,14 +486,15 @@ export const processData = (
                     sale['Customer email'] || sale['Paying Customer email'] || ''))];
                   const convertedClientsCount = convertedClientEmails.length;
                   
-                  // Create detailed converted client list
+                  // Create detailed converted client list with proper purchase date extraction
                   const convertedClientDetails = convertedClientEmails.map(email => {
                     const clientSales = convertedClients
                       .filter(sale => (sale['Customer email'] || sale['Paying Customer email']) === email)
+                      // Sort by date to find the earliest purchase date after first visit
                       .sort((a, b) => {
                         const dateA = new Date(a['Date'] || '');
                         const dateB = new Date(b['Date'] || '');
-                        return dateA.getTime() - dateB.getTime();
+                        return dateA.getTime() - dateB.getTime(); // Ascending sort
                       });
                     
                     const totalValue = clientSales.reduce((sum, sale) => {
@@ -493,17 +503,20 @@ export const processData = (
                       return sum + saleValue;
                     }, 0);
                     
+                    // Get the client's information including first visit date
                     const clientInfo = teacherNewClients.find(client => client['Email'] === email);
+                    
+                    // The first purchase date is the date of the earliest sale after first visit
                     const firstPurchaseDate = clientSales.length > 0 ? clientSales[0]['Date'] : '';
                     
                     return {
                       email,
                       name: clientInfo ? `${clientInfo['First name']} ${clientInfo['Last name']}` : 'Unknown',
-                      date: firstPurchaseDate,
+                      date: firstPurchaseDate, // This will be the purchase date (earliest sale after first visit)
                       value: totalValue,
                       firstVisit: clientInfo ? clientInfo['First visit at'] : '',
-                      firstPurchaseDate,
-                      membershipType: clientSales[0]?.['Item'] || ''
+                      firstPurchaseDate, // <-- ADD THIS LINE
+                      membershipType: clientSales[0]['Item'] || ''
                     };
                   });
 
