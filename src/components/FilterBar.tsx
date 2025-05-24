@@ -96,10 +96,6 @@ const FilterBar: React.FC<FilterBarProps> = ({
 
   const activeFiltersCount = Object.values(filters).filter(Boolean).length;
 
-  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    handleFilterChange('search', e.target.value);
-  };
-
   return (
     <Card className="bg-white/80 backdrop-blur-lg rounded-xl border shadow-md mb-6 animate-fade-in overflow-hidden">
       <CardContent className="p-5">
@@ -269,12 +265,11 @@ const FilterBar: React.FC<FilterBarProps> = ({
 
           <div className="flex flex-col md:flex-row gap-3">
             <div className="relative flex-1">
-              <Input
-                type="text" 
+              <CommandSearchInput 
                 placeholder="Search teacher..." 
                 value={filters.search} 
-                onChange={handleSearchChange} 
-                className="w-full shadow-sm transition-all duration-300 focus-within:shadow-md"
+                onChange={(value) => handleFilterChange('search', value)} 
+                className="flex-1 shadow-sm transition-all duration-300 focus-within:shadow-md"
               />
             </div>
             

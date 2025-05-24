@@ -1,5 +1,5 @@
 
-import React, { useCallback } from 'react';
+import React from 'react';
 import { 
   DropdownMenu, 
   DropdownMenuContent, 
@@ -66,26 +66,22 @@ const TableViewOptions: React.FC<TableViewOptionsProps> = ({
     { id: 'trends', label: 'Trends', icon: PieChart },
   ];
 
-  const handleColumnVisibilityChange = useCallback((column: string, isChecked: boolean) => {
+  const handleColumnVisibilityChange = (column: string, isChecked: boolean) => {
     if (isChecked) {
       onVisibilityChange([...visibleColumns, column]);
     } else {
       onVisibilityChange(visibleColumns.filter(col => col !== column));
     }
-  }, [visibleColumns, onVisibilityChange]);
+  };
 
-  const handleGroupByChange = useCallback((value: string) => {
+  const handleGroupByChange = (value: string) => {
     onGroupByChange(value);
-  }, [onGroupByChange]);
-
-  const handleViewChange = useCallback((value: string) => {
-    onViewChange(value);
-  }, [onViewChange]);
+  };
 
   return (
     <div className="flex flex-col space-y-4 animate-fade-in">
       <div className="flex justify-between items-center bg-white/90 backdrop-blur-lg p-3 rounded-xl shadow-md border border-slate-100">
-        <Tabs value={activeView} onValueChange={handleViewChange} className="w-full">
+        <Tabs value={activeView} onValueChange={onViewChange} className="w-full">
           <TabsList className="w-full justify-start overflow-x-auto no-scrollbar bg-slate-100/80">
             {views.map(view => (
               <TabsTrigger 
