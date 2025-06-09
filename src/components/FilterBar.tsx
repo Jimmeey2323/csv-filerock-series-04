@@ -49,6 +49,7 @@ const FilterBar: React.FC<FilterBarProps> = ({
   });
 
   const [viewOptionsOpen, setViewOptionsOpen] = React.useState(false);
+  const [hasInitialized, setHasInitialized] = React.useState(false);
   
   // Common periods for quick filters
   const quickPeriods = [
@@ -59,31 +60,27 @@ const FilterBar: React.FC<FilterBarProps> = ({
     { label: 'All Time', value: 'all-time' }
   ];
 
+  // Initialize search from props only once
   React.useEffect(() => {
-    if (initialSearch !== undefined && initialSearch !== filters.search) {
+    if (!hasInitialized && initialSearch) {
       setFilters(prev => ({
         ...prev,
         search: initialSearch
       }));
-      if (initialSearch) {
-        onFilterChange({
-          ...filters,
-          search: initialSearch
-        });
-      }
+      setHasInitialized(true);
     }
-  }, [initialSearch]);
+  }, [initialSearch, hasInitialized]);
 
-  const handleFilterChange = (key: string, value: string) => {
+  const handleFilterChange = React.useCallback((key: string, value: string) => {
     const newFilters = {
       ...filters,
       [key]: value
     };
     setFilters(newFilters);
     onFilterChange(newFilters);
-  };
+  }, [filters, onFilterChange]);
 
-  const handleReset = () => {
+  const handleReset = React.useCallback(() => {
     const resetFilters = {
       location: '',
       teacher: '',
@@ -92,7 +89,7 @@ const FilterBar: React.FC<FilterBarProps> = ({
     };
     setFilters(resetFilters);
     onFilterChange(resetFilters);
-  };
+  }, [onFilterChange]);
 
   const activeFiltersCount = Object.values(filters).filter(Boolean).length;
 
@@ -209,7 +206,7 @@ const FilterBar: React.FC<FilterBarProps> = ({
                 Active filters:
               </div>
               {filters.location && (
-                <Badge variant="active" className="flex items-center gap-1.5 group">
+                <Badge variant="secondary" className="flex items-center gap-1.5 group">
                   <MapPin className="h-3.5 w-3.5" />
                   {filters.location === 'all-locations' ? 'All Locations' : filters.location}
                   <X 
@@ -222,7 +219,7 @@ const FilterBar: React.FC<FilterBarProps> = ({
                 </Badge>
               )}
               {filters.teacher && (
-                <Badge variant="active" className="flex items-center gap-1.5">
+                <Badge variant="secondary" className="flex items-center gap-1.5">
                   <User className="h-3.5 w-3.5" />
                   {filters.teacher === 'all-teachers' ? 'All Teachers' : filters.teacher}
                   <X 
@@ -235,7 +232,7 @@ const FilterBar: React.FC<FilterBarProps> = ({
                 </Badge>
               )}
               {filters.period && (
-                <Badge variant="active" className="flex items-center gap-1.5">
+                <Badge variant="secondary" className="flex items-center gap-1.5">
                   <Calendar className="h-3.5 w-3.5" />
                   {filters.period === 'all-periods' ? 'All Periods' : filters.period}
                   <X 
@@ -248,7 +245,7 @@ const FilterBar: React.FC<FilterBarProps> = ({
                 </Badge>
               )}
               {filters.search && (
-                <Badge variant="active" className="flex items-center gap-1.5">
+                <Badge variant="secondary" className="flex items-center gap-1.5">
                   <Search className="h-3.5 w-3.5" />
                   "{filters.search}"
                   <X 
