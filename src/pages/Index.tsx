@@ -59,7 +59,6 @@ const storageUtils = {
     });
   }
 };
-
 const Index = () => {
   const [files, setFiles] = useState<File[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -100,21 +99,19 @@ const Index = () => {
     try {
       setIsAutoLoading(true);
       console.log('Loading default CSV files...');
-      
-      const filePromises = [
-        fetch('/new-visitors (6).csv').then(res => res.blob()).then(blob => new File([blob], 'new-visitors (6).csv', { type: 'text/csv' })),
-        fetch('/momence-total-bookings-report (6).csv').then(res => res.blob()).then(blob => new File([blob], 'momence-total-bookings-report (6).csv', { type: 'text/csv' })),
-        fetch('/momence-latest-payments-report (3).csv').then(res => res.blob()).then(blob => new File([blob], 'momence-latest-payments-report (3).csv', { type: 'text/csv' }))
-      ];
-
+      const filePromises = [fetch('/new-visitors (6).csv').then(res => res.blob()).then(blob => new File([blob], 'new-visitors (6).csv', {
+        type: 'text/csv'
+      })), fetch('/momence-total-bookings-report (6).csv').then(res => res.blob()).then(blob => new File([blob], 'momence-total-bookings-report (6).csv', {
+        type: 'text/csv'
+      })), fetch('/momence-latest-payments-report (3).csv').then(res => res.blob()).then(blob => new File([blob], 'momence-latest-payments-report (3).csv', {
+        type: 'text/csv'
+      }))];
       const defaultFiles = await Promise.all(filePromises);
       console.log('Default files loaded:', defaultFiles.map(f => f.name));
-      
       setFiles(defaultFiles);
-      
+
       // Auto-process the files
       await processDefaultFiles(defaultFiles);
-      
     } catch (error) {
       console.error('Error loading default files:', error);
       toast.error('Could not load default data files');
@@ -130,17 +127,22 @@ const Index = () => {
       console.error('Missing required files for processing');
       return;
     }
-
     setIsProcessing(true);
-    updateProgress({ progress: 0, currentStep: 'Processing default data...' });
-    
+    updateProgress({
+      progress: 0,
+      currentStep: 'Processing default data...'
+    });
     try {
       // Parse CSV files
-      updateProgress({ progress: 10, currentStep: 'Parsing CSV files...' });
+      updateProgress({
+        progress: 10,
+        currentStep: 'Parsing CSV files...'
+      });
       const newFileResult = await parseCSV(categorized.new);
       const bookingsFileResult = await parseCSV(categorized.bookings);
-      
-      let salesFileResult = { data: [] };
+      let salesFileResult = {
+        data: []
+      };
       if (categorized.payments) {
         salesFileResult = await parseCSV(categorized.payments);
       }
@@ -161,13 +163,11 @@ const Index = () => {
       setRawData(initialRawData);
 
       // Process data
-      updateProgress({ progress: 30, currentStep: 'Processing data...' });
-      const result = await processData(
-        newFileResult.data || [], 
-        bookingsFileResult.data || [], 
-        salesFileResult.data || [], 
-        updateProgress
-      );
+      updateProgress({
+        progress: 30,
+        currentStep: 'Processing data...'
+      });
+      const result = await processData(newFileResult.data || [], bookingsFileResult.data || [], salesFileResult.data || [], updateProgress);
 
       // Update state
       setProcessedData(result.processedData || []);
@@ -175,7 +175,6 @@ const Index = () => {
       setLocations(result.locations || []);
       setTeachers(result.teachers || []);
       setPeriods(result.periods || []);
-
       setRawData(prev => ({
         ...prev,
         processingResults: {
@@ -186,13 +185,11 @@ const Index = () => {
           retainedClients: result.retainedClientRecords || []
         }
       }));
-
       setTimeout(() => {
         setIsProcessing(false);
         setResultsVisible(true);
         toast.success('Default data loaded successfully');
       }, 1000);
-      
     } catch (error) {
       console.error('Error processing default files:', error);
       setIsProcessing(false);
@@ -203,21 +200,18 @@ const Index = () => {
   // Load saved data or default files on component mount
   useEffect(() => {
     const savedProcessedData = storageUtils.loadFromStorage(STORAGE_KEYS.PROCESSED_DATA);
-    
     if (savedProcessedData && savedProcessedData.length > 0) {
       // Load from storage
       const savedFilteredData = storageUtils.loadFromStorage(STORAGE_KEYS.FILTERED_DATA);
       const savedLocations = storageUtils.loadFromStorage(STORAGE_KEYS.LOCATIONS);
       const savedTeachers = storageUtils.loadFromStorage(STORAGE_KEYS.TEACHERS);
       const savedPeriods = storageUtils.loadFromStorage(STORAGE_KEYS.PERIODS);
-      
       setProcessedData(savedProcessedData);
       setFilteredData(savedFilteredData || savedProcessedData);
       setLocations(savedLocations || []);
       setTeachers(savedTeachers || []);
       setPeriods(savedPeriods || []);
       setResultsVisible(true);
-      
       console.log('Loaded data from storage');
     } else {
       // Load default files
@@ -247,7 +241,6 @@ const Index = () => {
       toast.error('Please upload files first');
       return;
     }
-
     const categorized = categorizeFiles(files);
     if (!categorized.new) {
       toast.error('Missing New client file. Please upload a file with "new" in the name');
@@ -276,7 +269,6 @@ const Index = () => {
         retainedClients: []
       }
     });
-
     storageUtils.clearStorage(Object.values(STORAGE_KEYS));
     await processDefaultFiles(files);
   }, [files, processDefaultFiles]);
@@ -310,32 +302,26 @@ const Index = () => {
     // Filter by period with proper mapping for quick filters
     if (newFilters.period && newFilters.period !== 'all-periods') {
       // Map quick filter values to actual period names if needed
-      const periodMapping: { [key: string]: string } = {
+      const periodMapping: {
+        [key: string]: string;
+      } = {
         'this-week': 'Week',
         'this-month': 'Month',
         'last-month': 'Last Month',
         'q2-2023': 'Q2 2023',
         'all-time': ''
       };
-      
       const mappedPeriod = periodMapping[newFilters.period] || newFilters.period;
-      
       if (mappedPeriod && mappedPeriod !== 'all-time') {
-        filtered = filtered.filter(item => 
-          item.period && item.period.toLowerCase().includes(mappedPeriod.toLowerCase())
-        );
+        filtered = filtered.filter(item => item.period && item.period.toLowerCase().includes(mappedPeriod.toLowerCase()));
       }
     }
 
     // Filter by search
     if (newFilters.search) {
       const searchLower = newFilters.search.toLowerCase();
-      filtered = filtered.filter(item => 
-        (item.teacherName && item.teacherName.toLowerCase().includes(searchLower)) || 
-        (item.location && item.location.toLowerCase().includes(searchLower))
-      );
+      filtered = filtered.filter(item => item.teacherName && item.teacherName.toLowerCase().includes(searchLower) || item.location && item.location.toLowerCase().includes(searchLower));
     }
-    
     setFilteredData(filtered);
   }, [processedData]);
 
@@ -346,7 +332,6 @@ const Index = () => {
     }, 100);
     return () => clearTimeout(timer);
   }, []);
-
   const hasActiveFilters = Object.values(activeFilters).some(Boolean);
 
   // Clear saved data and reset
@@ -373,54 +358,40 @@ const Index = () => {
     });
     toast.success('Application reset');
   }, []);
-
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/20 relative overflow-hidden">
+  return <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/20 relative overflow-hidden">
       {/* Glassmorphic background elements */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute -top-40 -right-40 w-80 h-80 bg-gradient-to-br from-blue-400/20 to-purple-400/20 rounded-full blur-3xl animate-pulse-soft" />
-        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-gradient-to-br from-indigo-400/20 to-pink-400/20 rounded-full blur-3xl animate-pulse-soft" style={{ animationDelay: '2s' }} />
-        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-gradient-to-br from-cyan-400/10 to-blue-400/10 rounded-full blur-3xl animate-pulse-soft" style={{ animationDelay: '4s' }} />
+        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-gradient-to-br from-indigo-400/20 to-pink-400/20 rounded-full blur-3xl animate-pulse-soft" style={{
+        animationDelay: '2s'
+      }} />
+        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-gradient-to-br from-cyan-400/10 to-blue-400/10 rounded-full blur-3xl animate-pulse-soft" style={{
+        animationDelay: '4s'
+      }} />
       </div>
 
       <header className="border-b border-white/20 bg-white/10 backdrop-blur-xl sticky top-0 z-50 shadow-sm">
         <div className="container flex justify-between items-center py-4">
           <div className="flex items-center space-x-3">
-            <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center shadow-lg">
-              <Sparkles className="w-5 h-5 text-white" />
-            </div>
+            
             <Logo size="md" />
           </div>
           
-          {resultsVisible && (
-            <div className="flex items-center space-x-3">
-              <Button 
-                variant="ghost" 
-                size="sm"
-                onClick={() => setResultsVisible(false)}
-                className="text-slate-600 hover:text-slate-800 hover:bg-white/50 backdrop-blur-sm transition-all duration-300"
-              >
+          {resultsVisible && <div className="flex items-center space-x-3">
+              <Button variant="ghost" size="sm" onClick={() => setResultsVisible(false)} className="text-slate-600 hover:text-slate-800 hover:bg-white/50 backdrop-blur-sm transition-all duration-300">
                 <Database className="w-4 h-4 mr-2" />
                 Load New Data
               </Button>
-              <Button 
-                variant="ghost" 
-                size="sm"
-                onClick={handleResetApp}
-                className="text-red-600 hover:text-red-700 hover:bg-red-50/50 backdrop-blur-sm transition-all duration-300"
-              >
+              <Button variant="ghost" size="sm" onClick={handleResetApp} className="text-red-600 hover:text-red-700 hover:bg-red-50/50 backdrop-blur-sm transition-all duration-300">
                 Reset
               </Button>
-            </div>
-          )}
+            </div>}
         </div>
       </header>
       
       <main id="container" className="container py-8 transition-opacity duration-1000 opacity-0 relative z-10">
-        {!resultsVisible ? (
-          <div className="space-y-8 animate-fade-in">
-            {(isProcessing || isAutoLoading) && (
-              <div className="text-center">
+        {!resultsVisible ? <div className="space-y-8 animate-fade-in">
+            {(isProcessing || isAutoLoading) && <div className="text-center">
                 <div className="inline-flex items-center justify-center h-16 w-16 rounded-2xl bg-gradient-to-br from-blue-500/20 to-indigo-500/20 backdrop-blur-sm border border-white/20 mb-4 animate-pulse-soft">
                   <div className="h-8 w-8 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-500 animate-pulse-soft" />
                 </div>
@@ -430,11 +401,9 @@ const Index = () => {
                 <p className="text-slate-600">
                   {isAutoLoading ? 'Setting up your dashboard with sample data' : 'Please wait while we process your files'}
                 </p>
-              </div>
-            )}
+              </div>}
             
-            {!isProcessing && !isAutoLoading && (
-              <>
+            {!isProcessing && !isAutoLoading && <>
                 <div className="flex flex-col items-center text-center space-y-6">
                   <div className="inline-flex items-center justify-center h-20 w-20 rounded-3xl bg-gradient-to-br from-blue-500/20 to-indigo-500/20 backdrop-blur-sm border border-white/20 mb-4 animate-scale-in">
                     <div className="h-10 w-10 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-500 animate-pulse-soft shadow-lg" />
@@ -452,20 +421,10 @@ const Index = () => {
                 <div className="grid grid-cols-1 gap-8 max-w-4xl mx-auto">
                   <FileUploader onFilesAdded={handleFilesAdded} accept=".csv" maxFiles={10} />
                   
-                  {files.length > 0 && (
-                    <FileList 
-                      files={files} 
-                      onRemove={handleRemoveFile} 
-                      onProcessFiles={handleProcessFiles} 
-                      fileTypes={getFileTypes()} 
-                    />
-                  )}
+                  {files.length > 0 && <FileList files={files} onRemove={handleRemoveFile} onProcessFiles={handleProcessFiles} fileTypes={getFileTypes()} />}
                 </div>
-              </>
-            )}
-          </div>
-        ) : (
-          <div className="space-y-8 animate-fade-in">
+              </>}
+          </div> : <div className="space-y-8 animate-fade-in">
             <Collapsible open={isInsightsOpen} onOpenChange={setIsInsightsOpen} className="w-full">
               <div className="bg-gradient-to-r from-white/70 to-blue-50/70 backdrop-blur-xl rounded-2xl border border-white/20 p-6 shadow-xl">
                 <div className="flex items-center justify-between">
@@ -489,62 +448,33 @@ const Index = () => {
             
             <Tabs defaultValue="analytics" value={activeTab} onValueChange={setActiveTab}>
               <TabsList className="bg-white/70 backdrop-blur-xl border border-white/20 shadow-lg rounded-2xl p-1">
-                <TabsTrigger 
-                  value="analytics" 
-                  className="flex items-center gap-3 data-[state=active]:bg-white data-[state=active]:shadow-md rounded-xl transition-all duration-300"
-                >
+                <TabsTrigger value="analytics" className="flex items-center gap-3 data-[state=active]:bg-white data-[state=active]:shadow-md rounded-xl transition-all duration-300">
                   <BarChart className="h-4 w-4" />
                   <span className="font-medium">Analytics Dashboard</span>
                 </TabsTrigger>
-                <TabsTrigger 
-                  value="raw-data" 
-                  className="flex items-center gap-3 data-[state=active]:bg-white data-[state=active]:shadow-md rounded-xl transition-all duration-300"
-                >
+                <TabsTrigger value="raw-data" className="flex items-center gap-3 data-[state=active]:bg-white data-[state=active]:shadow-md rounded-xl transition-all duration-300">
                   <FileText className="h-4 w-4" />
                   <span className="font-medium">Raw Data & Processing</span>
                 </TabsTrigger>
               </TabsList>
               
               <TabsContent value="analytics" className="mt-6 space-y-6">
-                <FilterBar 
-                  locations={locations} 
-                  teachers={teachers} 
-                  periods={periods} 
-                  activeViewMode={viewMode} 
-                  activeDataMode={dataMode} 
-                  onViewModeChange={setViewMode} 
-                  onDataModeChange={setDataMode} 
-                  onFilterChange={handleFilterChange} 
-                  initialSearch={activeFilters.search} 
-                />
+                <FilterBar locations={locations} teachers={teachers} periods={periods} activeViewMode={viewMode} activeDataMode={dataMode} onViewModeChange={setViewMode} onDataModeChange={setDataMode} onFilterChange={handleFilterChange} initialSearch={activeFilters.search} />
                 
-                <ResultsTable 
-                  data={filteredData} 
-                  locations={locations} 
-                  isLoading={false} 
-                  viewMode={viewMode} 
-                  dataMode={dataMode} 
-                  onFilterChange={handleFilterChange} 
-                />
+                <ResultsTable data={filteredData} locations={locations} isLoading={false} viewMode={viewMode} dataMode={dataMode} onFilterChange={handleFilterChange} />
               </TabsContent>
               
               <TabsContent value="raw-data" className="mt-6">
-                <RawDataView 
-                  newClientData={rawData.newClientData || []} 
-                  bookingsData={rawData.bookingsData || []} 
-                  paymentsData={rawData.paymentsData || []} 
-                  processingResults={rawData.processingResults || {
-                    included: [],
-                    excluded: [],
-                    newClients: [],
-                    convertedClients: [],
-                    retainedClients: []
-                  }} 
-                />
+                <RawDataView newClientData={rawData.newClientData || []} bookingsData={rawData.bookingsData || []} paymentsData={rawData.paymentsData || []} processingResults={rawData.processingResults || {
+              included: [],
+              excluded: [],
+              newClients: [],
+              convertedClients: [],
+              retainedClients: []
+            }} />
               </TabsContent>
             </Tabs>
-          </div>
-        )}
+          </div>}
       </main>
 
       <ProcessingLoader isProcessing={isProcessing || isAutoLoading} progress={progress} currentStep={currentStep} />
@@ -556,8 +486,6 @@ const Index = () => {
           </p>
         </div>
       </footer>
-    </div>
-  );
+    </div>;
 };
-
 export default Index;
