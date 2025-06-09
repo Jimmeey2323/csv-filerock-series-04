@@ -1,3 +1,4 @@
+
 import { formatDateString, getMonthYearFromDate, cleanFirstVisitValue, matchesPattern, isDateAfter, parseDate } from './csvParser';
 
 // Define types for our data structures
@@ -86,7 +87,13 @@ export interface ProcessedTeacherData {
   influencerConversionRate: number;
   referralConversionRate: number;
   trialToMembershipConversion: number;
-  // Added for detailed analysis
+  // Added missing properties for detailed analysis
+  totalVisits: number;
+  cancellations: number;
+  lateCancellations: number;
+  noShows: number;
+  totalClasses: number;
+  uniqueClients: number;
   newClientDetails: ClientDetail[];
   retainedClientDetails: ClientDetail[];
   convertedClientDetails: ClientDetail[];
@@ -273,6 +280,31 @@ export const processData = (
                       reason: "First time visitor"
                     });
                   });
+                  
+                  // Calculate booking metrics for this teacher, location, and period
+                  const teacherBookings = cleanedBookingsData.filter(booking => 
+                    booking['Teacher'] === teacher &&
+                    booking['Location'] === location &&
+                    getMonthYearFromDate(booking['Class Date']) === period
+                  );
+
+                  const totalVisits = teacherBookings.filter(booking => 
+                    booking['Cancelled'] === 'NO' && 
+                    booking['Late Cancelled'] === 'NO' && 
+                    booking['No Show'] === 'NO'
+                  ).length;
+
+                  const cancellations = teacherBookings.filter(booking => booking['Cancelled'] === 'YES').length;
+                  const lateCancellations = teacherBookings.filter(booking => booking['Late Cancelled'] === 'YES').length;
+                  const noShows = teacherBookings.filter(booking => booking['No Show'] === 'YES').length;
+                  
+                  // Get unique classes taught
+                  const uniqueClassNames = [...new Set(teacherBookings.map(booking => booking['Class Name']))];
+                  const totalClasses = uniqueClassNames.length;
+                  
+                  // Get unique clients who visited
+                  const uniqueClientEmails = [...new Set(teacherBookings.map(booking => booking['Customer Email']))];
+                  const uniqueClients = uniqueClientEmails.length;
                   
                   // Calculate client acquisition metrics
                   const newClientsCount = teacherNewClients.length;
@@ -527,19 +559,11 @@ export const processData = (
                     ? totalRevenue / convertedClientsCount 
                     : 0;
                   
-                  // Calculate booking metrics
-                  const teacherBookings = cleanedBookingsData.filter(booking => 
-                    booking['Teacher'] === teacher &&
-                    booking['Location'] === location &&
-                    getMonthYearFromDate(booking['Class Date']) === period
-                  );
-                  
-                  const noShows = teacherBookings.filter(booking => booking['No Show'] === 'YES').length;
+                  // Calculate rates
                   const noShowRate = teacherBookings.length > 0 
                     ? (noShows / teacherBookings.length) * 100 
                     : 0;
                   
-                  const lateCancellations = teacherBookings.filter(booking => booking['Late Cancelled'] === 'YES').length;
                   const lateCancellationRate = teacherBookings.length > 0 
                     ? (lateCancellations / teacherBookings.length) * 100 
                     : 0;
@@ -648,6 +672,13 @@ export const processData = (
                     influencerConversionRate,
                     referralConversionRate,
                     trialToMembershipConversion,
+                    // Added missing properties
+                    totalVisits,
+                    cancellations,
+                    lateCancellations,
+                    noShows,
+                    totalClasses,
+                    uniqueClients,
                     newClientDetails,
                     retainedClientDetails,
                     convertedClientDetails,
@@ -679,6 +710,13 @@ export const processData = (
                       influencerConversionRate: 0,
                       referralConversionRate: 0,
                       trialToMembershipConversion: 0,
+                      // Added missing properties with initial values
+                      totalVisits: 0,
+                      cancellations: 0,
+                      lateCancellations: 0,
+                      noShows: 0,
+                      totalClasses: 0,
+                      uniqueClients: 0,
                       newClientDetails: [],
                       retainedClientDetails: [],
                       convertedClientDetails: [],
@@ -698,6 +736,14 @@ export const processData = (
                   studio.retainedClients += retainedClientsCount;
                   studio.convertedClients += convertedClientsCount;
                   studio.totalRevenue += totalRevenue;
+                  
+                  // Add the new metrics to studio totals
+                  studio.totalVisits += totalVisits;
+                  studio.cancellations += cancellations;
+                  studio.lateCancellations += lateCancellations;
+                  studio.noShows += noShows;
+                  studio.totalClasses += totalClasses;
+                  studio.uniqueClients += uniqueClients;
                   
                   // Combine client details
                   studio.newClientDetails = [...studio.newClientDetails, ...newClientDetails];
