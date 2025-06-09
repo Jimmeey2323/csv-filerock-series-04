@@ -6,6 +6,7 @@ import ProcessingLoader from '@/components/ProcessingLoader';
 import FilterBar from '@/components/FilterBar';
 import ResultsTable from '@/components/ResultsTable';
 import RawDataView from '@/components/RawDataView';
+import TrainerAnalytics from '@/components/TrainerAnalytics';
 import { parseCSV, categorizeFiles, getFileTypes } from '@/utils/csvParser';
 import { processData, ProcessedTeacherData, ProcessingProgress } from '@/utils/dataProcessor';
 import { deduplicateClientsByEmail } from '@/utils/deduplication';
@@ -13,7 +14,7 @@ import Logo from '@/components/Logo';
 import AIInsights from '@/components/AIInsights';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { ChevronDown, ChevronUp, FileText, Table, BarChart } from 'lucide-react';
+import { ChevronDown, ChevronUp, FileText, Table, BarChart, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 // Local storage keys
@@ -424,6 +425,10 @@ const Index = () => {
                   <BarChart className="h-4 w-4" />
                   <span>Analytics Dashboard</span>
                 </TabsTrigger>
+                <TabsTrigger value="trainer-analytics" className="flex items-center gap-2">
+                  <Users className="h-4 w-4" />
+                  <span>Trainer Analytics</span>
+                </TabsTrigger>
                 <TabsTrigger value="raw-data" className="flex items-center gap-2">
                   <FileText className="h-4 w-4" />
                   <span>Raw Data & Processing</span>
@@ -436,6 +441,13 @@ const Index = () => {
                   
                   <ResultsTable data={filteredData} locations={locations} isLoading={false} viewMode={viewMode} dataMode={dataMode} onFilterChange={handleFilterChange} />
                 </div>
+              </TabsContent>
+              
+              <TabsContent value="trainer-analytics" className="mt-0">
+                <TrainerAnalytics 
+                  bookingsData={rawData.bookingsData || []} 
+                  processedData={processedData}
+                />
               </TabsContent>
               
               <TabsContent value="raw-data" className="mt-0">
