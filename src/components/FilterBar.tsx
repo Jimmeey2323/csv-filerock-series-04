@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Search, Calendar, MapPin, User, Filter, BarChart3, ArrowDownUp, Columns, Grid, List, Store, X, Clock, Database, ChevronDown } from 'lucide-react';
+import { Search, Calendar, MapPin, User, Filter, BarChart3, ArrowDownUp, Columns, Grid, List, Store, X, Clock, Database, ChevronDown, TrendingUp, Users, Target } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import CommandSearchInput from '@/components/ui/command-input';

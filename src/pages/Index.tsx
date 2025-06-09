@@ -6,6 +6,8 @@ import ProcessingLoader from '@/components/ProcessingLoader';
 import FilterBar from '@/components/FilterBar';
 import ResultsTable from '@/components/ResultsTable';
 import RawDataView from '@/components/RawDataView';
+import MonthlyMetricsView from '@/components/MonthlyMetricsView';
+import PerformanceInsightsView from '@/components/PerformanceInsightsView';
 import { parseCSV, categorizeFiles, getFileTypes } from '@/utils/csvParser';
 import { processData, ProcessedTeacherData, ProcessingProgress } from '@/utils/dataProcessor';
 import { deduplicateClientsByEmail } from '@/utils/deduplication';
@@ -13,7 +15,7 @@ import Logo from '@/components/Logo';
 import AIInsights from '@/components/AIInsights';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { ChevronDown, ChevronUp, FileText, Table, BarChart } from 'lucide-react';
+import { ChevronDown, ChevronUp, FileText, Table, BarChart, TrendingUp, Target } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 // Local storage keys
@@ -424,6 +426,14 @@ const Index = () => {
                   <BarChart className="h-4 w-4" />
                   <span>Analytics Dashboard</span>
                 </TabsTrigger>
+                <TabsTrigger value="monthly-metrics" className="flex items-center gap-2">
+                  <TrendingUp className="h-4 w-4" />
+                  <span>Monthly Metrics</span>
+                </TabsTrigger>
+                <TabsTrigger value="performance-insights" className="flex items-center gap-2">
+                  <Target className="h-4 w-4" />
+                  <span>Performance Insights</span>
+                </TabsTrigger>
                 <TabsTrigger value="raw-data" className="flex items-center gap-2">
                   <FileText className="h-4 w-4" />
                   <span>Raw Data & Processing</span>
@@ -436,6 +446,14 @@ const Index = () => {
                   
                   <ResultsTable data={filteredData} locations={locations} isLoading={false} viewMode={viewMode} dataMode={dataMode} onFilterChange={handleFilterChange} />
                 </div>
+              </TabsContent>
+
+              <TabsContent value="monthly-metrics" className="mt-0">
+                <MonthlyMetricsView data={filteredData} />
+              </TabsContent>
+
+              <TabsContent value="performance-insights" className="mt-0">
+                <PerformanceInsightsView data={filteredData} />
               </TabsContent>
               
               <TabsContent value="raw-data" className="mt-0">
