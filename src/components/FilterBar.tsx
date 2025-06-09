@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Search, Calendar, MapPin, User, Filter, BarChart3, ArrowDownUp, Columns, Grid, List, Store, X, Clock, Database, ChevronDown, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -12,6 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { cn } from '@/lib/utils';
 
 interface FilterBarProps {
   locations: string[];
