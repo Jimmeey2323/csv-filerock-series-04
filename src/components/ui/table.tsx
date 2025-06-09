@@ -8,16 +8,17 @@ const Table = React.forwardRef<
   React.HTMLAttributes<HTMLTableElement> & { maxHeight?: string }
 >(({ className, maxHeight = "600px", ...props }, ref) => (
   <div className={cn(
-    "relative w-full overflow-hidden rounded-2xl shadow-luxury border border-white/20",
-    "bg-gradient-to-br from-white/80 via-white/70 to-white/60 backdrop-blur-xl"
+    "relative w-full overflow-hidden rounded-2xl shadow-xl border border-white/10",
+    "bg-white/70 backdrop-blur-md",
+    "before:absolute before:inset-0 before:rounded-2xl before:p-[1px]",
+    "before:bg-gradient-to-br before:from-slate-200/30 before:via-white/20 before:to-slate-200/30",
+    "before:mask-composite:subtract before:[mask:linear-gradient(#fff_0_0)_content-box,linear-gradient(#fff_0_0)]",
+    `max-h-[${maxHeight}]`
   )}>
-    <div className={cn(
-      "relative overflow-auto rounded-2xl bg-white/20 backdrop-blur-sm border border-white/10",
-      `max-h-[${maxHeight}]`
-    )}>
+    <div className="relative overflow-auto rounded-2xl bg-white/30 backdrop-blur-sm border border-white/10">
       <table
         ref={ref}
-        className={cn("w-full caption-bottom text-sm table-fixed", className)}
+        className={cn("w-full caption-bottom text-sm", className)}
         {...props}
       />
     </div>
@@ -33,9 +34,9 @@ const TableHeader = React.forwardRef<
     ref={ref} 
     className={cn(
       "sticky top-0 z-30",
-      "bg-gradient-to-r from-slate-900/98 via-slate-800/98 to-slate-900/98",
-      "backdrop-blur-xl border-b border-white/30",
-      "shadow-lg",
+      "bg-gradient-to-r from-slate-800/95 via-slate-700/95 to-slate-800/95",
+      "backdrop-blur-sm border-b border-white/20",
+      "shadow-sm",
       "[&_tr]:border-b-0",
       className
     )} 
@@ -53,9 +54,8 @@ const TableBody = React.forwardRef<
     className={cn(
       "[&_tr:last-child]:border-0",
       "[&_tr]:transition-all [&_tr]:duration-300 [&_tr]:ease-out",
-      "[&_tr:hover]:bg-gradient-to-r [&_tr:hover]:from-blue-50/60 [&_tr:hover]:to-blue-100/40",
-      "[&_tr:hover]:backdrop-blur-sm [&_tr:hover]:shadow-md [&_tr:hover]:border-blue-200/50",
-      "[&_tr:hover]:scale-[1.002]",
+      "[&_tr:hover]:bg-blue-50/40 [&_tr:hover]:backdrop-blur-sm",
+      "[&_tr:hover]:shadow-sm [&_tr:hover]:border-blue-200/30",
       className
     )}
     {...props}
@@ -71,10 +71,11 @@ const TableFooter = React.forwardRef<
     ref={ref}
     className={cn(
       "sticky bottom-0 z-30",
-      "bg-gradient-to-r from-slate-900/98 via-slate-800/98 to-slate-900/98",
-      "backdrop-blur-xl text-white font-bold shadow-lg border-t border-white/30",
+      "bg-gradient-to-r from-slate-800/95 via-slate-700/95 to-slate-800/95",
+      "backdrop-blur-sm text-white font-semibold",
+      "shadow-sm border-t border-white/20",
       "[&>tr]:last:border-b-0",
-      isClickable && "cursor-pointer hover:from-slate-800/98 hover:to-slate-700/98 transition-all duration-300",
+      isClickable && "cursor-pointer hover:from-slate-700/95 hover:to-slate-600/95 transition-all duration-300",
       className
     )}
     {...props}
@@ -93,23 +94,21 @@ const TableRow = React.forwardRef<
   <tr
     ref={ref}
     className={cn(
-      "border-b border-slate-200/20 transition-all duration-300 h-14 relative group",
+      "border-b border-slate-200/30 transition-all duration-300 h-14 relative group",
       "hover:border-slate-300/40",
       isClickable && cn(
         "cursor-pointer",
-        "hover:bg-gradient-to-r hover:from-blue-50/50 hover:to-blue-100/30",
-        "hover:backdrop-blur-sm hover:shadow-md hover:border-blue-200/50",
-        "active:scale-[0.998]"
+        "hover:bg-blue-50/30 hover:backdrop-blur-sm",
+        "hover:shadow-sm hover:border-blue-200/40",
+        "active:scale-[0.999]"
       ),
       isSubtotal && cn(
-        "bg-gradient-to-r from-slate-100/80 via-slate-50/80 to-slate-100/80",
-        "backdrop-blur-md font-bold border-slate-300/60 shadow-md",
-        "text-slate-800"
+        "bg-slate-50/50 backdrop-blur-sm",
+        "font-semibold border-slate-300/40 shadow-sm"
       ),
       isGroupHeader && cn(
-        "bg-gradient-to-r from-blue-100/90 via-blue-50/80 to-blue-100/90",
-        "backdrop-blur-md font-bold text-blue-900 border-l-4 border-l-blue-600/80",
-        "shadow-lg border-b-2 border-b-blue-200/60"
+        "bg-blue-50/40 backdrop-blur-sm",
+        "font-bold text-blue-900 border-l-4 border-l-blue-500/60"
       ),
       className
     )}
@@ -129,12 +128,12 @@ const TableHead = React.forwardRef<HTMLTableCellElement, TableHeadProps>(
     <th
       ref={ref}
       className={cn(
-        "h-16 px-6 py-4 text-left align-middle font-bold text-white/98 tracking-wide",
+        "h-14 px-6 py-4 text-left align-middle font-bold text-white/95 tracking-wide",
         "whitespace-nowrap [&:has([role=checkbox])]:pr-0 text-sm uppercase",
-        "transition-all duration-300 relative group border-r border-white/10 last:border-r-0",
+        "transition-all duration-300 relative group",
         sortable && cn(
           "cursor-pointer select-none",
-          "hover:bg-white/10 hover:text-white hover:shadow-lg",
+          "hover:bg-white/10 hover:text-white",
           "active:scale-[0.98]"
         ),
         className
@@ -151,7 +150,7 @@ const TableHead = React.forwardRef<HTMLTableCellElement, TableHeadProps>(
             ) : sortDirection === 'desc' ? (
               <ChevronDown className="h-4 w-4 text-blue-300" />
             ) : (
-              <ChevronsUpDown className="h-4 w-4 text-white/50 group-hover:text-white/80" />
+              <ChevronsUpDown className="h-4 w-4 text-white/40 group-hover:text-white/70" />
             )}
           </div>
         )}
@@ -168,10 +167,9 @@ const TableCell = React.forwardRef<
   <td
     ref={ref}
     className={cn(
-      "px-6 py-4 align-middle overflow-hidden text-ellipsis",
+      "px-6 py-4 align-middle whitespace-nowrap overflow-hidden text-ellipsis",
       "[&:has([role=checkbox])]:pr-0 font-medium text-slate-800",
       "transition-all duration-300 group-hover:text-slate-900",
-      "border-r border-slate-200/10 last:border-r-0",
       className
     )}
     {...props}
@@ -187,7 +185,7 @@ const TableCaption = React.forwardRef<
     ref={ref}
     className={cn(
       "mt-6 text-sm text-slate-600 italic font-medium",
-      "bg-white/60 backdrop-blur-md rounded-xl px-6 py-4 border border-white/40 shadow-lg",
+      "bg-white/50 backdrop-blur-sm rounded-xl px-6 py-4 border border-white/30 shadow-sm",
       className
     )}
     {...props}
