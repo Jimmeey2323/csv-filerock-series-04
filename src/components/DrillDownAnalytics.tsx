@@ -1,5 +1,4 @@
-
-import React from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
@@ -60,9 +59,9 @@ const DrillDownAnalytics: React.FC<DrillDownAnalyticsProps> = ({
   type,
   metricType = 'all'
 }) => {
-  const [activeTab, setActiveTab] = React.useState('overview');
-  const [sortColumn, setSortColumn] = React.useState<string | null>(null);
-  const [sortDirection, setSortDirection] = React.useState<'asc' | 'desc'>('asc');
+  const [activeTab, setActiveTab] = useState('overview');
+  const [sortColumn, setSortColumn] = useState<string | null>(null);
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
 
   React.useEffect(() => {
     if (metricType === 'conversion') {
@@ -76,7 +75,7 @@ const DrillDownAnalytics: React.FC<DrillDownAnalyticsProps> = ({
   
   if (!data) return null;
 
-  const getEntityLabel = () => {
+  const getEntityLabel = useCallback(() => {
     switch (type) {
       case 'teacher':
         return `Teacher: ${data.teacherName}`;
@@ -91,21 +90,21 @@ const DrillDownAnalytics: React.FC<DrillDownAnalyticsProps> = ({
       default:
         return data.teacherName;
     }
-  };
+  }, [type, data]);
   
-  const handleSort = (column: string) => {
+  const handleSort = useCallback((column: string) => {
     if (sortColumn === column) {
       setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
     } else {
       setSortColumn(column);
       setSortDirection('asc');
     }
-  };
+  }, [sortColumn, sortDirection]);
   
-  const sortData = (data: any[]) => {
-    if (!sortColumn || !data || data.length === 0) return data;
+  const sortData = useCallback((dataToSort: any[]) => {
+    if (!sortColumn || !dataToSort || dataToSort.length === 0) return dataToSort;
     
-    return [...data].sort((a, b) => {
+    return [...dataToSort].sort((a, b) => {
       const valueA = a[sortColumn];
       const valueB = b[sortColumn];
       
@@ -133,9 +132,9 @@ const DrillDownAnalytics: React.FC<DrillDownAnalyticsProps> = ({
       
       return 0;
     });
-  };
+  }, [sortColumn, sortDirection]);
   
-  const getConversionSpan = (client: any) => {
+  const getConversionSpan = useCallback((client: any) => {
     const firstVisit = client.firstVisit || client.date;
     const firstPurchase = client.firstPurchaseDate || client.purchaseDate;
     
@@ -144,145 +143,450 @@ const DrillDownAnalytics: React.FC<DrillDownAnalyticsProps> = ({
       return days;
     }
     return null;
-  };
+  }, []);
   
-  const renderClientTable = (clients: any[], title: string) => {
+  const renderClientTable = useCallback((clients: any[], title: string) => {
     const sortedClients = sortData(clients);
     
     return (
-      <Card className="w-full shadow-xl border-0 bg-gradient-to-br from-white via-white to-slate-50/30 backdrop-blur-xl overflow-hidden">
-        <CardHeader className="pb-4 bg-gradient-to-r from-slate-900/95 to-slate-800/95 text-white border-b-0">
+      <Card className="w-full shadow-xl border bg-white overflow-hidden">
+        <CardHeader className="pb-4 bg-slate-900 text-white">
           <CardTitle className="text-lg flex items-center gap-3">
             {title.includes('Converted') ? <Award className="h-5 w-5 text-emerald-400" /> : 
              title.includes('Retained') ? <Check className="h-5 w-5 text-blue-400" /> :
              title.includes('Excluded') ? <X className="h-5 w-5 text-red-400" /> :
-             <UserRound className="h-5 w-5 text-primary" />}
-            <span className="font-bold">{title}</span>
+             <UserRound className="h-5 w-5 text-blue-400" />}
+            <span className="font-bold text-white">{title}</span>
             <Badge variant="secondary" className="ml-auto bg-white/20 text-white border-white/30">
               {sortedClients.length} {title.toLowerCase()}
             </Badge>
           </CardTitle>
         </CardHeader>
-        <CardContent className="p-0">
-          <div className="max-h-[500px] overflow-auto">
-            <Table>
-              <TableHeader>
-                <TableRow className="border-b border-slate-200/50 bg-slate-50/50 hover:bg-slate-50/50">
-                  <TableHead sortable sortDirection={sortColumn === 'name' ? sortDirection : undefined} onSort={() => handleSort('name')} className="text-slate-700 font-semibold">
-                    Name
-                  </TableHead>
-                  <TableHead sortable sortDirection={sortColumn === 'email' ? sortDirection : undefined} onSort={() => handleSort('email')} className="text-slate-700 font-semibold">
-                    Email
-                  </TableHead>
-                  <TableHead sortable sortDirection={sortColumn === 'firstVisit' ? sortDirection : undefined} onSort={() => handleSort('firstVisit')} className="text-slate-700 font-semibold">
-                    First Visit
-                  </TableHead>
-                  {(title.includes('Converted') || title.includes('New')) && <>
-                    <TableHead sortable sortDirection={sortColumn === 'firstPurchaseDate' ? sortDirection : undefined} onSort={() => handleSort('firstPurchaseDate')} className="text-slate-700 font-semibold">
-                      First Purchase Date
+        <CardContent className="p-0 bg-white">
+          <ScrollArea className="h-[500px] w-full">
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader className="sticky top-0 bg-slate-50 z-10">
+                  <TableRow className="border-b border-slate-200">
+                    <TableHead 
+                      sortable 
+                      sortDirection={sortColumn === 'name' ? sortDirection : undefined} 
+                      onSort={() => handleSort('name')} 
+                      className="text-slate-900 font-semibold bg-slate-50 min-w-[150px]"
+                    >
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span>Name</span>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>Client's full name</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
                     </TableHead>
-                    <TableHead sortable sortDirection={sortColumn === 'firstPurchaseItem' ? sortDirection : undefined} onSort={() => handleSort('firstPurchaseItem')} className="text-slate-700 font-semibold">
-                      First Purchase Item
+                    <TableHead 
+                      sortable 
+                      sortDirection={sortColumn === 'email' ? sortDirection : undefined} 
+                      onSort={() => handleSort('email')} 
+                      className="text-slate-900 font-semibold bg-slate-50 min-w-[200px]"
+                    >
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span>Email</span>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>Client's email address</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
                     </TableHead>
-                    <TableHead sortable sortDirection={sortColumn === 'purchaseValue' ? sortDirection : undefined} onSort={() => handleSort('purchaseValue')} className="text-slate-700 font-semibold">
-                      Purchase Value
+                    <TableHead 
+                      sortable 
+                      sortDirection={sortColumn === 'firstVisit' ? sortDirection : undefined} 
+                      onSort={() => handleSort('firstVisit')} 
+                      className="text-slate-900 font-semibold bg-slate-50 min-w-[120px]"
+                    >
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span>First Visit</span>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>Date of first studio visit</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
                     </TableHead>
-                    <TableHead sortable sortDirection={sortColumn === 'conversionSpan' ? sortDirection : undefined} onSort={() => handleSort('conversionSpan')} className="text-slate-700 font-semibold">
-                      Conversion Span (days)
-                    </TableHead>
-                  </>}
-                  {title.includes('Retained') && <>
-                    <TableHead sortable sortDirection={sortColumn === 'visitsPostTrial' ? sortDirection : undefined} onSort={() => handleSort('visitsPostTrial')} className="text-slate-700 font-semibold">
-                      Total Visits Post Trial
-                    </TableHead>
-                    <TableHead sortable sortDirection={sortColumn === 'firstVisitPostTrial' ? sortDirection : undefined} onSort={() => handleSort('firstVisitPostTrial')} className="text-slate-700 font-semibold">
-                      First Visit Post Trial
-                    </TableHead>
-                    <TableHead sortable sortDirection={sortColumn === 'membershipUsed' ? sortDirection : undefined} onSort={() => handleSort('membershipUsed')} className="text-slate-700 font-semibold">
-                      Membership Used
-                    </TableHead>
-                  </>}
-                  {title.includes('Excluded') && (
-                    <TableHead sortable sortDirection={sortColumn === 'reason' ? sortDirection : undefined} onSort={() => handleSort('reason')} className="text-slate-700 font-semibold">
-                      Exclusion Reason
-                    </TableHead>
-                  )}
-                  {title.includes('New') && !title.includes('Converted') && (
-                    <TableHead sortable sortDirection={sortColumn === 'reason' ? sortDirection : undefined} onSort={() => handleSort('reason')} className="text-slate-700 font-semibold">
-                      Inclusion Reason
-                    </TableHead>
-                  )}
-                  <TableHead className="text-slate-700 font-semibold">Status</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {sortedClients.map((client, idx) => {
-                  const conversionSpan = getConversionSpan(client);
-                  
-                  return (
-                    <TableRow key={`${client.email}-${idx}`} className="animate-fade-in border-b border-slate-100/50 hover:bg-gradient-to-r hover:from-blue-50/30 hover:to-indigo-50/20 transition-all duration-300" style={{ animationDelay: `${idx * 30}ms` }}>
-                      <TableCell className="font-medium text-slate-800">{client.name || client.customerName || 'N/A'}</TableCell>
-                      <TableCell className="text-slate-600">{client.email || 'N/A'}</TableCell>
-                      <TableCell className="text-slate-600">{safeFormatDate(client.firstVisit || client.date)}</TableCell>
-                      {(title.includes('Converted') || title.includes('New')) && <>
-                        <TableCell className="font-medium text-emerald-700">
-                          {safeFormatDate(client.firstPurchaseDate || client.purchaseDate || client.date)}
+                    {(title.includes('Converted') || title.includes('New')) && <>
+                      <TableHead 
+                        sortable 
+                        sortDirection={sortColumn === 'firstPurchaseDate' ? sortDirection : undefined} 
+                        onSort={() => handleSort('firstPurchaseDate')} 
+                        className="text-slate-900 font-semibold bg-slate-50 min-w-[140px]"
+                      >
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <span>First Purchase</span>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>Date of first purchase/membership</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      </TableHead>
+                      <TableHead 
+                        sortable 
+                        sortDirection={sortColumn === 'firstPurchaseItem' ? sortDirection : undefined} 
+                        onSort={() => handleSort('firstPurchaseItem')} 
+                        className="text-slate-900 font-semibold bg-slate-50 min-w-[150px]"
+                      >
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <span>Purchase Item</span>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>Type of membership or service purchased</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      </TableHead>
+                      <TableHead 
+                        sortable 
+                        sortDirection={sortColumn === 'purchaseValue' ? sortDirection : undefined} 
+                        onSort={() => handleSort('purchaseValue')} 
+                        className="text-slate-900 font-semibold bg-slate-50 min-w-[120px]"
+                      >
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <span>Value</span>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>Purchase amount in currency</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      </TableHead>
+                      <TableHead 
+                        sortable 
+                        sortDirection={sortColumn === 'conversionSpan' ? sortDirection : undefined} 
+                        onSort={() => handleSort('conversionSpan')} 
+                        className="text-slate-900 font-semibold bg-slate-50 min-w-[140px]"
+                      >
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <span>Conversion Days</span>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>Days between first visit and purchase</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      </TableHead>
+                    </>}
+                    {title.includes('Retained') && <>
+                      <TableHead 
+                        sortable 
+                        sortDirection={sortColumn === 'visitsPostTrial' ? sortDirection : undefined} 
+                        onSort={() => handleSort('visitsPostTrial')} 
+                        className="text-slate-900 font-semibold bg-slate-50 min-w-[120px]"
+                      >
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <span>Post-Trial Visits</span>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>Number of visits after trial period</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      </TableHead>
+                      <TableHead 
+                        sortable 
+                        sortDirection={sortColumn === 'firstVisitPostTrial' ? sortDirection : undefined} 
+                        onSort={() => handleSort('firstVisitPostTrial')} 
+                        className="text-slate-900 font-semibold bg-slate-50 min-w-[140px]"
+                      >
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <span>First Post-Trial</span>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>Date of first visit after trial</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      </TableHead>
+                      <TableHead 
+                        sortable 
+                        sortDirection={sortColumn === 'membershipUsed' ? sortDirection : undefined} 
+                        onSort={() => handleSort('membershipUsed')} 
+                        className="text-slate-900 font-semibold bg-slate-50 min-w-[140px]"
+                      >
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <span>Membership Type</span>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>Type of membership being used</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      </TableHead>
+                    </>}
+                    {title.includes('Excluded') && (
+                      <TableHead 
+                        sortable 
+                        sortDirection={sortColumn === 'reason' ? sortDirection : undefined} 
+                        onSort={() => handleSort('reason')} 
+                        className="text-slate-900 font-semibold bg-slate-50 min-w-[200px]"
+                      >
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <span>Exclusion Reason</span>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>Reason why client was excluded from analysis</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      </TableHead>
+                    )}
+                    {title.includes('New') && !title.includes('Converted') && (
+                      <TableHead 
+                        sortable 
+                        sortDirection={sortColumn === 'reason' ? sortDirection : undefined} 
+                        onSort={() => handleSort('reason')} 
+                        className="text-slate-900 font-semibold bg-slate-50 min-w-[200px]"
+                      >
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <span>Inclusion Reason</span>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>Reason for including this client as new</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      </TableHead>
+                    )}
+                    <TableHead className="text-slate-900 font-semibold bg-slate-50 min-w-[100px]">Status</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {sortedClients.map((client, idx) => {
+                    const conversionSpan = getConversionSpan(client);
+                    
+                    return (
+                      <TableRow 
+                        key={`${client.email}-${idx}`} 
+                        className="border-b border-slate-100 hover:bg-blue-50/50 transition-colors duration-200"
+                      >
+                        <TableCell className="font-medium text-slate-900 bg-white">
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <span className="cursor-help">{client.name || client.customerName || 'N/A'}</span>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>Full name: {client.name || client.customerName || 'Not available'}</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
                         </TableCell>
-                        <TableCell className="text-slate-600">{client.firstPurchaseItem || client.purchaseItem || client.membershipType || 'N/A'}</TableCell>
-                        <TableCell className="font-semibold text-green-700">{client.purchaseValue || client.value ? safeFormatCurrency(client.purchaseValue || client.value) : 'N/A'}</TableCell>
-                        <TableCell>
-                          <div className="flex items-center text-slate-600">
-                            <Clock className="h-3 w-3 mr-1 text-muted-foreground" />
-                            {conversionSpan !== null ? `${conversionSpan} days` : 'N/A'}
-                          </div>
+                        <TableCell className="text-slate-700 bg-white">
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <span className="cursor-help">{client.email || 'N/A'}</span>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>Contact: {client.email || 'No email provided'}</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
                         </TableCell>
-                      </>}
-                      {title.includes('Retained') && <>
-                        <TableCell className="text-slate-600">{client.visitsPostTrial || client.visitCount || client.totalVisitsPostTrial || '0'}</TableCell>
-                        <TableCell className="text-slate-600">{safeFormatDate(client.firstVisitPostTrial || 'N/A')}</TableCell>
-                        <TableCell className="text-slate-600">{client.membershipUsed || client.membershipType || 'N/A'}</TableCell>
-                      </>}
-                      {title.includes('Excluded') && (
-                        <TableCell className="text-red-600 font-medium">{client.reason || 'No reason specified'}</TableCell>
-                      )}
-                      {title.includes('New') && !title.includes('Converted') && (
-                        <TableCell className="text-blue-600 font-medium">{client.reason || 'First time visitor'}</TableCell>
-                      )}
-                      <TableCell>
-                        <Badge 
-                          variant={title.includes('Converted') ? 'conversion' : 
-                                 title.includes('Retained') ? 'retention' : 
-                                 title.includes('Excluded') ? 'excluded' : 'modern'}
-                          className="animate-scale-in flex items-center gap-1 shadow-sm"
-                        >
-                          {title.includes('Converted') ? <Award className="h-3 w-3" /> : 
-                           title.includes('Retained') ? <Check className="h-3 w-3" /> : 
-                           title.includes('Excluded') ? <X className="h-3 w-3" /> :
-                           <UserRound className="h-3 w-3" />}
-                          {title.includes('Converted') ? 'Converted' : 
-                           title.includes('Retained') ? 'Retained' : 
-                           title.includes('Excluded') ? 'Excluded' : 'New'}
-                        </Badge>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-              <TableFooter>
-                <TableRow className="bg-gradient-to-r from-slate-900/95 to-slate-800/95 text-white border-t-2 border-white/20">
-                  <TableCell colSpan={100} className="text-center font-bold py-3">
-                    Total Records: {sortedClients.length}
-                  </TableCell>
-                </TableRow>
-              </TableFooter>
-            </Table>
-          </div>
+                        <TableCell className="text-slate-700 bg-white">
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <span className="cursor-help">{safeFormatDate(client.firstVisit || client.date)}</span>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>First studio visit on {safeFormatDate(client.firstVisit || client.date)}</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        </TableCell>
+                        {(title.includes('Converted') || title.includes('New')) && <>
+                          <TableCell className="font-medium text-emerald-700 bg-white">
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <span className="cursor-help">
+                                    {safeFormatDate(client.firstPurchaseDate || client.purchaseDate || client.date)}
+                                  </span>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p>First purchase made on {safeFormatDate(client.firstPurchaseDate || client.purchaseDate || client.date)}</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          </TableCell>
+                          <TableCell className="text-slate-700 bg-white">
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <span className="cursor-help">{client.firstPurchaseItem || client.purchaseItem || client.membershipType || 'N/A'}</span>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p>Purchased: {client.firstPurchaseItem || client.purchaseItem || client.membershipType || 'No item specified'}</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          </TableCell>
+                          <TableCell className="font-semibold text-green-700 bg-white">
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <span className="cursor-help">
+                                    {client.purchaseValue || client.value ? safeFormatCurrency(client.purchaseValue || client.value) : 'N/A'}
+                                  </span>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p>Purchase amount: {client.purchaseValue || client.value ? safeFormatCurrency(client.purchaseValue || client.value) : 'No amount specified'}</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          </TableCell>
+                          <TableCell className="bg-white">
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <div className="flex items-center text-slate-700 cursor-help">
+                                    <Clock className="h-3 w-3 mr-1 text-muted-foreground" />
+                                    {conversionSpan !== null ? `${conversionSpan} days` : 'N/A'}
+                                  </div>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p>Time to convert: {conversionSpan !== null ? `${conversionSpan} days from first visit to purchase` : 'Conversion time not available'}</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          </TableCell>
+                        </>}
+                        {title.includes('Retained') && <>
+                          <TableCell className="text-slate-700 bg-white">
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <span className="cursor-help">{client.visitsPostTrial || client.visitCount || client.totalVisitsPostTrial || '0'}</span>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p>Total visits after trial: {client.visitsPostTrial || client.visitCount || client.totalVisitsPostTrial || '0'}</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          </TableCell>
+                          <TableCell className="text-slate-700 bg-white">
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <span className="cursor-help">{safeFormatDate(client.firstVisitPostTrial || 'N/A')}</span>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p>First visit after trial: {safeFormatDate(client.firstVisitPostTrial || 'Not available')}</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          </TableCell>
+                          <TableCell className="text-slate-700 bg-white">
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <span className="cursor-help">{client.membershipUsed || client.membershipType || 'N/A'}</span>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p>Membership type: {client.membershipUsed || client.membershipType || 'No membership specified'}</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          </TableCell>
+                        </>}
+                        {title.includes('Excluded') && (
+                          <TableCell className="text-red-600 font-medium bg-white">
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <span className="cursor-help">{client.reason || 'No reason specified'}</span>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p>Exclusion reason: {client.reason || 'No specific reason provided'}</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          </TableCell>
+                        )}
+                        {title.includes('New') && !title.includes('Converted') && (
+                          <TableCell className="text-blue-600 font-medium bg-white">
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <span className="cursor-help">{client.reason || 'First time visitor'}</span>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p>Inclusion reason: {client.reason || 'Identified as first time visitor'}</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          </TableCell>
+                        )}
+                        <TableCell className="bg-white">
+                          <Badge 
+                            variant={title.includes('Converted') ? 'conversion' : 
+                                   title.includes('Retained') ? 'retention' : 
+                                   title.includes('Excluded') ? 'excluded' : 'modern'}
+                            className="flex items-center gap-1 shadow-sm"
+                          >
+                            {title.includes('Converted') ? <Award className="h-3 w-3" /> : 
+                             title.includes('Retained') ? <Check className="h-3 w-3" /> : 
+                             title.includes('Excluded') ? <X className="h-3 w-3" /> :
+                             <UserRound className="h-3 w-3" />}
+                            {title.includes('Converted') ? 'Converted' : 
+                             title.includes('Retained') ? 'Retained' : 
+                             title.includes('Excluded') ? 'Excluded' : 'New'}
+                          </Badge>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+                <TableFooter className="sticky bottom-0 bg-slate-900 z-10">
+                  <TableRow className="bg-slate-900 text-white border-t-2 border-white/20">
+                    <TableCell colSpan={100} className="text-center font-bold py-3 text-white">
+                      Total Records: {sortedClients.length}
+                    </TableCell>
+                  </TableRow>
+                </TableFooter>
+              </Table>
+            </div>
+          </ScrollArea>
         </CardContent>
       </Card>
     );
-  };
+  }, [sortData, handleSort, sortColumn, sortDirection, getConversionSpan]);
 
-  const clientSourceData = [{
+  const clientSourceData = useMemo(() => [{
     source: 'Trials',
     count: data.trials || 0
   }, {
@@ -297,24 +601,24 @@ const DrillDownAnalytics: React.FC<DrillDownAnalyticsProps> = ({
   }, {
     source: 'Others',
     count: data.others || 0
-  }];
+  }], [data]);
 
-  const revenueChartData = data.revenueByWeek || [];
+  const revenueChartData = useMemo(() => data.revenueByWeek || [], [data.revenueByWeek]);
 
-  const conversionRateData = {
+  const conversionRateData = useMemo(() => ({
     name: 'Current Period',
     conversion: data.conversionRate,
     retention: data.retentionRate,
     trial: data.trials || 0,
     referral: data.referrals || 0,
     influencer: data.influencerSignups || 0
-  };
+  }), [data]);
   
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-6xl h-[85vh] p-0 overflow-hidden animate-scale-in bg-gradient-to-br from-white via-slate-50/90 to-blue-50/80 backdrop-blur-xl border-0 shadow-2xl">
-        <DialogHeader className="sticky top-0 z-10 bg-gradient-to-r from-slate-900/95 to-slate-800/95 text-white pt-6 px-6 shadow-xl border-b-0">
-          <DialogTitle className="text-2xl flex items-center gap-3 font-bold">
+      <DialogContent className="max-w-7xl h-[90vh] p-0 overflow-hidden bg-white border shadow-2xl">
+        <DialogHeader className="sticky top-0 z-10 bg-slate-900 text-white pt-6 px-6 shadow-xl">
+          <DialogTitle className="text-2xl flex items-center gap-3 font-bold text-white">
             {type === 'teacher' ? <UserRound className="h-6 w-6 text-blue-400" /> :
              type === 'location' ? <LayoutDashboard className="h-6 w-6 text-green-400" /> :
              <BarChartIcon className="h-6 w-6 text-purple-400" />}
@@ -325,50 +629,50 @@ const DrillDownAnalytics: React.FC<DrillDownAnalyticsProps> = ({
           </DialogDescription>
         </DialogHeader>
         
-        <div className="px-6 overflow-auto flex-1">
+        <div className="px-6 overflow-auto flex-1 bg-white">
           <Tabs value={activeTab} onValueChange={setActiveTab} className="pt-6">
-            <TabsList className="grid grid-cols-5 gap-2 mb-8 bg-white/70 backdrop-blur-sm border border-white/30 shadow-lg rounded-xl p-1">
-              <TabsTrigger value="overview" className="flex items-center gap-2 animate-fade-in data-[state=active]:bg-white data-[state=active]:shadow-md rounded-lg transition-all duration-300" style={{ animationDelay: '100ms' }}>
+            <TabsList className="grid grid-cols-5 gap-2 mb-8 bg-slate-100 p-1">
+              <TabsTrigger value="overview" className="flex items-center gap-2 data-[state=active]:bg-white data-[state=active]:shadow-md transition-all duration-300">
                 <LayoutDashboard className="h-4 w-4" />
                 <span className="font-medium">Overview</span>
               </TabsTrigger>
-              <TabsTrigger value="conversion" className="flex items-center gap-2 animate-fade-in data-[state=active]:bg-white data-[state=active]:shadow-md rounded-lg transition-all duration-300" style={{ animationDelay: '200ms' }}>
+              <TabsTrigger value="conversion" className="flex items-center gap-2 data-[state=active]:bg-white data-[state=active]:shadow-md transition-all duration-300">
                 <Percent className="h-4 w-4" />
                 <span className="font-medium">Conversion</span>
               </TabsTrigger>
-              <TabsTrigger value="retention" className="flex items-center gap-2 animate-fade-in data-[state=active]:bg-white data-[state=active]:shadow-md rounded-lg transition-all duration-300" style={{ animationDelay: '300ms' }}>
+              <TabsTrigger value="retention" className="flex items-center gap-2 data-[state=active]:bg-white data-[state=active]:shadow-md transition-all duration-300">
                 <UserRound className="h-4 w-4" />
                 <span className="font-medium">Retention</span>
               </TabsTrigger>
-              <TabsTrigger value="revenue" className="flex items-center gap-2 animate-fade-in data-[state=active]:bg-white data-[state=active]:shadow-md rounded-lg transition-all duration-300" style={{ animationDelay: '400ms' }}>
+              <TabsTrigger value="revenue" className="flex items-center gap-2 data-[state=active]:bg-white data-[state=active]:shadow-md transition-all duration-300">
                 <DollarSign className="h-4 w-4" />
                 <span className="font-medium">Revenue</span>
               </TabsTrigger>
-              <TabsTrigger value="trends" className="flex items-center gap-2 animate-fade-in data-[state=active]:bg-white data-[state=active]:shadow-md rounded-lg transition-all duration-300" style={{ animationDelay: '500ms' }}>
+              <TabsTrigger value="trends" className="flex items-center gap-2 data-[state=active]:bg-white data-[state=active]:shadow-md transition-all duration-300">
                 <ArrowUpDown className="h-4 w-4" />
                 <span className="font-medium">Data Details</span>
               </TabsTrigger>
             </TabsList>
             
-            <TabsContent value="overview" className="space-y-8">
+            <TabsContent value="overview" className="space-y-8 bg-white">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                <Card className="shadow-xl border-0 bg-gradient-to-br from-white/90 to-slate-50/60 backdrop-blur-xl animate-fade-in">
+                <Card className="shadow-xl border bg-white">
                   <CardHeader className="pb-4">
-                    <CardTitle className="flex items-center gap-3 text-xl">
+                    <CardTitle className="flex items-center gap-3 text-xl text-slate-900">
                       <Award className="h-6 w-6 text-primary" />
                       Performance Dashboard
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
                     <div className="grid grid-cols-2 gap-6">
-                      <div className="flex flex-col p-6 bg-gradient-to-br from-blue-50/80 to-indigo-50/60 rounded-xl border border-blue-200/40 shadow-lg animate-fade-in" style={{ animationDelay: '150ms' }}>
+                      <div className="flex flex-col p-6 bg-blue-50 rounded-xl border border-blue-200 shadow-lg">
                         <span className="text-sm text-blue-700 flex items-center gap-2 font-semibold mb-2">
                           <UserRound className="h-4 w-4" />
                           New Clients
                         </span>
                         <span className="text-3xl font-bold text-blue-800">{data.newClients}</span>
                       </div>
-                      <div className="flex flex-col p-6 bg-gradient-to-br from-emerald-50/80 to-green-50/60 rounded-xl border border-green-200/40 shadow-lg animate-fade-in" style={{ animationDelay: '200ms' }}>
+                      <div className="flex flex-col p-6 bg-emerald-50 rounded-xl border border-green-200 shadow-lg">
                         <span className="text-sm text-green-700 flex items-center gap-2 font-semibold mb-2">
                           <Check className="h-4 w-4" />
                           Retained Clients
@@ -381,7 +685,7 @@ const DrillDownAnalytics: React.FC<DrillDownAnalyticsProps> = ({
                           </Badge>
                         </span>
                       </div>
-                      <div className="flex flex-col p-6 bg-gradient-to-br from-amber-50/80 to-yellow-50/60 rounded-xl border border-amber-200/40 shadow-lg animate-fade-in" style={{ animationDelay: '250ms' }}>
+                      <div className="flex flex-col p-6 bg-amber-50 rounded-xl border border-amber-200 shadow-lg">
                         <span className="text-sm text-amber-700 flex items-center gap-2 font-semibold mb-2">
                           <Award className="h-4 w-4" />
                           Converted Clients
@@ -394,7 +698,7 @@ const DrillDownAnalytics: React.FC<DrillDownAnalyticsProps> = ({
                           </Badge>
                         </span>
                       </div>
-                      <div className="flex flex-col p-6 bg-gradient-to-br from-purple-50/80 to-violet-50/60 rounded-xl border border-purple-200/40 shadow-lg animate-fade-in" style={{ animationDelay: '300ms' }}>
+                      <div className="flex flex-col p-6 bg-purple-50 rounded-xl border border-purple-200 shadow-lg">
                         <span className="text-sm text-purple-700 flex items-center gap-2 font-semibold mb-2">
                           <DollarSign className="h-4 w-4" />
                           Total Revenue
@@ -405,9 +709,9 @@ const DrillDownAnalytics: React.FC<DrillDownAnalyticsProps> = ({
                   </CardContent>
                 </Card>
                 
-                <Card className="shadow-xl border-0 bg-gradient-to-br from-white/90 to-slate-50/60 backdrop-blur-xl animate-fade-in" style={{ animationDelay: '350ms' }}>
+                <Card className="shadow-xl border bg-white">
                   <CardHeader className="pb-4">
-                    <CardTitle className="flex items-center gap-3 text-xl">
+                    <CardTitle className="flex items-center gap-3 text-xl text-slate-900">
                       <PieChartIcon className="h-6 w-6 text-primary" />
                       Client Acquisition Sources
                     </CardTitle>
@@ -418,9 +722,9 @@ const DrillDownAnalytics: React.FC<DrillDownAnalyticsProps> = ({
                 </Card>
               </div>
               
-              <Card className="shadow-xl border-0 bg-gradient-to-br from-white/90 to-slate-50/60 backdrop-blur-xl animate-fade-in" style={{ animationDelay: '400ms' }}>
+              <Card className="shadow-xl border bg-white">
                 <CardHeader className="pb-4">
-                  <CardTitle className="flex items-center gap-3 text-xl">
+                  <CardTitle className="flex items-center gap-3 text-xl text-slate-900">
                     <LineChartIcon className="h-6 w-6 text-primary" />
                     Revenue Performance Timeline
                   </CardTitle>
@@ -431,20 +735,20 @@ const DrillDownAnalytics: React.FC<DrillDownAnalyticsProps> = ({
               </Card>
             </TabsContent>
             
-            <TabsContent value="conversion" className="space-y-8">
-              <Card className="shadow-xl border-0 bg-gradient-to-br from-white/90 to-emerald-50/40 backdrop-blur-xl animate-fade-in">
+            <TabsContent value="conversion" className="space-y-8 bg-white">
+              <Card className="shadow-xl border bg-white">
                 <CardHeader className="pb-4">
-                  <CardTitle className="flex items-center gap-3 text-xl">
+                  <CardTitle className="flex items-center gap-3 text-xl text-slate-900">
                     <Award className="h-6 w-6 text-emerald-600" />
                     Conversion Analytics Deep Dive
                   </CardTitle>
-                  <CardDescription className="text-base">
+                  <CardDescription className="text-base text-slate-600">
                     Comprehensive analysis of client conversion journey from initial contact to paid membership
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-8">
                   <div className="grid grid-cols-3 gap-6">
-                    <div className="p-6 border-2 border-emerald-200/60 rounded-xl text-center bg-gradient-to-br from-emerald-50/80 to-green-50/60 shadow-lg animate-fade-in" style={{ animationDelay: '150ms' }}>
+                    <div className="p-6 border-2 border-emerald-200 rounded-xl text-center bg-emerald-50 shadow-lg">
                       <h3 className="text-lg font-bold flex items-center justify-center gap-2 text-emerald-800">
                         <Percent className="h-5 w-5" />
                         Conversion Rate
@@ -457,7 +761,7 @@ const DrillDownAnalytics: React.FC<DrillDownAnalyticsProps> = ({
                         {data.conversionRate > 10 ? 'Exceeds industry standard' : 'Below average performance'}
                       </p>
                     </div>
-                    <div className="p-6 border-2 border-blue-200/60 rounded-xl text-center bg-gradient-to-br from-blue-50/80 to-indigo-50/60 shadow-lg animate-fade-in" style={{ animationDelay: '200ms' }}>
+                    <div className="p-6 border-2 border-blue-200 rounded-xl text-center bg-blue-50 shadow-lg">
                       <h3 className="text-lg font-bold flex items-center justify-center gap-2 text-blue-800">
                         <Award className="h-5 w-5" />
                         Converted Clients
@@ -467,7 +771,7 @@ const DrillDownAnalytics: React.FC<DrillDownAnalyticsProps> = ({
                         out of {data.newClients} new prospects
                       </p>
                     </div>
-                    <div className="p-6 border-2 border-purple-200/60 rounded-xl text-center bg-gradient-to-br from-purple-50/80 to-violet-50/60 shadow-lg animate-fade-in" style={{ animationDelay: '250ms' }}>
+                    <div className="p-6 border-2 border-purple-200 rounded-xl text-center bg-purple-50 shadow-lg">
                       <h3 className="text-lg font-bold flex items-center justify-center gap-2 text-purple-800">
                         <DollarSign className="h-5 w-5" />
                         Avg. Revenue per Convert
@@ -480,7 +784,7 @@ const DrillDownAnalytics: React.FC<DrillDownAnalyticsProps> = ({
                   </div>
                   
                   {data.convertedClientDetails && data.convertedClientDetails.length > 0 && 
-                    <div className="animate-fade-in" style={{ animationDelay: '300ms' }}>
+                    <div>
                       {renderClientTable(data.convertedClientDetails, "Converted Clients")}
                     </div>
                   }
@@ -488,8 +792,8 @@ const DrillDownAnalytics: React.FC<DrillDownAnalyticsProps> = ({
               </Card>
             </TabsContent>
             
-            <TabsContent value="retention" className="space-y-8">
-              <Card className="shadow-xl border-0 bg-gradient-to-br from-white/90 to-blue-50/40 backdrop-blur-xl animate-fade-in">
+            <TabsContent value="retention" className="space-y-8 bg-white">
+              <Card className="shadow-xl border bg-white">
                 <CardHeader className="pb-4">
                   <CardTitle className="flex items-center gap-3 text-xl">
                     <Check className="h-6 w-6 text-blue-600" />
@@ -548,8 +852,8 @@ const DrillDownAnalytics: React.FC<DrillDownAnalyticsProps> = ({
               </Card>
             </TabsContent>
             
-            <TabsContent value="revenue" className="space-y-8">
-              <Card className="shadow-xl border-0 bg-gradient-to-br from-white/90 to-green-50/40 backdrop-blur-xl animate-fade-in">
+            <TabsContent value="revenue" className="space-y-8 bg-white">
+              <Card className="shadow-xl border bg-white">
                 <CardHeader className="pb-4">
                   <CardTitle className="flex items-center gap-3 text-xl">
                     <DollarSign className="h-6 w-6 text-green-600" />
@@ -605,27 +909,27 @@ const DrillDownAnalytics: React.FC<DrillDownAnalyticsProps> = ({
               </Card>
             </TabsContent>
             
-            <TabsContent value="trends" className="space-y-8">
-              <Card className="shadow-xl border-0 bg-gradient-to-br from-white/90 to-slate-50/60 backdrop-blur-xl animate-fade-in">
+            <TabsContent value="trends" className="space-y-8 bg-white">
+              <Card className="shadow-xl border bg-white">
                 <CardHeader className="pb-4">
-                  <CardTitle className="flex items-center gap-3 text-xl">
+                  <CardTitle className="flex items-center gap-3 text-xl text-slate-900">
                     <UserRound className="h-6 w-6 text-primary" />
                     Detailed Client Data Overview
                   </CardTitle>
-                  <CardDescription className="text-base">
+                  <CardDescription className="text-base text-slate-600">
                     Complete client records with detailed analytics and processing information
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="grid grid-cols-1 gap-8">
                     {data.newClientDetails && data.newClientDetails.length > 0 && (
-                      <div className="animate-fade-in" style={{ animationDelay: '200ms' }}>
+                      <div>
                         {renderClientTable(data.newClientDetails, "New Clients")}
                       </div>
                     )}
                       
                     {data.excludedClientDetails && data.excludedClientDetails.length > 0 && (
-                      <div className="animate-fade-in" style={{ animationDelay: '400ms' }}>
+                      <div>
                         {renderClientTable(data.excludedClientDetails, "Excluded Clients")}
                       </div>
                     )}
@@ -636,8 +940,8 @@ const DrillDownAnalytics: React.FC<DrillDownAnalyticsProps> = ({
           </Tabs>
         </div>
         
-        <DialogFooter className="sticky bottom-0 bg-gradient-to-r from-slate-900/95 to-slate-800/95 text-white p-6 border-t-0 shadow-2xl">
-          <Button onClick={onClose} className="animate-scale-in bg-white text-slate-800 hover:bg-slate-100 font-semibold px-8 shadow-lg">
+        <DialogFooter className="sticky bottom-0 bg-slate-900 text-white p-6 border-t shadow-2xl">
+          <Button onClick={onClose} className="bg-white text-slate-800 hover:bg-slate-100 font-semibold px-8 shadow-lg">
             Close Dashboard
           </Button>
         </DialogFooter>
