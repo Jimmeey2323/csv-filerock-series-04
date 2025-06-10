@@ -8,6 +8,8 @@ import { Target, Award, TrendingUp, TrendingDown, Users, Star, AlertTriangle, Ch
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { safeToFixed, safeFormatCurrency } from '@/lib/utils';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from '@/components/ui/table';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 interface PerformanceInsightsViewProps {
   data: ProcessedTeacherData[];
@@ -100,6 +102,36 @@ const PerformanceInsightsView: React.FC<PerformanceInsightsViewProps> = ({ data 
     { name: 'Average Performers', value: performanceData.length - highPerformers.length - lowPerformers.length, color: 'hsl(var(--chart-2))' },
     { name: 'Low Performers', value: lowPerformers.length, color: 'hsl(var(--chart-3))' },
   ];
+
+  // Calculate totals for the footer
+  const totals = React.useMemo(() => {
+    return performanceData.reduce((acc, teacher) => {
+      acc.totalRevenue += teacher.totalRevenue;
+      acc.totalVisits += teacher.totalVisits;
+      acc.newClients += teacher.newClients;
+      acc.convertedClients += teacher.convertedClients;
+      acc.retainedClients += teacher.retainedClients;
+      acc.noShows += teacher.noShows;
+      acc.cancellations += teacher.cancellations;
+      acc.totalClasses += teacher.totalClasses;
+      return acc;
+    }, {
+      totalRevenue: 0,
+      totalVisits: 0,
+      newClients: 0,
+      convertedClients: 0,
+      retainedClients: 0,
+      noShows: 0,
+      cancellations: 0,
+      totalClasses: 0,
+    });
+  }, [performanceData]);
+
+  const avgConversionRate = totals.newClients > 0 ? (totals.convertedClients / totals.newClients) * 100 : 0;
+  const avgRetentionRate = totals.newClients > 0 ? (totals.retainedClients / totals.newClients) * 100 : 0;
+  const avgNoShowRate = totals.totalVisits > 0 ? (totals.noShows / totals.totalVisits) * 100 : 0;
+  const avgRevenuePerClient = totals.newClients > 0 ? totals.totalRevenue / totals.newClients : 0;
+  const avgClassUtilization = totals.totalClasses > 0 ? totals.totalVisits / totals.totalClasses : 0;
 
   return (
     <div className="space-y-6">
@@ -298,41 +330,41 @@ const PerformanceInsightsView: React.FC<PerformanceInsightsViewProps> = ({ data 
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-muted">
-                  <th className="text-left p-2 font-medium">Rank</th>
-                  <th className="text-left p-2 font-medium">Teacher</th>
-                  <th className="text-left p-2 font-medium">Location</th>
-                  <th className="text-right p-2 font-medium">Performance Score</th>
-                  <th className="text-right p-2 font-medium">Conversion Rate</th>
-                  <th className="text-right p-2 font-medium">Retention Rate</th>
-                  <th className="text-right p-2 font-medium">No Show Rate</th>
-                  <th className="text-right p-2 font-medium">Revenue/Client</th>
-                  <th className="text-right p-2 font-medium">Class Utilization</th>
-                  <th className="text-center p-2 font-medium">Status</th>
-                </tr>
-              </thead>
-              <tbody>
+          <Table maxHeight="500px">
+            <TableHeader>
+              <TableRow>
+                <TableHead>Rank</TableHead>
+                <TableHead>Teacher</TableHead>
+                <TableHead>Location</TableHead>
+                <TableHead className="text-right">Performance Score</TableHead>
+                <TableHead className="text-right">Conversion Rate</TableHead>
+                <TableHead className="text-right">Retention Rate</TableHead>
+                <TableHead className="text-right">No Show Rate</TableHead>
+                <TableHead className="text-right">Revenue/Client</TableHead>
+                <TableHead className="text-right">Class Utilization</TableHead>
+                <TableHead className="text-center">Status</TableHead>
+              </TableRow>
+            </TableHeader>
+            <ScrollArea className="h-[400px]">
+              <TableBody>
                 {performanceData.map((teacher, index) => {
                   const isHigh = highPerformers.includes(teacher);
                   const isLow = lowPerformers.includes(teacher);
                   
                   return (
-                    <tr 
+                    <TableRow 
                       key={teacher.teacherName} 
-                      className="border-b border-muted/50 hover:bg-muted/30 transition-colors animate-fade-in" 
+                      className="animate-fade-in" 
                       style={{ animationDelay: `${800 + index * 50}ms` }}
                     >
-                      <td className="p-2 font-bold">
+                      <TableCell>
                         <Badge variant={index < 3 ? "default" : "secondary"}>
                           #{index + 1}
                         </Badge>
-                      </td>
-                      <td className="p-2 font-medium">{teacher.teacherName}</td>
-                      <td className="p-2 text-muted-foreground">{teacher.location}</td>
-                      <td className="text-right p-2">
+                      </TableCell>
+                      <TableCell className="font-medium">{teacher.teacherName}</TableCell>
+                      <TableCell className="text-muted-foreground">{teacher.location}</TableCell>
+                      <TableCell className="text-right">
                         <div className="flex items-center justify-end gap-1">
                           <span className="font-bold">{teacher.performanceScore}</span>
                           {parseFloat(teacher.performanceScore) > averagePerformance ? 
@@ -340,17 +372,17 @@ const PerformanceInsightsView: React.FC<PerformanceInsightsViewProps> = ({ data 
                             <TrendingDown className="h-3 w-3 text-red-500" />
                           }
                         </div>
-                      </td>
-                      <td className="text-right p-2">{teacher.conversionRate}%</td>
-                      <td className="text-right p-2">{teacher.retentionRate}%</td>
-                      <td className="text-right p-2">
+                      </TableCell>
+                      <TableCell className="text-right">{teacher.conversionRate}%</TableCell>
+                      <TableCell className="text-right">{teacher.retentionRate}%</TableCell>
+                      <TableCell className="text-right">
                         <Badge variant={parseFloat(teacher.noShowRate) > 10 ? "destructive" : "secondary"}>
                           {teacher.noShowRate}%
                         </Badge>
-                      </td>
-                      <td className="text-right p-2">{safeFormatCurrency(parseFloat(teacher.revenuePerClient))}</td>
-                      <td className="text-right p-2">{teacher.classUtilization}</td>
-                      <td className="text-center p-2">
+                      </TableCell>
+                      <TableCell className="text-right">{safeFormatCurrency(parseFloat(teacher.revenuePerClient))}</TableCell>
+                      <TableCell className="text-right">{teacher.classUtilization}</TableCell>
+                      <TableCell className="text-center">
                         <Badge 
                           variant={isHigh ? "default" : isLow ? "destructive" : "secondary"}
                           className="flex items-center gap-1"
@@ -358,13 +390,25 @@ const PerformanceInsightsView: React.FC<PerformanceInsightsViewProps> = ({ data 
                           {isHigh ? <Star className="h-3 w-3" /> : isLow ? <AlertTriangle className="h-3 w-3" /> : <CheckCircle className="h-3 w-3" />}
                           {isHigh ? 'High' : isLow ? 'Low' : 'Average'}
                         </Badge>
-                      </td>
-                    </tr>
+                      </TableCell>
+                    </TableRow>
                   );
                 })}
-              </tbody>
-            </table>
-          </div>
+              </TableBody>
+            </ScrollArea>
+            <TableFooter>
+              <TableRow>
+                <TableCell className="font-bold text-white" colSpan={3}>Total/Average</TableCell>
+                <TableCell className="text-right font-bold text-white">{safeToFixed(averagePerformance, 1)}</TableCell>
+                <TableCell className="text-right font-bold text-white">{safeToFixed(avgConversionRate, 1)}%</TableCell>
+                <TableCell className="text-right font-bold text-white">{safeToFixed(avgRetentionRate, 1)}%</TableCell>
+                <TableCell className="text-right font-bold text-white">{safeToFixed(avgNoShowRate, 1)}%</TableCell>
+                <TableCell className="text-right font-bold text-white">{safeFormatCurrency(avgRevenuePerClient)}</TableCell>
+                <TableCell className="text-right font-bold text-white">{safeToFixed(avgClassUtilization, 1)}</TableCell>
+                <TableCell className="text-center font-bold text-white">{performanceData.length}</TableCell>
+              </TableRow>
+            </TableFooter>
+          </Table>
         </CardContent>
       </Card>
     </div>

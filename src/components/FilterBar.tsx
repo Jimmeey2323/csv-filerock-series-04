@@ -1,404 +1,228 @@
 
 import React from 'react';
-import { Search, Calendar, MapPin, User, Filter, BarChart3, ArrowDownUp, Columns, Grid, List, Store, X, Clock, Database, ChevronDown, TrendingUp, Users, Target } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import CommandSearchInput from '@/components/ui/command-input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Switch } from '@/components/ui/switch';
-import { Label } from '@/components/ui/label';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Button } from '@/components/ui/button';
+import { Calendar, Filter, Users, Building2, TrendingUp, Clock } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { ProcessedTeacherData } from '@/utils/dataProcessor';
 
 interface FilterBarProps {
-  locations: string[];
-  teachers: string[];
-  periods: string[];
-  activeViewMode: 'table' | 'cards' | 'detailed';
-  activeDataMode: 'teacher' | 'studio';
-  onViewModeChange: (mode: 'table' | 'cards' | 'detailed') => void;
-  onDataModeChange: (mode: 'teacher' | 'studio') => void;
-  onFilterChange: (filters: {
-    location?: string;
-    teacher?: string;
-    period?: string;
-    search?: string;
+  data: ProcessedTeacherData[];
+  onFilterChange: (filteredData: ProcessedTeacherData[]) => void;
+  selectedFilters: {
+    period: string[];
+    teacher: string[];
+    location: string[];
+  };
+  onFilterUpdate: (filters: {
+    period: string[];
+    teacher: string[];
+    location: string[];
   }) => void;
-  initialSearch?: string;
 }
 
-const FilterBar: React.FC<FilterBarProps> = ({
-  locations,
-  teachers,
-  periods,
-  activeViewMode,
-  activeDataMode,
-  onViewModeChange,
-  onDataModeChange,
-  onFilterChange,
-  initialSearch = ''
+const FilterBar: React.FC<FilterBarProps> = ({ 
+  data, 
+  onFilterChange, 
+  selectedFilters, 
+  onFilterUpdate 
 }) => {
-  const [filters, setFilters] = React.useState({
-    location: '',
-    teacher: '',
-    period: '',
-    search: initialSearch || ''
-  });
-
-  const [viewOptionsOpen, setViewOptionsOpen] = React.useState(false);
-  const [hasInitialized, setHasInitialized] = React.useState(false);
+  // Get unique values for filters
+  const uniquePeriods = React.useMemo(() => 
+    [...new Set(data.map(item => item.period).filter(Boolean))].sort(), 
+    [data]
+  );
   
-  // Common periods for quick filters
-  const quickPeriods = [
-    { label: 'This Week', value: 'this-week' },
-    { label: 'This Month', value: 'this-month' },
-    { label: 'Last Month', value: 'last-month' },
-    { label: 'Q2 2023', value: 'q2-2023' },
-    { label: 'All Time', value: 'all-time' }
-  ];
+  const uniqueTeachers = React.useMemo(() => 
+    [...new Set(data.map(item => item.teacherName).filter(Boolean))].sort(), 
+    [data]
+  );
+  
+  const uniqueLocations = React.useMemo(() => 
+    [...new Set(data.map(item => item.location).filter(Boolean))].sort(), 
+    [data]
+  );
 
-  // Initialize search from props only once
+  // Apply filters
   React.useEffect(() => {
-    if (!hasInitialized && initialSearch) {
-      setFilters(prev => ({
-        ...prev,
-        search: initialSearch
-      }));
-      setHasInitialized(true);
+    let filteredData = data;
+
+    if (selectedFilters.period.length > 0) {
+      filteredData = filteredData.filter(item => 
+        selectedFilters.period.includes(item.period || '')
+      );
     }
-  }, [initialSearch, hasInitialized]);
 
-  const handleFilterChange = React.useCallback((key: string, value: string) => {
-    const newFilters = {
-      ...filters,
-      [key]: value
-    };
-    setFilters(newFilters);
-    onFilterChange(newFilters);
-  }, [filters, onFilterChange]);
+    if (selectedFilters.teacher.length > 0) {
+      filteredData = filteredData.filter(item => 
+        selectedFilters.teacher.includes(item.teacherName || '')
+      );
+    }
 
-  const handleQuickPeriodClick = React.useCallback((periodValue: string) => {
-    // Clear existing period filter first
-    const newFilters = {
-      ...filters,
-      period: filters.period === periodValue ? '' : periodValue
-    };
-    setFilters(newFilters);
-    onFilterChange(newFilters);
-  }, [filters, onFilterChange]);
+    if (selectedFilters.location.length > 0) {
+      filteredData = filteredData.filter(item => 
+        selectedFilters.location.includes(item.location || '')
+      );
+    }
 
-  const handleReset = React.useCallback(() => {
-    const resetFilters = {
-      location: '',
-      teacher: '',
-      period: '',
-      search: ''
-    };
-    setFilters(resetFilters);
-    onFilterChange(resetFilters);
-  }, [onFilterChange]);
+    onFilterChange(filteredData);
+  }, [data, selectedFilters, onFilterChange]);
 
-  const activeFiltersCount = Object.values(filters).filter(Boolean).length;
+  // Quick filter functions
+  const handleQuickPeriodFilter = (period: string) => {
+    const isSelected = selectedFilters.period.includes(period);
+    const newPeriods = isSelected 
+      ? selectedFilters.period.filter(p => p !== period)
+      : [...selectedFilters.period, period];
+    
+    onFilterUpdate({
+      ...selectedFilters,
+      period: newPeriods
+    });
+  };
+
+  const handleQuickTeacherFilter = (teacher: string) => {
+    const isSelected = selectedFilters.teacher.includes(teacher);
+    const newTeachers = isSelected 
+      ? selectedFilters.teacher.filter(t => t !== teacher)
+      : [...selectedFilters.teacher, teacher];
+    
+    onFilterUpdate({
+      ...selectedFilters,
+      teacher: newTeachers
+    });
+  };
+
+  const handleQuickLocationFilter = (location: string) => {
+    const isSelected = selectedFilters.location.includes(location);
+    const newLocations = isSelected 
+      ? selectedFilters.location.filter(l => l !== location)
+      : [...selectedFilters.location, location];
+    
+    onFilterUpdate({
+      ...selectedFilters,
+      location: newLocations
+    });
+  };
+
+  const clearAllFilters = () => {
+    onFilterUpdate({
+      period: [],
+      teacher: [],
+      location: []
+    });
+  };
+
+  const hasActiveFilters = selectedFilters.period.length > 0 || 
+                         selectedFilters.teacher.length > 0 || 
+                         selectedFilters.location.length > 0;
 
   return (
-    <Card className="bg-white/80 backdrop-blur-lg rounded-xl border shadow-md mb-6 animate-fade-in overflow-hidden">
-      <CardContent className="p-5">
-        <div className="flex flex-col space-y-5">
-          {/* Data View Toggle */}
-          <div className="flex justify-between items-center border-b pb-4">
-            <div className="flex items-center space-x-3">
-              <div className="bg-slate-100 p-1 rounded-lg flex items-center">
-                <Label 
-                  htmlFor="data-view-toggle" 
-                  className={`px-3 py-1.5 rounded-md text-sm font-medium cursor-pointer transition-all ${activeDataMode === 'teacher' ? 'bg-white shadow-sm text-slate-800' : 'text-slate-500'}`}
-                >
-                  <User className="h-3.5 w-3.5 mr-2 inline-block" />
-                  Teacher View
-                </Label>
-                <Switch 
-                  id="data-view-toggle" 
-                  checked={activeDataMode === 'studio'} 
-                  onCheckedChange={(checked) => onDataModeChange(checked ? 'studio' : 'teacher')} 
-                  className="mx-1"
-                />
-                <Label 
-                  htmlFor="data-view-toggle" 
-                  className={`px-3 py-1.5 rounded-md text-sm font-medium cursor-pointer transition-all ${activeDataMode === 'studio' ? 'bg-white shadow-sm text-slate-800' : 'text-slate-500'}`}
-                >
-                  <Store className="h-3.5 w-3.5 mr-2 inline-block" />
-                  Studio View
-                </Label>
-              </div>
-              
-              <Popover open={viewOptionsOpen} onOpenChange={setViewOptionsOpen}>
-                <PopoverTrigger asChild>
-                  <Button variant="outline" size="sm" className="flex items-center gap-1.5">
-                    <Database className="h-3.5 w-3.5" />
-                    View Options
-                    <ChevronDown className="h-3.5 w-3.5 opacity-70" />
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-56 p-3 bg-white border border-slate-200 shadow-lg rounded-lg">
-                  <div className="space-y-3">
-                    <p className="text-sm font-medium text-slate-700">Display Mode</p>
-                    <div className="grid grid-cols-3 gap-1">
-                      <Button 
-                        variant={activeViewMode === 'table' ? 'default' : 'outline'} 
-                        size="sm"
-                        onClick={() => {
-                          onViewModeChange('table');
-                          setViewOptionsOpen(false);
-                        }}
-                        className="w-full h-9"
-                      >
-                        <List className="h-3.5 w-3.5 mr-1.5" />
-                        Table
-                      </Button>
-                      <Button 
-                        variant={activeViewMode === 'cards' ? 'default' : 'outline'} 
-                        size="sm"
-                        onClick={() => {
-                          onViewModeChange('cards');
-                          setViewOptionsOpen(false);
-                        }}
-                        className="w-full h-9"
-                      >
-                        <Grid className="h-3.5 w-3.5 mr-1.5" />
-                        Cards
-                      </Button>
-                      <Button 
-                        variant={activeViewMode === 'detailed' ? 'default' : 'outline'} 
-                        size="sm"
-                        onClick={() => {
-                          onViewModeChange('detailed');
-                          setViewOptionsOpen(false);
-                        }}
-                        className="w-full h-9"
-                      >
-                        <BarChart3 className="h-3.5 w-3.5 mr-1.5" />
-                        Detail
-                      </Button>
-                    </div>
-                  </div>
-                </PopoverContent>
-              </Popover>
+    <Card className="mb-6 animate-fade-in">
+      <CardContent className="p-6">
+        <div className="space-y-4">
+          {/* Header with clear filters */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Filter className="h-5 w-5 text-primary" />
+              <h3 className="text-lg font-semibold">Quick Filters</h3>
+              {hasActiveFilters && (
+                <Badge variant="secondary" className="ml-2">
+                  {selectedFilters.period.length + selectedFilters.teacher.length + selectedFilters.location.length} active
+                </Badge>
+              )}
             </div>
-            
-            <div className="text-xs text-muted-foreground">
-              {activeDataMode === 'teacher' ? 'View data by individual trainers' : 'View aggregated studio performance'}
-            </div>
-          </div>
-        
-          {/* Quick filter buttons */}
-          <div className="flex gap-2 overflow-x-auto pb-2 -mx-1 px-1">
-            {quickPeriods.map(period => (
-              <Button
-                key={period.value}
-                variant={filters.period === period.value ? "default" : "outline"}
-                size="sm"
-                onClick={() => handleQuickPeriodClick(period.value)}
-                className="whitespace-nowrap transition-all duration-300 bg-gradient-to-r hover:from-blue-50 hover:to-indigo-50"
+            {hasActiveFilters && (
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={clearAllFilters}
+                className="text-muted-foreground hover:text-foreground"
               >
-                <Clock className="h-3.5 w-3.5 mr-1.5" />
-                {period.label}
+                Clear all filters
               </Button>
-            ))}
+            )}
           </div>
-          
-          {/* Active filters display */}
-          {activeFiltersCount > 0 && (
-            <div className="flex flex-wrap gap-2 my-1 animate-scale-in">
-              <div className="text-sm text-muted-foreground flex items-center mr-2">
-                <Filter className="h-3.5 w-3.5 mr-1.5" /> 
-                Active filters:
+
+          {/* Period Filters */}
+          <div className="space-y-2">
+            <div className="flex items-center gap-2">
+              <Calendar className="h-4 w-4 text-muted-foreground" />
+              <span className="text-sm font-medium text-muted-foreground">Period</span>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {uniquePeriods.map(period => (
+                <Button
+                  key={period}
+                  variant={selectedFilters.period.includes(period) ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => handleQuickPeriodFilter(period)}
+                  className="h-8 text-xs"
+                >
+                  {period}
+                </Button>
+              ))}
+            </div>
+          </div>
+
+          {/* Teacher Filters */}
+          <div className="space-y-2">
+            <div className="flex items-center gap-2">
+              <Users className="h-4 w-4 text-muted-foreground" />
+              <span className="text-sm font-medium text-muted-foreground">Teachers</span>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {uniqueTeachers.slice(0, 8).map(teacher => (
+                <Button
+                  key={teacher}
+                  variant={selectedFilters.teacher.includes(teacher) ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => handleQuickTeacherFilter(teacher)}
+                  className="h-8 text-xs"
+                >
+                  {teacher}
+                </Button>
+              ))}
+              {uniqueTeachers.length > 8 && (
+                <Badge variant="secondary" className="h-8 flex items-center">
+                  +{uniqueTeachers.length - 8} more
+                </Badge>
+              )}
+            </div>
+          </div>
+
+          {/* Location Filters */}
+          <div className="space-y-2">
+            <div className="flex items-center gap-2">
+              <Building2 className="h-4 w-4 text-muted-foreground" />
+              <span className="text-sm font-medium text-muted-foreground">Locations</span>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {uniqueLocations.map(location => (
+                <Button
+                  key={location}
+                  variant={selectedFilters.location.includes(location) ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => handleQuickLocationFilter(location)}
+                  className="h-8 text-xs"
+                >
+                  {location}
+                </Button>
+              ))}
+            </div>
+          </div>
+
+          {/* Summary */}
+          <div className="pt-2 border-t border-muted/30">
+            <div className="flex items-center gap-4 text-sm text-muted-foreground">
+              <div className="flex items-center gap-1">
+                <TrendingUp className="h-4 w-4" />
+                <span>Showing {data.length} records</span>
               </div>
-              {filters.location && (
-                <Badge variant="secondary" className="flex items-center gap-1.5 group">
-                  <MapPin className="h-3.5 w-3.5" />
-                  {filters.location === 'all-locations' ? 'All Locations' : filters.location}
-                  <X 
-                    className="h-3.5 w-3.5 ml-1 opacity-70 hover:opacity-100 cursor-pointer" 
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleFilterChange('location', '');
-                    }}
-                  />
-                </Badge>
-              )}
-              {filters.teacher && (
-                <Badge variant="secondary" className="flex items-center gap-1.5">
-                  <User className="h-3.5 w-3.5" />
-                  {filters.teacher === 'all-teachers' ? 'All Teachers' : filters.teacher}
-                  <X 
-                    className="h-3.5 w-3.5 ml-1 opacity-70 hover:opacity-100 cursor-pointer" 
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleFilterChange('teacher', '');
-                    }}
-                  />
-                </Badge>
-              )}
-              {filters.period && (
-                <Badge variant="secondary" className="flex items-center gap-1.5">
-                  <Calendar className="h-3.5 w-3.5" />
-                  {quickPeriods.find(p => p.value === filters.period)?.label || filters.period}
-                  <X 
-                    className="h-3.5 w-3.5 ml-1 opacity-70 hover:opacity-100 cursor-pointer" 
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleFilterChange('period', '');
-                    }}
-                  />
-                </Badge>
-              )}
-              {filters.search && (
-                <Badge variant="secondary" className="flex items-center gap-1.5">
-                  <Search className="h-3.5 w-3.5" />
-                  "{filters.search}"
-                  <X 
-                    className="h-3.5 w-3.5 ml-1 opacity-70 hover:opacity-100 cursor-pointer" 
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleFilterChange('search', '');
-                    }}
-                  />
-                </Badge>
-              )}
-            </div>
-          )}
-
-          <div className="flex flex-col md:flex-row gap-3">
-            <div className="relative flex-1">
-              <CommandSearchInput 
-                placeholder="Search teacher..." 
-                value={filters.search} 
-                onChange={(value) => handleFilterChange('search', value)} 
-                className="flex-1 shadow-sm transition-all duration-300 focus-within:shadow-md"
-              />
-            </div>
-            
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 flex-1">
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <div>
-                      <Select value={filters.location} onValueChange={(value) => handleFilterChange('location', value)}>
-                        <SelectTrigger 
-                          className={`w-full transition-all duration-300 ${filters.location ? 'border-blue-500 ring-1 ring-blue-500 bg-blue-50' : ''}`}
-                        >
-                          <div className="flex items-center gap-2">
-                            <MapPin className="h-4 w-4 text-muted-foreground" />
-                            <SelectValue placeholder="Location" />
-                          </div>
-                        </SelectTrigger>
-                        <SelectContent className="max-h-[300px] bg-white border border-slate-200 shadow-lg">
-                          <SelectItem value="all-locations" className="flex items-center">
-                            <MapPin className="h-3.5 w-3.5 mr-2" />
-                            All Locations
-                          </SelectItem>
-                          {locations.map(location => (
-                            <SelectItem key={location} value={location}>
-                              {location}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </TooltipTrigger>
-                  <TooltipContent side="bottom">
-                    <p className="text-xs">Filter by studio location</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <div>
-                      <Select value={filters.teacher} onValueChange={(value) => handleFilterChange('teacher', value)}>
-                        <SelectTrigger 
-                          className={`w-full transition-all duration-300 ${filters.teacher ? 'border-blue-500 ring-1 ring-blue-500 bg-blue-50' : ''}`}
-                        >
-                          <div className="flex items-center gap-2">
-                            <User className="h-4 w-4 text-muted-foreground" />
-                            <SelectValue placeholder="Teacher" />
-                          </div>
-                        </SelectTrigger>
-                        <SelectContent className="max-h-[300px] bg-white border border-slate-200 shadow-lg">
-                          <SelectItem value="all-teachers" className="flex items-center">
-                            <User className="h-3.5 w-3.5 mr-2" />
-                            All Teachers
-                          </SelectItem>
-                          {teachers.map(teacher => (
-                            <SelectItem key={teacher} value={teacher}>
-                              {teacher}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </TooltipTrigger>
-                  <TooltipContent side="bottom">
-                    <p className="text-xs">Filter by teacher name</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <div>
-                      <Select value={filters.period} onValueChange={(value) => handleFilterChange('period', value)}>
-                        <SelectTrigger 
-                          className={`w-full transition-all duration-300 ${filters.period ? 'border-blue-500 ring-1 ring-blue-500 bg-blue-50' : ''}`}
-                        >
-                          <div className="flex items-center gap-2">
-                            <Calendar className="h-4 w-4 text-muted-foreground" />
-                            <SelectValue placeholder="Period" />
-                          </div>
-                        </SelectTrigger>
-                        <SelectContent className="max-h-[300px] bg-white border border-slate-200 shadow-lg">
-                          <SelectItem value="all-periods" className="flex items-center">
-                            <Calendar className="h-3.5 w-3.5 mr-2" />
-                            All Periods
-                          </SelectItem>
-                          {periods.map(period => (
-                            <SelectItem key={period} value={period}>
-                              {period}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </TooltipTrigger>
-                  <TooltipContent side="bottom">
-                    <p className="text-xs">Filter by time period</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-            </div>
-            
-            <div className="flex gap-2">
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button 
-                      variant="outline" 
-                      className="shrink-0 bg-white hover:bg-rose-50 border-rose-200 hover:border-rose-300 text-rose-500 transition-all duration-300" 
-                      onClick={handleReset}
-                    >
-                      <X className="h-4 w-4 mr-2" />
-                      Reset
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent side="bottom">
-                    <p className="text-xs">Clear all filters</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
+              <div className="flex items-center gap-1">
+                <Clock className="h-4 w-4" />
+                <span>Last updated: {new Date().toLocaleTimeString()}</span>
+              </div>
             </div>
           </div>
         </div>
