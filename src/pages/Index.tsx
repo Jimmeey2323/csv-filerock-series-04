@@ -66,6 +66,7 @@ const storageUtils = {
     });
   }
 };
+
 const Index = () => {
   const [files, setFiles] = useState<File[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -93,6 +94,14 @@ const Index = () => {
       retainedClients: []
     }
   });
+  
+  // Add state for managing filters
+  const [selectedFilters, setSelectedFilters] = useState({
+    period: [] as string[],
+    teacher: [] as string[],
+    location: [] as string[]
+  });
+
   const [activeFilters, setActiveFilters] = useState({
     location: '',
     teacher: '',
@@ -286,7 +295,17 @@ const Index = () => {
     }
   }, [files, updateProgress]);
 
-  // Handle filter changes
+  // Handle filter changes from the new FilterBar component
+  const handleFilteredDataChange = useCallback((newFilteredData: ProcessedTeacherData[]) => {
+    setFilteredData(newFilteredData);
+  }, []);
+
+  // Handle filter update from the new FilterBar component
+  const handleFilterUpdate = useCallback((filters: { period: string[]; teacher: string[]; location: string[]; }) => {
+    setSelectedFilters(filters);
+  }, []);
+
+  // Handle filter changes (for old components that still use this interface)
   const handleFilterChange = useCallback((filters: {
     location?: string;
     teacher?: string;
@@ -349,6 +368,11 @@ const Index = () => {
     setTeachers([]);
     setPeriods([]);
     setFiles([]);
+    setSelectedFilters({
+      period: [],
+      teacher: [],
+      location: []
+    });
     setRawData({
       newClientData: [],
       bookingsData: [],
@@ -363,6 +387,7 @@ const Index = () => {
     });
     toast.success('Application reset. You can upload new files');
   }, []);
+
   return <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white">
       <header className="border-b bg-white/80 backdrop-blur-sm sticky top-0 z-50">
         <div className="container flex justify-between items-center py-3 bg-neutral-50">
@@ -442,7 +467,12 @@ const Index = () => {
               
               <TabsContent value="analytics" className="mt-0">
                 <div className="space-y-6">
-                  <FilterBar locations={locations} teachers={teachers} periods={periods} activeViewMode={viewMode} activeDataMode={dataMode} onViewModeChange={setViewMode} onDataModeChange={setDataMode} onFilterChange={handleFilterChange} initialSearch={activeFilters.search} />
+                  <FilterBar 
+                    data={processedData}
+                    onFilterChange={handleFilteredDataChange}
+                    selectedFilters={selectedFilters}
+                    onFilterUpdate={handleFilterUpdate}
+                  />
                   
                   <ResultsTable data={filteredData} locations={locations} isLoading={false} viewMode={viewMode} dataMode={dataMode} onFilterChange={handleFilterChange} />
                 </div>

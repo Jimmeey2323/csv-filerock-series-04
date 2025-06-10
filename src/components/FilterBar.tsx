@@ -34,7 +34,7 @@ const FilterBar: React.FC<FilterBarProps> = ({
     }
     return [...new Set(data
       .map(item => item && item.period ? item.period : null)
-      .filter(period => period !== null && period.trim() !== '')
+      .filter((period): period is string => period !== null && period.trim() !== '')
     )].sort();
   }, [data]);
   
@@ -44,7 +44,7 @@ const FilterBar: React.FC<FilterBarProps> = ({
     }
     return [...new Set(data
       .map(item => item && item.teacherName ? item.teacherName : null)
-      .filter(teacher => teacher !== null && teacher.trim() !== '')
+      .filter((teacher): teacher is string => teacher !== null && teacher.trim() !== '')
     )].sort();
   }, [data]);
   
@@ -54,7 +54,7 @@ const FilterBar: React.FC<FilterBarProps> = ({
     }
     return [...new Set(data
       .map(item => item && item.location ? item.location : null)
-      .filter(location => location !== null && location.trim() !== '')
+      .filter((location): location is string => location !== null && location.trim() !== '')
     )].sort();
   }, [data]);
 
