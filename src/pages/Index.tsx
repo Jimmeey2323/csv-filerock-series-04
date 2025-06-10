@@ -457,6 +457,10 @@ const Index = () => {
                   <TrendingUp className="h-4 w-4" />
                   <span>Monthly Metrics</span>
                 </TabsTrigger>
+                <TabsTrigger value="sales-metrics" className="flex items-center gap-2">
+                  <DollarSign className="h-4 w-4" />
+                  <span>Sales Metrics</span>
+                </TabsTrigger>
                 <TabsTrigger value="performance-insights" className="flex items-center gap-2">
                   <Target className="h-4 w-4" />
                   <span>Performance Insights</span>
@@ -477,6 +481,10 @@ const Index = () => {
 
               <TabsContent value="monthly-metrics" className="mt-0">
                 <MonthlyMetricsView data={filteredData} />
+              </TabsContent>
+
+              <TabsContent value="sales-metrics" className="mt-0">
+                <SalesMetricsView data={filteredData} paymentsData={rawData.paymentsData || []} />
               </TabsContent>
 
               <TabsContent value="performance-insights" className="mt-0">
