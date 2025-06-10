@@ -1,3 +1,4 @@
+
 import React, { useState, useCallback, useEffect } from 'react';
 import { toast } from 'sonner';
 import FileUploader from '@/components/FileUploader';
@@ -7,6 +8,7 @@ import FilterBar from '@/components/FilterBar';
 import ResultsTable from '@/components/ResultsTable';
 import RawDataView from '@/components/RawDataView';
 import MonthlyMetricsView from '@/components/MonthlyMetricsView';
+import SalesMetricsView from '@/components/SalesMetricsView';
 import PerformanceInsightsView from '@/components/PerformanceInsightsView';
 import { parseCSV, categorizeFiles, getFileTypes } from '@/utils/csvParser';
 import { processData, ProcessedTeacherData, ProcessingProgress } from '@/utils/dataProcessor';
@@ -15,7 +17,7 @@ import Logo from '@/components/Logo';
 import AIInsights from '@/components/AIInsights';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { ChevronDown, ChevronUp, FileText, Table, BarChart, TrendingUp, Target } from 'lucide-react';
+import { ChevronDown, ChevronUp, FileText, Table, BarChart, TrendingUp, Target, DollarSign } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 // Local storage keys

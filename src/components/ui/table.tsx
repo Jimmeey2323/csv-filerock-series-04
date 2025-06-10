@@ -1,3 +1,4 @@
+
 import * as React from "react";
 import { ChevronDown, ChevronUp, ChevronsUpDown } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -16,8 +17,10 @@ const Table = React.forwardRef<HTMLTableElement, React.HTMLAttributes<HTMLTableE
     "before:bg-gradient-to-br before:from-slate-200/30 before:via-white/20 before:to-slate-200/30",
     "before:mask-composite:subtract before:[mask:linear-gradient(#fff_0_0)_content-box,linear-gradient(#fff_0_0)]"
   )} style={{ maxHeight }}>
-    <div className="relative overflow-auto rounded-2xl bg-white/30 backdrop-blur-sm border border-white/10 h-full">
-      <table ref={ref} className={cn("w-full caption-bottom text-sm min-w-max", className)} {...props} />
+    <div className="relative flex flex-col h-full">
+      <div className="flex-1 overflow-auto rounded-t-2xl bg-white/30 backdrop-blur-sm border border-white/10">
+        <table ref={ref} className={cn("w-full caption-bottom text-sm min-w-max", className)} {...props} />
+      </div>
     </div>
   </div>
 ));
