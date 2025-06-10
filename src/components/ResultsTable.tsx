@@ -310,7 +310,7 @@ const ResultsTable: React.FC<ResultsTableProps> = ({
   }
 
   // Components for different views
-  const renderTableView = () => <Card className="bg-white shadow-sm rounded-lg overflow-hidden animate-fade-in">
+  const renderTableView = () => <Card className="bg-white shadow-sm rounded-lg overflow-hidden">
       <CardHeader className="bg-muted/20 pb-2">
         <CardTitle className="text-lg flex justify-between items-center">
           <span>Performance Data</span>
@@ -380,12 +380,12 @@ const ResultsTable: React.FC<ResultsTableProps> = ({
               {displayData.map((item, idx) => <TableRow key={`${item.teacherName}-${item.location}-${item.period}-${idx}`} isClickable={!(item as any).isGroupHeader} isGroupHeader={(item as any).isGroupHeader} onClick={!(item as any).isGroupHeader ? () => handleRowClick(item) : undefined} className="animate-fade-in" style={{
               animationDelay: `${idx * 30}ms`
             }}>
-                  {visibleColumns.includes('teacherName') && <TableCell className="font-medium">{dataMode === 'teacher' ? item.teacherName : item.location}</TableCell>}
-                  {visibleColumns.includes('location') && <TableCell>{(item as any).isGroupHeader ? '' : item.location}</TableCell>}
+                  {visibleColumns.includes('teacherName') && <TableCell className="font-medium min-w-36">{dataMode === 'teacher' ? item.teacherName : item.location}</TableCell>}
+                  {visibleColumns.includes('location') && <TableCell className="min-w-36">{(item as any).isGroupHeader ? '' : item.location}</TableCell>}
                   {visibleColumns.includes('period') && <TableCell>{(item as any).isGroupHeader ? '' : item.period}</TableCell>}
                   {visibleColumns.includes('newClients') && <TableCell className="text-center">{(item as any).isGroupHeader ? '' : item.newClients}</TableCell>}
                   {visibleColumns.includes('retainedClients') && <TableCell className="text-center">{(item as any).isGroupHeader ? '' : item.retainedClients}</TableCell>}
-                  {visibleColumns.includes('retentionRate') && <TableCell className="text-center">
+                  {visibleColumns.includes('retentionRate') && <TableCell className="text-center min-w-36">
                       {!(item as any).isGroupHeader && <Badge variant={item.retentionRate > 50 ? "success" : "destructive"} className="cursor-pointer hover:bg-muted flex items-center gap-1 animate-scale-in" onClick={e => {
                   e.stopPropagation();
                   handleMetricClick(item, 'retention');
@@ -470,21 +470,21 @@ const ResultsTable: React.FC<ResultsTableProps> = ({
                 </TableRow>)}
             </TableBody>
             <TableFooter className="bg-primary text-primary-foreground hover:bg-primary-dark cursor-pointer animate-fade-in" onClick={handleTotalsRowClick} isClickable={true}>
-              <TableRow className="bg-zinc-900 border-emerald-800 border-t-8">
-                {visibleColumns.includes('teacherName') && <TableCell className="font-extrabold font-[small-caps] text-lg">TOTALS</TableCell>}
+              <TableRow className="bg-zinc-900 border-emerald-800 border-t-8 text-center">
+                {visibleColumns.includes('teacherName') && <TableCell className="font-extrabold font-[small-caps] text-lg col-span-3 ">TOTALS</TableCell>}
                 {visibleColumns.includes('location') && <TableCell></TableCell>}
                 {visibleColumns.includes('period') && <TableCell></TableCell>}
                 {visibleColumns.includes('newClients') && <TableCell className="font-extrabold font-[small-caps] text-lg">{totals.newClients}</TableCell>}
                 {visibleColumns.includes('retainedClients') && <TableCell className="font-extrabold font-[small-caps] text-lg text-center">{totals.retainedClients}</TableCell>}
                 {visibleColumns.includes('retentionRate') && <TableCell className="text-center font-bold">
-                    <span className="font-extrabold font-[small-caps] text-lg text-center">
+                    <span className="flex items-center justify-evenly  font-extrabold font-[small-caps] text-lg ">
                       {avgRetentionRate > 50 ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
                       {safeToFixed(avgRetentionRate, 1)}%
                     </span>
                   </TableCell>}
                 {visibleColumns.includes('convertedClients') && <TableCell className="font-extrabold font-[small-caps] text-lg text-center">{totals.convertedClients}</TableCell>}
                 {visibleColumns.includes('conversionRate') && <TableCell className="text-center font-bold">
-                    <span className="font-extrabold font-[small-caps] text-lg text-center">
+                    <span className="flex items-center justify-evenly  font-extrabold font-[small-caps] text-lg text-center">
                       {avgConversionRate > 10 ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
                       {safeToFixed(avgConversionRate, 1)}%
                     </span>
@@ -509,13 +509,13 @@ const ResultsTable: React.FC<ResultsTableProps> = ({
                     {safeFormatCurrency(totals.newClients > 0 ? totals.totalRevenue / totals.newClients : 0)}
                   </TableCell>}
                 {visibleColumns.includes('noShowRate') && <TableCell className="text-center font-bold">
-                    <span className="font-extrabold font-[small-caps] text-lg text-center">
+                    <span className="flex items-center justify-evenly  font-extrabold font-[small-caps] text-lg text-center">
                       {avgNoShowRate < 10 ? <TrendingDown className="h-3 w-3" /> : <TrendingUp className="h-3 w-3" />}
                       {safeToFixed(avgNoShowRate, 1)}%
                     </span>
                   </TableCell>}
                 {visibleColumns.includes('lateCancellationRate') && <TableCell className="text-center font-bold">
-                    <span className="font-extrabold font-[small-caps] text-lg text-center">
+                    <span className="flex items-center justify-evenly  font-extrabold font-[small-caps] text-lg text-center">
                       {avgLateCancellationRate < 10 ? <TrendingDown className="h-3 w-3" /> : <TrendingUp className="h-3 w-3" />}
                       {safeToFixed(avgLateCancellationRate, 1)}%
                     </span>
