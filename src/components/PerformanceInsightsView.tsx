@@ -9,9 +9,11 @@ import { Progress } from '@/components/ui/progress';
 import { safeToFixed, safeFormatCurrency } from '@/lib/utils';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from '@/components/ui/table';
 import { ScrollArea } from '@/components/ui/scroll-area';
+
 interface PerformanceInsightsViewProps {
   data: ProcessedTeacherData[];
 }
+
 const PerformanceInsightsView: React.FC<PerformanceInsightsViewProps> = ({
   data
 }) => {
@@ -140,6 +142,7 @@ const PerformanceInsightsView: React.FC<PerformanceInsightsViewProps> = ({
   const avgNoShowRate = totals.totalVisits > 0 ? totals.noShows / totals.totalVisits * 100 : 0;
   const avgRevenuePerClient = totals.newClients > 0 ? totals.totalRevenue / totals.newClients : 0;
   const avgClassUtilization = totals.totalClasses > 0 ? totals.totalVisits / totals.totalClasses : 0;
+
   return <div className="space-y-6">
       {/* Key Insights Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -320,11 +323,11 @@ const PerformanceInsightsView: React.FC<PerformanceInsightsViewProps> = ({
           </CardTitle>
         </CardHeader>
         <CardContent className="p-0">
-          <div className="overflow-hidden rounded-xl border border-white/20 bg-white/70 backdrop-blur-md shadow-xl">
+          <div className="max-h-[500px] overflow-auto">
             <Table className="w-full">
               <TableHeader>
                 <TableRow>
-                  <TableHead className="w-2 text-center col-span-1 ">Rank</TableHead>
+                  <TableHead className="w-16 text-center">Rank</TableHead>
                   <TableHead className="min-w-[160px]">Teacher</TableHead>
                   <TableHead className="min-w-[120px]">Location</TableHead>
                   <TableHead className="w-24 text-center">Score</TableHead>
@@ -337,44 +340,48 @@ const PerformanceInsightsView: React.FC<PerformanceInsightsViewProps> = ({
                 </TableRow>
               </TableHeader>
               <TableBody>
-                <ScrollArea className="h-[400px]">
-                  {performanceData.map((teacher, index) => {
+                {performanceData.map((teacher, index) => {
                   const isHigh = highPerformers.includes(teacher);
                   const isLow = lowPerformers.includes(teacher);
-                  return <TableRow key={teacher.teacherName} className="animate-fade-in border-b border-slate-200/30" style={{
-                    animationDelay: `${800 + index * 50}ms`
-                  }}>
-                        <TableCell className="text-center">
-                          <Badge variant={index < 3 ? "default" : "secondary"} className="text-xs">
-                            #{index + 1}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="font-medium text-slate-800">{teacher.teacherName}</TableCell>
-                        <TableCell className="text-muted-foreground text-sm">{teacher.location}</TableCell>
-                        <TableCell className="text-center">
-                          <div className="flex items-center justify-center gap-1">
-                            <span className="font-bold text-slate-800">{teacher.performanceScore}</span>
-                            {parseFloat(teacher.performanceScore) > averagePerformance ? <TrendingUp className="h-3 w-3 text-green-500" /> : <TrendingDown className="h-3 w-3 text-red-500" />}
-                          </div>
-                        </TableCell>
-                        <TableCell className="text-center font-medium text-slate-800">{teacher.conversionRate}%</TableCell>
-                        <TableCell className="text-center font-medium text-slate-800">{teacher.retentionRate}%</TableCell>
-                        <TableCell className="text-center">
-                          <Badge variant={parseFloat(teacher.noShowRate) > 10 ? "destructive" : "secondary"} className="text-xs">
-                            {teacher.noShowRate}%
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="text-center font-medium text-slate-800">{safeFormatCurrency(parseFloat(teacher.revenuePerClient))}</TableCell>
-                        <TableCell className="text-center font-medium text-slate-800">{teacher.classUtilization}</TableCell>
-                        <TableCell className="text-center">
-                          <Badge variant={isHigh ? "default" : isLow ? "destructive" : "secondary"} className="flex items-center gap-1 text-xs">
-                            {isHigh ? <Star className="h-3 w-3" /> : isLow ? <AlertTriangle className="h-3 w-3" /> : <CheckCircle className="h-3 w-3" />}
-                            {isHigh ? 'High' : isLow ? 'Low' : 'Avg'}
-                          </Badge>
-                        </TableCell>
-                      </TableRow>;
+                  return (
+                    <TableRow key={teacher.teacherName} className="animate-fade-in border-b border-slate-200/30" style={{
+                      animationDelay: `${800 + index * 50}ms`
+                    }}>
+                      <TableCell className="text-center">
+                        <Badge variant={index < 3 ? "default" : "secondary"} className="text-xs">
+                          #{index + 1}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="font-medium text-slate-800">{teacher.teacherName}</TableCell>
+                      <TableCell className="text-muted-foreground text-sm">{teacher.location}</TableCell>
+                      <TableCell className="text-center">
+                        <div className="flex items-center justify-center gap-1">
+                          <span className="font-bold text-slate-800">{teacher.performanceScore}</span>
+                          {parseFloat(teacher.performanceScore) > averagePerformance ? (
+                            <TrendingUp className="h-3 w-3 text-green-500" />
+                          ) : (
+                            <TrendingDown className="h-3 w-3 text-red-500" />
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-center font-medium text-slate-800">{teacher.conversionRate}%</TableCell>
+                      <TableCell className="text-center font-medium text-slate-800">{teacher.retentionRate}%</TableCell>
+                      <TableCell className="text-center">
+                        <Badge variant={parseFloat(teacher.noShowRate) > 10 ? "destructive" : "secondary"} className="text-xs">
+                          {teacher.noShowRate}%
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-center font-medium text-slate-800">{safeFormatCurrency(parseFloat(teacher.revenuePerClient))}</TableCell>
+                      <TableCell className="text-center font-medium text-slate-800">{teacher.classUtilization}</TableCell>
+                      <TableCell className="text-center">
+                        <Badge variant={isHigh ? "default" : isLow ? "destructive" : "secondary"} className="flex items-center gap-1 text-xs">
+                          {isHigh ? <Star className="h-3 w-3" /> : isLow ? <AlertTriangle className="h-3 w-3" /> : <CheckCircle className="h-3 w-3" />}
+                          {isHigh ? 'High' : isLow ? 'Low' : 'Avg'}
+                        </Badge>
+                      </TableCell>
+                    </TableRow>
+                  );
                 })}
-                </ScrollArea>
               </TableBody>
               <TableFooter>
                 <TableRow className="border-t-2 border-slate-300/50 bg-gradient-to-r from-slate-800/95 via-slate-700/95 to-slate-800/95">
@@ -394,4 +401,5 @@ const PerformanceInsightsView: React.FC<PerformanceInsightsViewProps> = ({
       </Card>
     </div>;
 };
+
 export default PerformanceInsightsView;
