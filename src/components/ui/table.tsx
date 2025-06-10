@@ -8,7 +8,7 @@ const Table = React.forwardRef<HTMLTableElement, React.HTMLAttributes<HTMLTableE
   maxHeight = "600px",
   ...props
 }, ref) => <div className={cn("relative w-full overflow-hidden rounded-2xl shadow-xl border border-white/10", "bg-white/70 backdrop-blur-md", "before:absolute before:inset-0 before:rounded-2xl before:p-[1px]", "before:bg-gradient-to-br before:from-slate-200/30 before:via-white/20 before:to-slate-200/30", "before:mask-composite:subtract before:[mask:linear-gradient(#fff_0_0)_content-box,linear-gradient(#fff_0_0)]", `max-h-[${maxHeight}]`)}>
-    <div className="relative overflow-auto rounded-2xl bg-white/30 backdrop-blur-sm border border-white/10">
+    <div className="relative overflow-scroll rounded-2xl bg-white/30 backdrop-blur-sm border border-white/10">
       <table ref={ref} className={cn("w-full caption-bottom text-sm", className)} {...props} />
     </div>
   </div>);
