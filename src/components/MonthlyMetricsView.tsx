@@ -19,7 +19,7 @@ const MonthlyMetricsView: React.FC<MonthlyMetricsViewProps> = ({ data }) => {
   // Group data by teacher and month
   const monthlyData = React.useMemo(() => {
     const grouped = data.reduce((acc, item) => {
-      const month = item.month || 'Unknown';
+      const month = item.period || 'Unknown';
       const teacher = item.teacherName;
       
       if (!acc[teacher]) {
