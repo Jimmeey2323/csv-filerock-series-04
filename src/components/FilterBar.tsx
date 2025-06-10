@@ -80,6 +80,16 @@ const FilterBar: React.FC<FilterBarProps> = ({
     onFilterChange(newFilters);
   }, [filters, onFilterChange]);
 
+  const handleQuickPeriodClick = React.useCallback((periodValue: string) => {
+    // Clear existing period filter first
+    const newFilters = {
+      ...filters,
+      period: filters.period === periodValue ? '' : periodValue
+    };
+    setFilters(newFilters);
+    onFilterChange(newFilters);
+  }, [filters, onFilterChange]);
+
   const handleReset = React.useCallback(() => {
     const resetFilters = {
       location: '',
@@ -189,7 +199,7 @@ const FilterBar: React.FC<FilterBarProps> = ({
                 key={period.value}
                 variant={filters.period === period.value ? "default" : "outline"}
                 size="sm"
-                onClick={() => handleFilterChange('period', period.value)}
+                onClick={() => handleQuickPeriodClick(period.value)}
                 className="whitespace-nowrap transition-all duration-300 bg-gradient-to-r hover:from-blue-50 hover:to-indigo-50"
               >
                 <Clock className="h-3.5 w-3.5 mr-1.5" />
@@ -234,7 +244,7 @@ const FilterBar: React.FC<FilterBarProps> = ({
               {filters.period && (
                 <Badge variant="secondary" className="flex items-center gap-1.5">
                   <Calendar className="h-3.5 w-3.5" />
-                  {filters.period === 'all-periods' ? 'All Periods' : filters.period}
+                  {quickPeriods.find(p => p.value === filters.period)?.label || filters.period}
                   <X 
                     className="h-3.5 w-3.5 ml-1 opacity-70 hover:opacity-100 cursor-pointer" 
                     onClick={(e) => {

@@ -2,83 +2,165 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, LineChart, Line } from 'recharts';
 import { ProcessedTeacherData } from '@/utils/dataProcessor';
-import { TrendingUp, TrendingDown, Users, Calendar, Target, Award } from 'lucide-react';
+import { TrendingUp, Users, Calendar, Target, Award } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { safeToFixed, safeFormatCurrency } from '@/lib/utils';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from '@/components/ui/table';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 interface MonthlyMetricsViewProps {
   data: ProcessedTeacherData[];
 }
 
 const MonthlyMetricsView: React.FC<MonthlyMetricsViewProps> = ({ data }) => {
-  // Group data by teacher and calculate metrics
-  const teacherMetrics = React.useMemo(() => {
-    const groupedData = data.reduce((acc, item) => {
-      if (!acc[item.teacherName]) {
-        acc[item.teacherName] = [];
+  // Group data by teacher and month
+  const monthlyData = React.useMemo(() => {
+    const grouped = data.reduce((acc, item) => {
+      const month = item.month || 'Unknown';
+      const teacher = item.teacherName;
+      
+      if (!acc[teacher]) {
+        acc[teacher] = {};
       }
-      acc[item.teacherName].push(item);
+      if (!acc[teacher][month]) {
+        acc[teacher][month] = {
+          visits: 0,
+          cancellations: 0,
+          lateCancellations: 0,
+          noShows: 0,
+          newMembers: 0,
+          retained: 0,
+          converted: 0,
+          classes: 0,
+          uniqueMembers: 0,
+          revenue: 0
+        };
+      }
+      
+      acc[teacher][month].visits += item.totalVisits || 0;
+      acc[teacher][month].cancellations += item.cancellations || 0;
+      acc[teacher][month].lateCancellations += item.lateCancellations || 0;
+      acc[teacher][month].noShows += item.noShows || 0;
+      acc[teacher][month].newMembers += item.newClients || 0;
+      acc[teacher][month].retained += item.retainedClients || 0;
+      acc[teacher][month].converted += item.convertedClients || 0;
+      acc[teacher][month].classes += item.totalClasses || 0;
+      acc[teacher][month].uniqueMembers += item.uniqueClients || 0;
+      acc[teacher][month].revenue += item.totalRevenue || 0;
+      
       return acc;
-    }, {} as Record<string, ProcessedTeacherData[]>);
+    }, {} as Record<string, Record<string, any>>);
 
-    return Object.entries(groupedData).map(([teacherName, teacherData]) => {
-      const totalVisits = teacherData.reduce((sum, item) => sum + (item.totalVisits || 0), 0);
-      const totalCancellations = teacherData.reduce((sum, item) => sum + (item.cancellations || 0), 0);
-      const totalLateCancellations = teacherData.reduce((sum, item) => sum + (item.lateCancellations || 0), 0);
-      const totalNoShows = teacherData.reduce((sum, item) => sum + (item.noShows || 0), 0);
-      const totalNewMembers = teacherData.reduce((sum, item) => sum + (item.newClients || 0), 0);
-      const totalRetained = teacherData.reduce((sum, item) => sum + (item.retainedClients || 0), 0);
-      const totalConverted = teacherData.reduce((sum, item) => sum + (item.convertedClients || 0), 0);
-      const totalClasses = teacherData.reduce((sum, item) => sum + (item.totalClasses || 0), 0);
-      const totalUniqueMembers = teacherData.reduce((sum, item) => sum + (item.uniqueClients || 0), 0);
-      const totalRevenue = teacherData.reduce((sum, item) => sum + (item.totalRevenue || 0), 0);
-
-      const cancellationRate = totalVisits > 0 ? (totalCancellations / totalVisits) * 100 : 0;
-      const classAverageAttendance = totalClasses > 0 ? totalVisits / totalClasses : 0;
-      const conversionRate = totalNewMembers > 0 ? (totalConverted / totalNewMembers) * 100 : 0;
-      const retentionRate = totalNewMembers > 0 ? (totalRetained / totalNewMembers) * 100 : 0;
-
-      return {
-        teacherName,
-        visits: totalVisits,
-        cancellations: totalCancellations,
-        lateCancellations: totalLateCancellations,
-        noShows: totalNoShows,
-        cancellationRate: safeToFixed(cancellationRate, 1),
-        newMembers: totalNewMembers,
-        retained: totalRetained,
-        converted: totalConverted,
-        classes: totalClasses,
-        uniqueMembers: totalUniqueMembers,
-        classAverageAttendance: safeToFixed(classAverageAttendance, 1),
-        conversionRate: safeToFixed(conversionRate, 1),
-        retentionRate: safeToFixed(retentionRate, 1),
-        totalRevenue: totalRevenue
-      };
-    });
+    return grouped;
   }, [data]);
 
-  // Chart configuration
-  const chartConfig = {
-    visits: { label: 'Visits', color: 'hsl(var(--chart-1))' },
-    cancellations: { label: 'Cancellations', color: 'hsl(var(--chart-2))' },
-    newMembers: { label: 'New Members', color: 'hsl(var(--chart-3))' },
-    converted: { label: 'Converted', color: 'hsl(var(--chart-4))' },
-    retained: { label: 'Retained', color: 'hsl(var(--chart-5))' },
+  // Get all unique months sorted
+  const allMonths = React.useMemo(() => {
+    const months = new Set<string>();
+    Object.values(monthlyData).forEach(teacherData => {
+      Object.keys(teacherData).forEach(month => months.add(month));
+    });
+    return Array.from(months).sort();
+  }, [monthlyData]);
+
+  // Get all teachers
+  const teachers = Object.keys(monthlyData);
+
+  // Calculate totals for each month and metric
+  const calculateTotals = (metric: string) => {
+    return allMonths.map(month => {
+      const total = teachers.reduce((sum, teacher) => {
+        return sum + (monthlyData[teacher][month]?.[metric] || 0);
+      }, 0);
+      return { month, total };
+    });
+  };
+
+  // Render table for specific metric
+  const renderMetricTable = (metric: string, label: string, formatter?: (value: number) => string) => {
+    const totals = calculateTotals(metric);
+    const totalSum = totals.reduce((sum, t) => sum + t.total, 0);
+
+    return (
+      <Card className="animate-fade-in">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Target className="h-5 w-5 text-primary" />
+            {label} by Teacher & Month
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Table maxHeight="500px">
+            <TableHeader>
+              <TableRow>
+                <TableHead sortable>Teacher</TableHead>
+                {allMonths.map(month => (
+                  <TableHead key={month} className="text-center">{month}</TableHead>
+                ))}
+                <TableHead className="text-center font-bold">Total</TableHead>
+              </TableRow>
+            </TableHeader>
+            <ScrollArea className="h-[400px]">
+              <TableBody>
+                {teachers.map((teacher, index) => {
+                  const teacherTotal = allMonths.reduce((sum, month) => {
+                    return sum + (monthlyData[teacher][month]?.[metric] || 0);
+                  }, 0);
+                  
+                  return (
+                    <TableRow key={teacher} className="animate-fade-in" style={{ animationDelay: `${index * 50}ms` }}>
+                      <TableCell className="font-medium">{teacher}</TableCell>
+                      {allMonths.map(month => {
+                        const value = monthlyData[teacher][month]?.[metric] || 0;
+                        return (
+                          <TableCell key={month} className="text-center">
+                            {formatter ? formatter(value) : value.toLocaleString()}
+                          </TableCell>
+                        );
+                      })}
+                      <TableCell className="text-center font-bold">
+                        {formatter ? formatter(teacherTotal) : teacherTotal.toLocaleString()}
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </ScrollArea>
+            <TableFooter>
+              <TableRow>
+                <TableCell className="font-bold text-white">Total</TableCell>
+                {totals.map(({ month, total }) => (
+                  <TableCell key={month} className="text-center font-bold text-white">
+                    {formatter ? formatter(total) : total.toLocaleString()}
+                  </TableCell>
+                ))}
+                <TableCell className="text-center font-bold text-white">
+                  {formatter ? formatter(totalSum) : totalSum.toLocaleString()}
+                </TableCell>
+              </TableRow>
+            </TableFooter>
+          </Table>
+        </CardContent>
+      </Card>
+    );
   };
 
   // Calculate summary statistics
   const totalMetrics = React.useMemo(() => {
-    return teacherMetrics.reduce((acc, teacher) => ({
-      totalVisits: acc.totalVisits + teacher.visits,
-      totalNewMembers: acc.totalNewMembers + teacher.newMembers,
-      totalConverted: acc.totalConverted + teacher.converted,
-      totalRetained: acc.totalRetained + teacher.retained,
-      totalRevenue: acc.totalRevenue + teacher.totalRevenue,
-      totalClasses: acc.totalClasses + teacher.classes,
-    }), {
+    return teachers.reduce((acc, teacher) => {
+      Object.values(monthlyData[teacher]).forEach(monthData => {
+        acc.totalVisits += monthData.visits || 0;
+        acc.totalNewMembers += monthData.newMembers || 0;
+        acc.totalConverted += monthData.converted || 0;
+        acc.totalRetained += monthData.retained || 0;
+        acc.totalRevenue += monthData.revenue || 0;
+        acc.totalClasses += monthData.classes || 0;
+      });
+      return acc;
+    }, {
       totalVisits: 0,
       totalNewMembers: 0,
       totalConverted: 0,
@@ -86,7 +168,7 @@ const MonthlyMetricsView: React.FC<MonthlyMetricsViewProps> = ({ data }) => {
       totalRevenue: 0,
       totalClasses: 0,
     });
-  }, [teacherMetrics]);
+  }, [teachers, monthlyData]);
 
   return (
     <div className="space-y-6">
@@ -150,180 +232,61 @@ const MonthlyMetricsView: React.FC<MonthlyMetricsViewProps> = ({ data }) => {
         </Card>
       </div>
 
-      {/* Charts */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card className="animate-fade-in" style={{ animationDelay: '400ms' }}>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Users className="h-5 w-5 text-primary" />
-              Visits & Cancellations by Teacher
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ChartContainer config={chartConfig} className="h-[300px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={teacherMetrics} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--muted))" />
-                  <XAxis 
-                    dataKey="teacherName" 
-                    stroke="hsl(var(--muted-foreground))"
-                    fontSize={12}
-                    angle={-45}
-                    textAnchor="end"
-                    height={80}
-                  />
-                  <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} />
-                  <ChartTooltip content={<ChartTooltipContent />} />
-                  <Bar dataKey="visits" fill="var(--color-visits)" name="Visits" />
-                  <Bar dataKey="cancellations" fill="var(--color-cancellations)" name="Cancellations" />
-                </BarChart>
-              </ResponsiveContainer>
-            </ChartContainer>
-          </CardContent>
-        </Card>
+      {/* Month-on-Month Metrics Tabs */}
+      <Tabs defaultValue="visits" className="space-y-4">
+        <TabsList className="grid w-full grid-cols-6 lg:grid-cols-12">
+          <TabsTrigger value="visits">Visits</TabsTrigger>
+          <TabsTrigger value="cancellations">Cancellations</TabsTrigger>
+          <TabsTrigger value="lateCancellations">Late Cancel</TabsTrigger>
+          <TabsTrigger value="noShows">No Shows</TabsTrigger>
+          <TabsTrigger value="newMembers">New Members</TabsTrigger>
+          <TabsTrigger value="retained">Retained</TabsTrigger>
+          <TabsTrigger value="converted">Converted</TabsTrigger>
+          <TabsTrigger value="classes">Classes</TabsTrigger>
+          <TabsTrigger value="uniqueMembers">Unique Members</TabsTrigger>
+          <TabsTrigger value="revenue">Revenue</TabsTrigger>
+        </TabsList>
 
-        <Card className="animate-fade-in" style={{ animationDelay: '500ms' }}>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Target className="h-5 w-5 text-primary" />
-              Member Acquisition & Retention
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ChartContainer config={chartConfig} className="h-[300px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={teacherMetrics} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--muted))" />
-                  <XAxis 
-                    dataKey="teacherName" 
-                    stroke="hsl(var(--muted-foreground))"
-                    fontSize={12}
-                    angle={-45}
-                    textAnchor="end"
-                    height={80}
-                  />
-                  <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} />
-                  <ChartTooltip content={<ChartTooltipContent />} />
-                  <Bar dataKey="newMembers" fill="var(--color-newMembers)" name="New Members" />
-                  <Bar dataKey="converted" fill="var(--color-converted)" name="Converted" />
-                  <Bar dataKey="retained" fill="var(--color-retained)" name="Retained" />
-                </BarChart>
-              </ResponsiveContainer>
-            </ChartContainer>
-          </CardContent>
-        </Card>
-      </div>
+        <TabsContent value="visits">
+          {renderMetricTable('visits', 'Visits')}
+        </TabsContent>
 
-      {/* Conversion Rate Trends */}
-      <Card className="animate-fade-in" style={{ animationDelay: '600ms' }}>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <TrendingUp className="h-5 w-5 text-primary" />
-            Conversion & Retention Rates by Teacher
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <ChartContainer config={chartConfig} className="h-[400px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={teacherMetrics} margin={{ top: 20, right: 30, left: 20, bottom: 80 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--muted))" />
-                <XAxis 
-                  dataKey="teacherName" 
-                  stroke="hsl(var(--muted-foreground))"
-                  fontSize={12}
-                  angle={-45}
-                  textAnchor="end"
-                  height={80}
-                />
-                <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} label={{ value: 'Rate (%)', angle: -90, position: 'insideLeft' }} />
-                <ChartTooltip 
-                  content={<ChartTooltipContent 
-                    formatter={(value, name) => [`${value}%`, name]}
-                  />} 
-                />
-                <Line 
-                  type="monotone" 
-                  dataKey="conversionRate" 
-                  stroke="hsl(var(--chart-1))" 
-                  strokeWidth={2}
-                  dot={{ fill: 'hsl(var(--chart-1))', strokeWidth: 2, r: 4 }}
-                  name="Conversion Rate"
-                />
-                <Line 
-                  type="monotone" 
-                  dataKey="retentionRate" 
-                  stroke="hsl(var(--chart-2))" 
-                  strokeWidth={2}
-                  dot={{ fill: 'hsl(var(--chart-2))', strokeWidth: 2, r: 4 }}
-                  name="Retention Rate"
-                />
-                <Line 
-                  type="monotone" 
-                  dataKey="cancellationRate" 
-                  stroke="hsl(var(--chart-3))" 
-                  strokeWidth={2}
-                  dot={{ fill: 'hsl(var(--chart-3))', strokeWidth: 2, r: 4 }}
-                  name="Cancellation Rate"
-                />
-              </LineChart>
-            </ResponsiveContainer>
-          </ChartContainer>
-        </CardContent>
-      </Card>
+        <TabsContent value="cancellations">
+          {renderMetricTable('cancellations', 'Cancellations')}
+        </TabsContent>
 
-      {/* Detailed Metrics Table */}
-      <Card className="animate-fade-in" style={{ animationDelay: '700ms' }}>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Calendar className="h-5 w-5 text-primary" />
-            Detailed Monthly Metrics by Teacher
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-muted">
-                  <th className="text-left p-2 font-medium">Teacher</th>
-                  <th className="text-right p-2 font-medium">Visits</th>
-                  <th className="text-right p-2 font-medium">Cancellations</th>
-                  <th className="text-right p-2 font-medium">Late Cancel</th>
-                  <th className="text-right p-2 font-medium">No Shows</th>
-                  <th className="text-right p-2 font-medium">Cancel Rate</th>
-                  <th className="text-right p-2 font-medium">New Members</th>
-                  <th className="text-right p-2 font-medium">Converted</th>
-                  <th className="text-right p-2 font-medium">Retained</th>
-                  <th className="text-right p-2 font-medium">Classes</th>
-                  <th className="text-right p-2 font-medium">Avg Attendance</th>
-                  <th className="text-right p-2 font-medium">Revenue</th>
-                </tr>
-              </thead>
-              <tbody>
-                {teacherMetrics.map((teacher, index) => (
-                  <tr key={teacher.teacherName} className="border-b border-muted/50 hover:bg-muted/30 transition-colors animate-fade-in" style={{ animationDelay: `${800 + index * 50}ms` }}>
-                    <td className="p-2 font-medium">{teacher.teacherName}</td>
-                    <td className="text-right p-2">{teacher.visits.toLocaleString()}</td>
-                    <td className="text-right p-2">{teacher.cancellations.toLocaleString()}</td>
-                    <td className="text-right p-2">{teacher.lateCancellations.toLocaleString()}</td>
-                    <td className="text-right p-2">{teacher.noShows.toLocaleString()}</td>
-                    <td className="text-right p-2">
-                      <Badge variant={parseFloat(teacher.cancellationRate) > 10 ? "destructive" : "secondary"}>
-                        {teacher.cancellationRate}%
-                      </Badge>
-                    </td>
-                    <td className="text-right p-2">{teacher.newMembers.toLocaleString()}</td>
-                    <td className="text-right p-2">{teacher.converted.toLocaleString()}</td>
-                    <td className="text-right p-2">{teacher.retained.toLocaleString()}</td>
-                    <td className="text-right p-2">{teacher.classes.toLocaleString()}</td>
-                    <td className="text-right p-2">{teacher.classAverageAttendance}</td>
-                    <td className="text-right p-2 font-medium">{safeFormatCurrency(teacher.totalRevenue)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </CardContent>
-      </Card>
+        <TabsContent value="lateCancellations">
+          {renderMetricTable('lateCancellations', 'Late Cancellations')}
+        </TabsContent>
+
+        <TabsContent value="noShows">
+          {renderMetricTable('noShows', 'No Shows')}
+        </TabsContent>
+
+        <TabsContent value="newMembers">
+          {renderMetricTable('newMembers', 'New Members')}
+        </TabsContent>
+
+        <TabsContent value="retained">
+          {renderMetricTable('retained', 'Retained Members')}
+        </TabsContent>
+
+        <TabsContent value="converted">
+          {renderMetricTable('converted', 'Converted Members')}
+        </TabsContent>
+
+        <TabsContent value="classes">
+          {renderMetricTable('classes', 'Classes')}
+        </TabsContent>
+
+        <TabsContent value="uniqueMembers">
+          {renderMetricTable('uniqueMembers', 'Unique Members')}
+        </TabsContent>
+
+        <TabsContent value="revenue">
+          {renderMetricTable('revenue', 'Revenue', safeFormatCurrency)}
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };
