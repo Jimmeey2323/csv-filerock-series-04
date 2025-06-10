@@ -321,7 +321,7 @@ const ResultsTable: React.FC<ResultsTableProps> = ({
         <div className="max-h-[800px] overflow-auto">
           <Table>
             <TableHeader>
-              <TableRow>
+              <TableRow className="bg-zinc-900 rounded-xl border-red-800 border-b-8">
                 {visibleColumns.includes('teacherName') && <TableHead className="w-[200px]" sortable sortDirection={sortConfig.column === 'teacherName' ? sortConfig.direction : undefined} onSort={() => handleHeaderSort('teacherName')}>
                     {dataMode === 'teacher' ? 'Teacher' : 'Studio'}
                   </TableHead>}
@@ -407,7 +407,7 @@ const ResultsTable: React.FC<ResultsTableProps> = ({
                   {visibleColumns.includes('totalRevenue') && <TableCell className="text-center">{(item as any).isGroupHeader ? '' : safeFormatCurrency(item.totalRevenue)}</TableCell>}
                   {visibleColumns.includes('trials') && <TableCell className="text-center">{(item as any).isGroupHeader ? '' : item.trials}</TableCell>}
                   {visibleColumns.includes('referrals') && <TableCell className="text-center">{(item as any).isGroupHeader ? '' : item.referrals}</TableCell>}
-                  {visibleColumns.includes('hosted') && <TableCell className="text-center">{(item as any).isGroupHeader ? '' : item.hosted}</TableCell>}
+                  {visibleColumns.includes('hosted') && <TableCell className="font-extrabold font-[small-caps] text-lg text-center">{(item as any).isGroupHeader ? '' : item.hosted}</TableCell>}
                   {visibleColumns.includes('influencerSignups') && <TableCell className="text-center">{(item as any).isGroupHeader ? '' : item.influencerSignups}</TableCell>}
                   {visibleColumns.includes('others') && <TableCell className="text-center">{(item as any).isGroupHeader ? '' : item.others}</TableCell>}
                   {visibleColumns.includes('averageRevenuePerClient') && <TableCell className="text-center">
@@ -470,52 +470,52 @@ const ResultsTable: React.FC<ResultsTableProps> = ({
                 </TableRow>)}
             </TableBody>
             <TableFooter className="bg-primary text-primary-foreground hover:bg-primary-dark cursor-pointer animate-fade-in" onClick={handleTotalsRowClick} isClickable={true}>
-              <TableRow>
-                {visibleColumns.includes('teacherName') && <TableCell className="font-bold">TOTALS</TableCell>}
+              <TableRow className="bg-zinc-900 border-emerald-800 border-t-8">
+                {visibleColumns.includes('teacherName') && <TableCell className="font-extrabold font-[small-caps] text-lg">TOTALS</TableCell>}
                 {visibleColumns.includes('location') && <TableCell></TableCell>}
                 {visibleColumns.includes('period') && <TableCell></TableCell>}
-                {visibleColumns.includes('newClients') && <TableCell className="text-center font-bold">{totals.newClients}</TableCell>}
-                {visibleColumns.includes('retainedClients') && <TableCell className="text-center font-bold">{totals.retainedClients}</TableCell>}
+                {visibleColumns.includes('newClients') && <TableCell className="font-extrabold font-[small-caps] text-lg">{totals.newClients}</TableCell>}
+                {visibleColumns.includes('retainedClients') && <TableCell className="font-extrabold font-[small-caps] text-lg text-center">{totals.retainedClients}</TableCell>}
                 {visibleColumns.includes('retentionRate') && <TableCell className="text-center font-bold">
-                    <span className="flex items-center justify-center gap-1">
+                    <span className="font-extrabold font-[small-caps] text-lg text-center">
                       {avgRetentionRate > 50 ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
                       {safeToFixed(avgRetentionRate, 1)}%
                     </span>
                   </TableCell>}
-                {visibleColumns.includes('convertedClients') && <TableCell className="text-center font-bold">{totals.convertedClients}</TableCell>}
+                {visibleColumns.includes('convertedClients') && <TableCell className="font-extrabold font-[small-caps] text-lg text-center">{totals.convertedClients}</TableCell>}
                 {visibleColumns.includes('conversionRate') && <TableCell className="text-center font-bold">
-                    <span className="flex items-center justify-center gap-1">
+                    <span className="font-extrabold font-[small-caps] text-lg text-center">
                       {avgConversionRate > 10 ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
                       {safeToFixed(avgConversionRate, 1)}%
                     </span>
                   </TableCell>}
-                {visibleColumns.includes('totalRevenue') && <TableCell className="text-center font-bold">{safeFormatCurrency(totals.totalRevenue)}</TableCell>}
-                {visibleColumns.includes('trials') && <TableCell className="text-center font-bold">
+                {visibleColumns.includes('totalRevenue') && <TableCell className="font-extrabold font-[small-caps] text-lg text-center">{safeFormatCurrency(totals.totalRevenue)}</TableCell>}
+                {visibleColumns.includes('trials') && <TableCell className="font-extrabold font-[small-caps] text-lg text-center">
                     {displayData.filter(item => !(item as any).isGroupHeader).reduce((sum, item) => sum + (item.trials || 0), 0)}
                   </TableCell>}
-                {visibleColumns.includes('referrals') && <TableCell className="text-center font-bold">
+                {visibleColumns.includes('referrals') && <TableCell className="font-extrabold font-[small-caps] text-lg text-center">
                     {displayData.filter(item => !(item as any).isGroupHeader).reduce((sum, item) => sum + (item.referrals || 0), 0)}
                   </TableCell>}
-                {visibleColumns.includes('hosted') && <TableCell className="text-center font-bold">
+                {visibleColumns.includes('hosted') && <TableCell className="font-extrabold font-[small-caps] text-lg text-center">
                     {displayData.filter(item => !(item as any).isGroupHeader).reduce((sum, item) => sum + (item.hosted || 0), 0)}
                   </TableCell>}
-                {visibleColumns.includes('influencerSignups') && <TableCell className="text-center font-bold">
+                {visibleColumns.includes('influencerSignups') && <TableCell className="font-extrabold font-[small-caps] text-lg text-center">
                     {displayData.filter(item => !(item as any).isGroupHeader).reduce((sum, item) => sum + (item.influencerSignups || 0), 0)}
                   </TableCell>}
-                {visibleColumns.includes('others') && <TableCell className="text-center font-bold">
+                {visibleColumns.includes('others') && <TableCell className="font-extrabold font-[small-caps] text-lg text-center">
                     {displayData.filter(item => !(item as any).isGroupHeader).reduce((sum, item) => sum + (item.others || 0), 0)}
                   </TableCell>}
-                {visibleColumns.includes('averageRevenuePerClient') && <TableCell className="text-center font-bold">
+                {visibleColumns.includes('averageRevenuePerClient') && <TableCell className="font-extrabold font-[small-caps] text-lg text-center">
                     {safeFormatCurrency(totals.newClients > 0 ? totals.totalRevenue / totals.newClients : 0)}
                   </TableCell>}
                 {visibleColumns.includes('noShowRate') && <TableCell className="text-center font-bold">
-                    <span className="flex items-center justify-center gap-1">
+                    <span className="font-extrabold font-[small-caps] text-lg text-center">
                       {avgNoShowRate < 10 ? <TrendingDown className="h-3 w-3" /> : <TrendingUp className="h-3 w-3" />}
                       {safeToFixed(avgNoShowRate, 1)}%
                     </span>
                   </TableCell>}
                 {visibleColumns.includes('lateCancellationRate') && <TableCell className="text-center font-bold">
-                    <span className="flex items-center justify-center gap-1">
+                    <span className="font-extrabold font-[small-caps] text-lg text-center">
                       {avgLateCancellationRate < 10 ? <TrendingDown className="h-3 w-3" /> : <TrendingUp className="h-3 w-3" />}
                       {safeToFixed(avgLateCancellationRate, 1)}%
                     </span>
