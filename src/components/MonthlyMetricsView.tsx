@@ -9,26 +9,23 @@ import { safeToFixed, safeFormatCurrency } from '@/lib/utils';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from '@/components/ui/table';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-
 interface MonthlyMetricsViewProps {
   data: ProcessedTeacherData[];
 }
-
-const MonthlyMetricsView: React.FC<MonthlyMetricsViewProps> = ({ data }) => {
+const MonthlyMetricsView: React.FC<MonthlyMetricsViewProps> = ({
+  data
+}) => {
   // Group data by teacher and month with proper null checks
   const monthlyData = React.useMemo(() => {
     if (!data || !Array.isArray(data)) {
       return {};
     }
-
     const grouped = data.reduce((acc, item) => {
       if (!item || !item.teacherName) {
         return acc;
       }
-
       const month = item.period || 'Unknown';
       const teacher = item.teacherName;
-      
       if (!acc[teacher]) {
         acc[teacher] = {};
       }
@@ -46,7 +43,6 @@ const MonthlyMetricsView: React.FC<MonthlyMetricsViewProps> = ({ data }) => {
           revenue: 0
         };
       }
-      
       acc[teacher][month].visits += item.totalVisits || 0;
       acc[teacher][month].cancellations += item.cancellations || 0;
       acc[teacher][month].lateCancellations += item.lateCancellations || 0;
@@ -57,10 +53,8 @@ const MonthlyMetricsView: React.FC<MonthlyMetricsViewProps> = ({ data }) => {
       acc[teacher][month].classes += item.totalClasses || 0;
       acc[teacher][month].uniqueMembers += item.uniqueClients || 0;
       acc[teacher][month].revenue += item.totalRevenue || 0;
-      
       return acc;
     }, {} as Record<string, Record<string, any>>);
-
     return grouped;
   }, [data]);
 
@@ -92,14 +86,16 @@ const MonthlyMetricsView: React.FC<MonthlyMetricsViewProps> = ({ data }) => {
     if (!allMonths || !teachers || !monthlyData) {
       return [];
     }
-
     return allMonths.map(month => {
       const total = teachers.reduce((sum, teacher) => {
         const teacherData = monthlyData[teacher];
         const monthData = teacherData && teacherData[month];
         return sum + (monthData && monthData[metric] ? monthData[metric] : 0);
       }, 0);
-      return { month, total };
+      return {
+        month,
+        total
+      };
     });
   };
 
@@ -107,9 +103,7 @@ const MonthlyMetricsView: React.FC<MonthlyMetricsViewProps> = ({ data }) => {
   const renderMetricTable = (metric: string, label: string, formatter?: (value: number) => string) => {
     const totals = calculateTotals(metric);
     const totalSum = totals.reduce((sum, t) => sum + (t?.total || 0), 0);
-
-    return (
-      <Card className="animate-fade-in">
+    return <Card className="animate-fade-in">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Target className="h-5 w-5 text-primary" />
@@ -119,18 +113,13 @@ const MonthlyMetricsView: React.FC<MonthlyMetricsViewProps> = ({ data }) => {
         <CardContent className="p-0">
           <Table maxHeight="500px">
             <TableHeader>
-              <TableRow>
-                <TableHead className="sticky left-0 z-40 bg-gradient-to-r from-slate-800/95 via-slate-700/95 to-slate-800/95 backdrop-blur-sm border-r border-white/20 min-w-[140px] text-white font-bold">
+              <TableRow className="bg-zinc-900 text-white ">
+                <TableHead className="text-center min-w-[100px] whitespace-nowrap text-white font-bold px-3 bg-zinc-900">
                   Teacher
                 </TableHead>
-                {allMonths.map(month => (
-                  <TableHead 
-                    key={month} 
-                    className="text-center min-w-[100px] whitespace-nowrap text-white font-bold px-3"
-                  >
+                {allMonths.map(month => <TableHead key={month} className="text-center min-w-[100px] whitespace-nowrap text-white font-bold px-3 bg-zinc-900">
                     {month}
-                  </TableHead>
-                ))}
+                  </TableHead>)}
                 <TableHead className="text-center font-bold min-w-[100px] bg-slate-600/20 text-white border-l border-white/30">
                   Total
                 </TableHead>
@@ -138,54 +127,42 @@ const MonthlyMetricsView: React.FC<MonthlyMetricsViewProps> = ({ data }) => {
             </TableHeader>
             <TableBody>
               {teachers.map((teacher, index) => {
-                const teacherTotal = allMonths.reduce((sum, month) => {
-                  const teacherData = monthlyData[teacher];
-                  const monthData = teacherData && teacherData[month];
-                  return sum + (monthData && monthData[metric] ? monthData[metric] : 0);
-                }, 0);
-                
-                return (
-                  <TableRow 
-                    key={teacher} 
-                    className="animate-fade-in border-b border-slate-200/30 hover:bg-blue-50/30"
-                    style={{ animationDelay: `${index * 50}ms` }}
-                  >
+              const teacherTotal = allMonths.reduce((sum, month) => {
+                const teacherData = monthlyData[teacher];
+                const monthData = teacherData && teacherData[month];
+                return sum + (monthData && monthData[metric] ? monthData[metric] : 0);
+              }, 0);
+              return <TableRow key={teacher} className="animate-fade-in border-b border-slate-200/30 hover:bg-blue-50/30" style={{
+                animationDelay: `${index * 50}ms`
+              }}>
                     <TableCell className="font-medium sticky left-0 z-10 bg-white/95 backdrop-blur-sm border-r border-slate-200/30 min-w-[140px] text-slate-800">
                       {teacher}
                     </TableCell>
                     {allMonths.map(month => {
-                      const teacherData = monthlyData[teacher];
-                      const monthData = teacherData && teacherData[month];
-                      const value = monthData && monthData[metric] ? monthData[metric] : 0;
-                      return (
-                        <TableCell 
-                          key={month} 
-                          className="text-center min-w-[100px] font-medium text-slate-800 px-3"
-                        >
+                  const teacherData = monthlyData[teacher];
+                  const monthData = teacherData && teacherData[month];
+                  const value = monthData && monthData[metric] ? monthData[metric] : 0;
+                  return <TableCell key={month} className="text-center min-w-[100px] font-medium text-slate-800 px-3">
                           {formatter ? formatter(value) : value.toLocaleString()}
-                        </TableCell>
-                      );
-                    })}
+                        </TableCell>;
+                })}
                     <TableCell className="text-center font-bold min-w-[100px] bg-slate-50/50 border-l border-slate-200/50 text-slate-800">
                       {formatter ? formatter(teacherTotal) : teacherTotal.toLocaleString()}
                     </TableCell>
-                  </TableRow>
-                );
-              })}
+                  </TableRow>;
+            })}
             </TableBody>
             <TableFooter>
               <TableRow className="border-t-2 border-slate-300/50 bg-gradient-to-r from-slate-800/95 via-slate-700/95 to-slate-800/95">
                 <TableCell className="font-bold sticky left-0 z-20 bg-gradient-to-r from-slate-800/95 via-slate-700/95 to-slate-800/95 border-r border-white/20 min-w-[140px] text-white">
                   Total
                 </TableCell>
-                {totals.map(({ month, total }) => (
-                  <TableCell 
-                    key={month} 
-                    className="text-center font-bold text-white min-w-[100px] px-3"
-                  >
+                {totals.map(({
+                month,
+                total
+              }) => <TableCell key={month} className="text-center font-bold text-white min-w-[100px] px-3">
                     {formatter ? formatter(total) : total.toLocaleString()}
-                  </TableCell>
-                ))}
+                  </TableCell>)}
                 <TableCell className="text-center font-bold text-white min-w-[100px] bg-slate-600/20 border-l border-white/30">
                   {formatter ? formatter(totalSum) : totalSum.toLocaleString()}
                 </TableCell>
@@ -193,8 +170,7 @@ const MonthlyMetricsView: React.FC<MonthlyMetricsViewProps> = ({ data }) => {
             </TableFooter>
           </Table>
         </CardContent>
-      </Card>
-    );
+      </Card>;
   };
 
   // Calculate summary statistics with null checks
@@ -206,13 +182,11 @@ const MonthlyMetricsView: React.FC<MonthlyMetricsViewProps> = ({ data }) => {
         totalConverted: 0,
         totalRetained: 0,
         totalRevenue: 0,
-        totalClasses: 0,
+        totalClasses: 0
       };
     }
-
     return data.reduce((acc, item) => {
       if (!item) return acc;
-      
       acc.totalVisits += item.totalVisits || 0;
       acc.totalNewMembers += item.newClients || 0;
       acc.totalConverted += item.convertedClients || 0;
@@ -226,25 +200,21 @@ const MonthlyMetricsView: React.FC<MonthlyMetricsViewProps> = ({ data }) => {
       totalConverted: 0,
       totalRetained: 0,
       totalRevenue: 0,
-      totalClasses: 0,
+      totalClasses: 0
     });
   }, [data]);
 
   // Early return if no data
   if (!data || !Array.isArray(data) || data.length === 0) {
-    return (
-      <div className="space-y-6">
+    return <div className="space-y-6">
         <Card className="animate-fade-in">
           <CardContent className="p-6 text-center">
             <p className="text-muted-foreground">No data available for monthly metrics view.</p>
           </CardContent>
         </Card>
-      </div>
-    );
+      </div>;
   }
-
-  return (
-    <div className="space-y-6">
+  return <div className="space-y-6">
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card className="animate-fade-in">
@@ -260,7 +230,9 @@ const MonthlyMetricsView: React.FC<MonthlyMetricsViewProps> = ({ data }) => {
           </CardContent>
         </Card>
 
-        <Card className="animate-fade-in" style={{ animationDelay: '100ms' }}>
+        <Card className="animate-fade-in" style={{
+        animationDelay: '100ms'
+      }}>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm flex items-center gap-2">
               <Target className="h-4 w-4 text-green-500" />
@@ -273,7 +245,9 @@ const MonthlyMetricsView: React.FC<MonthlyMetricsViewProps> = ({ data }) => {
           </CardContent>
         </Card>
 
-        <Card className="animate-fade-in" style={{ animationDelay: '200ms' }}>
+        <Card className="animate-fade-in" style={{
+        animationDelay: '200ms'
+      }}>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm flex items-center gap-2">
               <Award className="h-4 w-4 text-purple-500" />
@@ -284,14 +258,16 @@ const MonthlyMetricsView: React.FC<MonthlyMetricsViewProps> = ({ data }) => {
             <div className="text-2xl font-bold">{totalMetrics.totalConverted.toLocaleString()}</div>
             <div className="flex items-center gap-1">
               <Badge variant="secondary" className="text-xs">
-                {totalMetrics.totalNewMembers > 0 ? safeToFixed((totalMetrics.totalConverted / totalMetrics.totalNewMembers) * 100, 1) : 0}%
+                {totalMetrics.totalNewMembers > 0 ? safeToFixed(totalMetrics.totalConverted / totalMetrics.totalNewMembers * 100, 1) : 0}%
               </Badge>
               <span className="text-xs text-muted-foreground">conversion rate</span>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="animate-fade-in" style={{ animationDelay: '300ms' }}>
+        <Card className="animate-fade-in" style={{
+        animationDelay: '300ms'
+      }}>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm flex items-center gap-2">
               <TrendingUp className="h-4 w-4 text-orange-500" />
@@ -360,8 +336,6 @@ const MonthlyMetricsView: React.FC<MonthlyMetricsViewProps> = ({ data }) => {
           {renderMetricTable('revenue', 'Revenue', safeFormatCurrency)}
         </TabsContent>
       </Tabs>
-    </div>
-  );
+    </div>;
 };
-
 export default MonthlyMetricsView;
