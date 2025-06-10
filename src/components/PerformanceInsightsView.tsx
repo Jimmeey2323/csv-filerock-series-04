@@ -329,86 +329,88 @@ const PerformanceInsightsView: React.FC<PerformanceInsightsViewProps> = ({ data 
             Detailed Performance Metrics
           </CardTitle>
         </CardHeader>
-        <CardContent>
-          <Table maxHeight="500px">
-            <TableHeader>
-              <TableRow>
-                <TableHead>Rank</TableHead>
-                <TableHead>Teacher</TableHead>
-                <TableHead>Location</TableHead>
-                <TableHead className="text-right">Performance Score</TableHead>
-                <TableHead className="text-right">Conversion Rate</TableHead>
-                <TableHead className="text-right">Retention Rate</TableHead>
-                <TableHead className="text-right">No Show Rate</TableHead>
-                <TableHead className="text-right">Revenue/Client</TableHead>
-                <TableHead className="text-right">Class Utilization</TableHead>
-                <TableHead className="text-center">Status</TableHead>
-              </TableRow>
-            </TableHeader>
-            <ScrollArea className="h-[400px]">
+        <CardContent className="p-0">
+          <div className="overflow-hidden rounded-xl border border-white/20 bg-white/70 backdrop-blur-md shadow-xl">
+            <Table className="w-full">
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-16 text-center">Rank</TableHead>
+                  <TableHead className="min-w-[160px]">Teacher</TableHead>
+                  <TableHead className="min-w-[120px]">Location</TableHead>
+                  <TableHead className="w-24 text-center">Score</TableHead>
+                  <TableHead className="w-24 text-center">Conv %</TableHead>
+                  <TableHead className="w-24 text-center">Ret %</TableHead>
+                  <TableHead className="w-24 text-center">No Show %</TableHead>
+                  <TableHead className="w-28 text-center">Rev/Client</TableHead>
+                  <TableHead className="w-24 text-center">Util</TableHead>
+                  <TableHead className="w-20 text-center">Status</TableHead>
+                </TableRow>
+              </TableHeader>
               <TableBody>
-                {performanceData.map((teacher, index) => {
-                  const isHigh = highPerformers.includes(teacher);
-                  const isLow = lowPerformers.includes(teacher);
-                  
-                  return (
-                    <TableRow 
-                      key={teacher.teacherName} 
-                      className="animate-fade-in" 
-                      style={{ animationDelay: `${800 + index * 50}ms` }}
-                    >
-                      <TableCell>
-                        <Badge variant={index < 3 ? "default" : "secondary"}>
-                          #{index + 1}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="font-medium">{teacher.teacherName}</TableCell>
-                      <TableCell className="text-muted-foreground">{teacher.location}</TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex items-center justify-end gap-1">
-                          <span className="font-bold">{teacher.performanceScore}</span>
-                          {parseFloat(teacher.performanceScore) > averagePerformance ? 
-                            <TrendingUp className="h-3 w-3 text-green-500" /> : 
-                            <TrendingDown className="h-3 w-3 text-red-500" />
-                          }
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-right">{teacher.conversionRate}%</TableCell>
-                      <TableCell className="text-right">{teacher.retentionRate}%</TableCell>
-                      <TableCell className="text-right">
-                        <Badge variant={parseFloat(teacher.noShowRate) > 10 ? "destructive" : "secondary"}>
-                          {teacher.noShowRate}%
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-right">{safeFormatCurrency(parseFloat(teacher.revenuePerClient))}</TableCell>
-                      <TableCell className="text-right">{teacher.classUtilization}</TableCell>
-                      <TableCell className="text-center">
-                        <Badge 
-                          variant={isHigh ? "default" : isLow ? "destructive" : "secondary"}
-                          className="flex items-center gap-1"
-                        >
-                          {isHigh ? <Star className="h-3 w-3" /> : isLow ? <AlertTriangle className="h-3 w-3" /> : <CheckCircle className="h-3 w-3" />}
-                          {isHigh ? 'High' : isLow ? 'Low' : 'Average'}
-                        </Badge>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
+                <ScrollArea className="h-[400px]">
+                  {performanceData.map((teacher, index) => {
+                    const isHigh = highPerformers.includes(teacher);
+                    const isLow = lowPerformers.includes(teacher);
+                    
+                    return (
+                      <TableRow 
+                        key={teacher.teacherName} 
+                        className="animate-fade-in border-b border-slate-200/30" 
+                        style={{ animationDelay: `${800 + index * 50}ms` }}
+                      >
+                        <TableCell className="text-center">
+                          <Badge variant={index < 3 ? "default" : "secondary"} className="text-xs">
+                            #{index + 1}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="font-medium text-slate-800">{teacher.teacherName}</TableCell>
+                        <TableCell className="text-muted-foreground text-sm">{teacher.location}</TableCell>
+                        <TableCell className="text-center">
+                          <div className="flex items-center justify-center gap-1">
+                            <span className="font-bold text-slate-800">{teacher.performanceScore}</span>
+                            {parseFloat(teacher.performanceScore) > averagePerformance ? 
+                              <TrendingUp className="h-3 w-3 text-green-500" /> : 
+                              <TrendingDown className="h-3 w-3 text-red-500" />
+                            }
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-center font-medium text-slate-800">{teacher.conversionRate}%</TableCell>
+                        <TableCell className="text-center font-medium text-slate-800">{teacher.retentionRate}%</TableCell>
+                        <TableCell className="text-center">
+                          <Badge variant={parseFloat(teacher.noShowRate) > 10 ? "destructive" : "secondary"} className="text-xs">
+                            {teacher.noShowRate}%
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-center font-medium text-slate-800">{safeFormatCurrency(parseFloat(teacher.revenuePerClient))}</TableCell>
+                        <TableCell className="text-center font-medium text-slate-800">{teacher.classUtilization}</TableCell>
+                        <TableCell className="text-center">
+                          <Badge 
+                            variant={isHigh ? "default" : isLow ? "destructive" : "secondary"}
+                            className="flex items-center gap-1 text-xs"
+                          >
+                            {isHigh ? <Star className="h-3 w-3" /> : isLow ? <AlertTriangle className="h-3 w-3" /> : <CheckCircle className="h-3 w-3" />}
+                            {isHigh ? 'High' : isLow ? 'Low' : 'Avg'}
+                          </Badge>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </ScrollArea>
               </TableBody>
-            </ScrollArea>
-            <TableFooter>
-              <TableRow>
-                <TableCell className="font-bold text-white" colSpan={3}>Total/Average</TableCell>
-                <TableCell className="text-right font-bold text-white">{safeToFixed(averagePerformance, 1)}</TableCell>
-                <TableCell className="text-right font-bold text-white">{safeToFixed(avgConversionRate, 1)}%</TableCell>
-                <TableCell className="text-right font-bold text-white">{safeToFixed(avgRetentionRate, 1)}%</TableCell>
-                <TableCell className="text-right font-bold text-white">{safeToFixed(avgNoShowRate, 1)}%</TableCell>
-                <TableCell className="text-right font-bold text-white">{safeFormatCurrency(avgRevenuePerClient)}</TableCell>
-                <TableCell className="text-right font-bold text-white">{safeToFixed(avgClassUtilization, 1)}</TableCell>
-                <TableCell className="text-center font-bold text-white">{performanceData.length}</TableCell>
-              </TableRow>
-            </TableFooter>
-          </Table>
+              <TableFooter>
+                <TableRow className="border-t-2 border-slate-300/50 bg-gradient-to-r from-slate-800/95 via-slate-700/95 to-slate-800/95">
+                  <TableCell className="font-bold text-white text-center" colSpan={3}>Total/Average</TableCell>
+                  <TableCell className="text-center font-bold text-white">{safeToFixed(averagePerformance, 1)}</TableCell>
+                  <TableCell className="text-center font-bold text-white">{safeToFixed(avgConversionRate, 1)}%</TableCell>
+                  <TableCell className="text-center font-bold text-white">{safeToFixed(avgRetentionRate, 1)}%</TableCell>
+                  <TableCell className="text-center font-bold text-white">{safeToFixed(avgNoShowRate, 1)}%</TableCell>
+                  <TableCell className="text-center font-bold text-white">{safeFormatCurrency(avgRevenuePerClient)}</TableCell>
+                  <TableCell className="text-center font-bold text-white">{safeToFixed(avgClassUtilization, 1)}</TableCell>
+                  <TableCell className="text-center font-bold text-white">{performanceData.length}</TableCell>
+                </TableRow>
+              </TableFooter>
+            </Table>
+          </div>
         </CardContent>
       </Card>
     </div>
