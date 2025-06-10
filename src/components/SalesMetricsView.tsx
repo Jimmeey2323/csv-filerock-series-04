@@ -54,6 +54,8 @@ interface PeriodSales {
 }
 
 const SalesMetricsView: React.FC<SalesMetricsViewProps> = ({ data, paymentsData }) => {
+  console.log('SalesMetricsView received data:', { data, paymentsData });
+
   // Clean and normalize product names
   const cleanProductName = (product: string): string => {
     if (!product) return 'Unknown';
@@ -80,7 +82,15 @@ const SalesMetricsView: React.FC<SalesMetricsViewProps> = ({ data, paymentsData 
 
   // Process payments data by month
   const salesByMonth = useMemo(() => {
-    if (!paymentsData || !Array.isArray(paymentsData)) return {};
+    console.log('Processing payments data:', paymentsData);
+    
+    if (!paymentsData || !Array.isArray(paymentsData)) {
+      console.log('No payments data available');
+      return {};
+    }
+
+    // Log a sample of the payments data to understand the structure
+    console.log('Sample payment record:', paymentsData[0]);
 
     const monthlyData: Record<string, {
       products: Record<string, ProductSales>;
@@ -89,17 +99,73 @@ const SalesMetricsView: React.FC<SalesMetricsViewProps> = ({ data, paymentsData 
       totals: SalesMetrics;
     }> = {};
 
-    paymentsData.forEach(payment => {
-      const date = payment.Date || payment.date || payment['Payment Date'] || payment['Transaction Date'];
-      const product = cleanProductName(payment.Product || payment.Item || payment['Product Name'] || 'Unknown');
+    paymentsData.forEach((payment, index) => {
+      // Try multiple possible field names for date
+      const date = payment.Date || payment.date || payment['Payment Date'] || payment['Transaction Date'] || payment['Date/Time'] || payment.Timestamp;
+      
+      // Try multiple possible field names for product
+      const product = cleanProductName(
+        payment.Product || 
+        payment.Item || 
+        payment['Product Name'] || 
+        payment.Description || 
+        payment.Service ||
+        'Unknown'
+      );
+      
       const category = extractCategory(product);
-      const location = payment.Location || payment.Studio || payment['Studio Location'] || 'Unknown';
-      const revenue = parseFloat(payment.Price || payment.Amount || payment.Revenue || payment.Value || 0);
-      const quantity = parseInt(payment.Quantity || payment.Units || payment.Qty || 1);
+      
+      // Try multiple possible field names for location
+      const location = payment.Location || 
+        payment.Studio || 
+        payment['Studio Location'] || 
+        payment.Branch ||
+        payment.Venue ||
+        'Unknown';
+      
+      // Try multiple possible field names for revenue/amount
+      const revenue = parseFloat(
+        payment.Price || 
+        payment.Amount || 
+        payment.Revenue || 
+        payment.Value || 
+        payment.Total ||
+        payment.Cost ||
+        0
+      );
+      
+      // Try multiple possible field names for quantity
+      const quantity = parseInt(
+        payment.Quantity || 
+        payment.Units || 
+        payment.Qty || 
+        payment.Count ||
+        1
+      );
 
-      if (!date || revenue <= 0) return;
+      if (index < 5) {
+        console.log(`Payment ${index}:`, {
+          originalPayment: payment,
+          extractedDate: date,
+          extractedProduct: product,
+          extractedLocation: location,
+          extractedRevenue: revenue,
+          extractedQuantity: quantity
+        });
+      }
 
-      const month = new Date(date).toLocaleDateString('en-US', { year: 'numeric', month: 'long' });
+      if (!date || revenue <= 0) {
+        if (index < 5) console.log(`Skipping payment ${index}: no date or invalid revenue`);
+        return;
+      }
+
+      let month;
+      try {
+        month = new Date(date).toLocaleDateString('en-US', { year: 'numeric', month: 'long' });
+      } catch (error) {
+        console.log(`Invalid date format for payment ${index}:`, date);
+        return;
+      }
 
       if (!monthlyData[month]) {
         monthlyData[month] = {
@@ -213,6 +279,7 @@ const SalesMetricsView: React.FC<SalesMetricsViewProps> = ({ data, paymentsData 
       });
     });
 
+    console.log('Processed sales by month:', monthlyData);
     return monthlyData;
   }, [paymentsData]);
 
@@ -308,6 +375,26 @@ const SalesMetricsView: React.FC<SalesMetricsViewProps> = ({ data, paymentsData 
         <Card>
           <CardContent className="p-6 text-center">
             <p className="text-muted-foreground">No payments data available for sales metrics analysis.</p>
+            <p className="text-sm text-muted-foreground mt-2">
+              Please ensure you have uploaded a payments/sales CSV file to view sales metrics.
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  const allMonths = Object.keys(salesByMonth).sort((a, b) => new Date(a).getTime() - new Date(b).getTime());
+
+  if (allMonths.length === 0) {
+    return (
+      <div className="space-y-6">
+        <Card>
+          <CardContent className="p-6 text-center">
+            <p className="text-muted-foreground">No valid sales data found in the payments file.</p>
+            <p className="text-sm text-muted-foreground mt-2">
+              Please check that your payments file contains valid date and amount columns.
+            </p>
           </CardContent>
         </Card>
       </div>
