@@ -27,41 +27,61 @@ const FilterBar: React.FC<FilterBarProps> = ({
   selectedFilters, 
   onFilterUpdate 
 }) => {
-  // Get unique values for filters
-  const uniquePeriods = React.useMemo(() => 
-    [...new Set(data.map(item => item.period).filter(Boolean))].sort(), 
-    [data]
-  );
+  // Get unique values for filters with proper null checks
+  const uniquePeriods = React.useMemo(() => {
+    if (!data || !Array.isArray(data)) {
+      return [];
+    }
+    return [...new Set(data
+      .map(item => item && item.period ? item.period : null)
+      .filter(period => period !== null && period.trim() !== '')
+    )].sort();
+  }, [data]);
   
-  const uniqueTeachers = React.useMemo(() => 
-    [...new Set(data.map(item => item.teacherName).filter(Boolean))].sort(), 
-    [data]
-  );
+  const uniqueTeachers = React.useMemo(() => {
+    if (!data || !Array.isArray(data)) {
+      return [];
+    }
+    return [...new Set(data
+      .map(item => item && item.teacherName ? item.teacherName : null)
+      .filter(teacher => teacher !== null && teacher.trim() !== '')
+    )].sort();
+  }, [data]);
   
-  const uniqueLocations = React.useMemo(() => 
-    [...new Set(data.map(item => item.location).filter(Boolean))].sort(), 
-    [data]
-  );
+  const uniqueLocations = React.useMemo(() => {
+    if (!data || !Array.isArray(data)) {
+      return [];
+    }
+    return [...new Set(data
+      .map(item => item && item.location ? item.location : null)
+      .filter(location => location !== null && location.trim() !== '')
+    )].sort();
+  }, [data]);
 
-  // Apply filters
+  // Apply filters with null checks
   React.useEffect(() => {
-    let filteredData = data;
+    if (!data || !Array.isArray(data)) {
+      onFilterChange([]);
+      return;
+    }
+
+    let filteredData = data.filter(item => item !== null && item !== undefined);
 
     if (selectedFilters.period.length > 0) {
       filteredData = filteredData.filter(item => 
-        selectedFilters.period.includes(item.period || '')
+        item && item.period && selectedFilters.period.includes(item.period)
       );
     }
 
     if (selectedFilters.teacher.length > 0) {
       filteredData = filteredData.filter(item => 
-        selectedFilters.teacher.includes(item.teacherName || '')
+        item && item.teacherName && selectedFilters.teacher.includes(item.teacherName)
       );
     }
 
     if (selectedFilters.location.length > 0) {
       filteredData = filteredData.filter(item => 
-        selectedFilters.location.includes(item.location || '')
+        item && item.location && selectedFilters.location.includes(item.location)
       );
     }
 
@@ -70,6 +90,8 @@ const FilterBar: React.FC<FilterBarProps> = ({
 
   // Quick filter functions
   const handleQuickPeriodFilter = (period: string) => {
+    if (!period || !selectedFilters) return;
+    
     const isSelected = selectedFilters.period.includes(period);
     const newPeriods = isSelected 
       ? selectedFilters.period.filter(p => p !== period)
@@ -82,6 +104,8 @@ const FilterBar: React.FC<FilterBarProps> = ({
   };
 
   const handleQuickTeacherFilter = (teacher: string) => {
+    if (!teacher || !selectedFilters) return;
+    
     const isSelected = selectedFilters.teacher.includes(teacher);
     const newTeachers = isSelected 
       ? selectedFilters.teacher.filter(t => t !== teacher)
@@ -94,6 +118,8 @@ const FilterBar: React.FC<FilterBarProps> = ({
   };
 
   const handleQuickLocationFilter = (location: string) => {
+    if (!location || !selectedFilters) return;
+    
     const isSelected = selectedFilters.location.includes(location);
     const newLocations = isSelected 
       ? selectedFilters.location.filter(l => l !== location)
@@ -113,9 +139,24 @@ const FilterBar: React.FC<FilterBarProps> = ({
     });
   };
 
-  const hasActiveFilters = selectedFilters.period.length > 0 || 
-                         selectedFilters.teacher.length > 0 || 
-                         selectedFilters.location.length > 0;
+  const hasActiveFilters = selectedFilters && (
+    selectedFilters.period.length > 0 || 
+    selectedFilters.teacher.length > 0 || 
+    selectedFilters.location.length > 0
+  );
+
+  // Early return if no data
+  if (!data || !Array.isArray(data) || data.length === 0) {
+    return (
+      <Card className="mb-6 animate-fade-in">
+        <CardContent className="p-6">
+          <div className="text-center text-muted-foreground">
+            No data available for filtering.
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <Card className="mb-6 animate-fade-in">
@@ -145,72 +186,78 @@ const FilterBar: React.FC<FilterBarProps> = ({
           </div>
 
           {/* Period Filters */}
-          <div className="space-y-2">
-            <div className="flex items-center gap-2">
-              <Calendar className="h-4 w-4 text-muted-foreground" />
-              <span className="text-sm font-medium text-muted-foreground">Period</span>
+          {uniquePeriods.length > 0 && (
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <Calendar className="h-4 w-4 text-muted-foreground" />
+                <span className="text-sm font-medium text-muted-foreground">Period</span>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {uniquePeriods.map(period => (
+                  <Button
+                    key={period}
+                    variant={selectedFilters.period.includes(period) ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => handleQuickPeriodFilter(period)}
+                    className="h-8 text-xs"
+                  >
+                    {period}
+                  </Button>
+                ))}
+              </div>
             </div>
-            <div className="flex flex-wrap gap-2">
-              {uniquePeriods.map(period => (
-                <Button
-                  key={period}
-                  variant={selectedFilters.period.includes(period) ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => handleQuickPeriodFilter(period)}
-                  className="h-8 text-xs"
-                >
-                  {period}
-                </Button>
-              ))}
-            </div>
-          </div>
+          )}
 
           {/* Teacher Filters */}
-          <div className="space-y-2">
-            <div className="flex items-center gap-2">
-              <Users className="h-4 w-4 text-muted-foreground" />
-              <span className="text-sm font-medium text-muted-foreground">Teachers</span>
+          {uniqueTeachers.length > 0 && (
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <Users className="h-4 w-4 text-muted-foreground" />
+                <span className="text-sm font-medium text-muted-foreground">Teachers</span>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {uniqueTeachers.slice(0, 8).map(teacher => (
+                  <Button
+                    key={teacher}
+                    variant={selectedFilters.teacher.includes(teacher) ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => handleQuickTeacherFilter(teacher)}
+                    className="h-8 text-xs"
+                  >
+                    {teacher}
+                  </Button>
+                ))}
+                {uniqueTeachers.length > 8 && (
+                  <Badge variant="secondary" className="h-8 flex items-center">
+                    +{uniqueTeachers.length - 8} more
+                  </Badge>
+                )}
+              </div>
             </div>
-            <div className="flex flex-wrap gap-2">
-              {uniqueTeachers.slice(0, 8).map(teacher => (
-                <Button
-                  key={teacher}
-                  variant={selectedFilters.teacher.includes(teacher) ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => handleQuickTeacherFilter(teacher)}
-                  className="h-8 text-xs"
-                >
-                  {teacher}
-                </Button>
-              ))}
-              {uniqueTeachers.length > 8 && (
-                <Badge variant="secondary" className="h-8 flex items-center">
-                  +{uniqueTeachers.length - 8} more
-                </Badge>
-              )}
-            </div>
-          </div>
+          )}
 
           {/* Location Filters */}
-          <div className="space-y-2">
-            <div className="flex items-center gap-2">
-              <Building2 className="h-4 w-4 text-muted-foreground" />
-              <span className="text-sm font-medium text-muted-foreground">Locations</span>
+          {uniqueLocations.length > 0 && (
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <Building2 className="h-4 w-4 text-muted-foreground" />
+                <span className="text-sm font-medium text-muted-foreground">Locations</span>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {uniqueLocations.map(location => (
+                  <Button
+                    key={location}
+                    variant={selectedFilters.location.includes(location) ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => handleQuickLocationFilter(location)}
+                    className="h-8 text-xs"
+                  >
+                    {location}
+                  </Button>
+                ))}
+              </div>
             </div>
-            <div className="flex flex-wrap gap-2">
-              {uniqueLocations.map(location => (
-                <Button
-                  key={location}
-                  variant={selectedFilters.location.includes(location) ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => handleQuickLocationFilter(location)}
-                  className="h-8 text-xs"
-                >
-                  {location}
-                </Button>
-              ))}
-            </div>
-          </div>
+          )}
 
           {/* Summary */}
           <div className="pt-2 border-t border-muted/30">

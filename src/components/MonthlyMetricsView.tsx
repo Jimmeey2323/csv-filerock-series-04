@@ -16,9 +16,17 @@ interface MonthlyMetricsViewProps {
 }
 
 const MonthlyMetricsView: React.FC<MonthlyMetricsViewProps> = ({ data }) => {
-  // Group data by teacher and month
+  // Group data by teacher and month with proper null checks
   const monthlyData = React.useMemo(() => {
+    if (!data || !Array.isArray(data)) {
+      return {};
+    }
+
     const grouped = data.reduce((acc, item) => {
+      if (!item || !item.teacherName) {
+        return acc;
+      }
+
       const month = item.period || 'Unknown';
       const teacher = item.teacherName;
       
@@ -57,23 +65,40 @@ const MonthlyMetricsView: React.FC<MonthlyMetricsViewProps> = ({ data }) => {
     return grouped;
   }, [data]);
 
-  // Get all unique months sorted
+  // Get all unique months sorted with null checks
   const allMonths = React.useMemo(() => {
     const months = new Set<string>();
-    Object.values(monthlyData).forEach(teacherData => {
-      Object.keys(teacherData).forEach(month => months.add(month));
-    });
+    if (monthlyData && typeof monthlyData === 'object') {
+      Object.values(monthlyData).forEach(teacherData => {
+        if (teacherData && typeof teacherData === 'object') {
+          Object.keys(teacherData).forEach(month => {
+            if (month) months.add(month);
+          });
+        }
+      });
+    }
     return Array.from(months).sort();
   }, [monthlyData]);
 
-  // Get all teachers
-  const teachers = Object.keys(monthlyData);
+  // Get all teachers with null checks
+  const teachers = React.useMemo(() => {
+    if (!monthlyData || typeof monthlyData !== 'object') {
+      return [];
+    }
+    return Object.keys(monthlyData).filter(teacher => teacher && teacher.trim() !== '');
+  }, [monthlyData]);
 
   // Calculate totals for each month and metric
   const calculateTotals = (metric: string) => {
+    if (!allMonths || !teachers || !monthlyData) {
+      return [];
+    }
+
     return allMonths.map(month => {
       const total = teachers.reduce((sum, teacher) => {
-        return sum + (monthlyData[teacher][month]?.[metric] || 0);
+        const teacherData = monthlyData[teacher];
+        const monthData = teacherData && teacherData[month];
+        return sum + (monthData && monthData[metric] ? monthData[metric] : 0);
       }, 0);
       return { month, total };
     });
@@ -82,7 +107,7 @@ const MonthlyMetricsView: React.FC<MonthlyMetricsViewProps> = ({ data }) => {
   // Render table for specific metric
   const renderMetricTable = (metric: string, label: string, formatter?: (value: number) => string) => {
     const totals = calculateTotals(metric);
-    const totalSum = totals.reduce((sum, t) => sum + t.total, 0);
+    const totalSum = totals.reduce((sum, t) => sum + (t?.total || 0), 0);
 
     return (
       <Card className="animate-fade-in">
@@ -94,73 +119,90 @@ const MonthlyMetricsView: React.FC<MonthlyMetricsViewProps> = ({ data }) => {
         </CardHeader>
         <CardContent>
           <div className="overflow-hidden rounded-lg border">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="min-w-[150px] sticky left-0 bg-gradient-to-r from-slate-800/95 via-slate-700/95 to-slate-800/95 z-20">Teacher</TableHead>
-                  {allMonths.map(month => (
-                    <TableHead key={month} className="text-center min-w-[120px]">{month}</TableHead>
-                  ))}
-                  <TableHead className="text-center font-bold min-w-[120px]">Total</TableHead>
-                </TableRow>
-              </TableHeader>
-              <ScrollArea className="h-[400px]">
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="min-w-[150px] sticky left-0 bg-muted/80 backdrop-blur-sm z-20 border-r">Teacher</TableHead>
+                    {allMonths.map(month => (
+                      <TableHead key={month} className="text-center min-w-[120px] whitespace-nowrap">{month}</TableHead>
+                    ))}
+                    <TableHead className="text-center font-bold min-w-[120px] bg-muted/50">Total</TableHead>
+                  </TableRow>
+                </TableHeader>
                 <TableBody>
-                  {teachers.map((teacher, index) => {
-                    const teacherTotal = allMonths.reduce((sum, month) => {
-                      return sum + (monthlyData[teacher][month]?.[metric] || 0);
-                    }, 0);
-                    
-                    return (
-                      <TableRow key={teacher} className="animate-fade-in" style={{ animationDelay: `${index * 50}ms` }}>
-                        <TableCell className="font-medium sticky left-0 bg-white/80 backdrop-blur-sm z-10 min-w-[150px]">{teacher}</TableCell>
-                        {allMonths.map(month => {
-                          const value = monthlyData[teacher][month]?.[metric] || 0;
-                          return (
-                            <TableCell key={month} className="text-center min-w-[120px]">
-                              {formatter ? formatter(value) : value.toLocaleString()}
-                            </TableCell>
-                          );
-                        })}
-                        <TableCell className="text-center font-bold min-w-[120px]">
-                          {formatter ? formatter(teacherTotal) : teacherTotal.toLocaleString()}
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
+                  <ScrollArea className="h-[400px]">
+                    {teachers.map((teacher, index) => {
+                      const teacherTotal = allMonths.reduce((sum, month) => {
+                        const teacherData = monthlyData[teacher];
+                        const monthData = teacherData && teacherData[month];
+                        return sum + (monthData && monthData[metric] ? monthData[metric] : 0);
+                      }, 0);
+                      
+                      return (
+                        <TableRow key={teacher} className="animate-fade-in" style={{ animationDelay: `${index * 50}ms` }}>
+                          <TableCell className="font-medium sticky left-0 bg-background/95 backdrop-blur-sm z-10 min-w-[150px] border-r">{teacher}</TableCell>
+                          {allMonths.map(month => {
+                            const teacherData = monthlyData[teacher];
+                            const monthData = teacherData && teacherData[month];
+                            const value = monthData && monthData[metric] ? monthData[metric] : 0;
+                            return (
+                              <TableCell key={month} className="text-center min-w-[120px]">
+                                {formatter ? formatter(value) : value.toLocaleString()}
+                              </TableCell>
+                            );
+                          })}
+                          <TableCell className="text-center font-bold min-w-[120px] bg-muted/30">
+                            {formatter ? formatter(teacherTotal) : teacherTotal.toLocaleString()}
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </ScrollArea>
                 </TableBody>
-              </ScrollArea>
-              <TableFooter>
-                <TableRow>
-                  <TableCell className="font-bold text-white sticky left-0 bg-gradient-to-r from-slate-800/95 via-slate-700/95 to-slate-800/95 z-20 min-w-[150px]">Total</TableCell>
-                  {totals.map(({ month, total }) => (
-                    <TableCell key={month} className="text-center font-bold text-white min-w-[120px]">
-                      {formatter ? formatter(total) : total.toLocaleString()}
+                <TableFooter>
+                  <TableRow>
+                    <TableCell className="font-bold sticky left-0 bg-primary text-primary-foreground z-20 min-w-[150px] border-r">Total</TableCell>
+                    {totals.map(({ month, total }) => (
+                      <TableCell key={month} className="text-center font-bold bg-primary text-primary-foreground min-w-[120px]">
+                        {formatter ? formatter(total) : total.toLocaleString()}
+                      </TableCell>
+                    ))}
+                    <TableCell className="text-center font-bold bg-primary text-primary-foreground min-w-[120px]">
+                      {formatter ? formatter(totalSum) : totalSum.toLocaleString()}
                     </TableCell>
-                  ))}
-                  <TableCell className="text-center font-bold text-white min-w-[120px]">
-                    {formatter ? formatter(totalSum) : totalSum.toLocaleString()}
-                  </TableCell>
-                </TableRow>
-              </TableFooter>
-            </Table>
+                  </TableRow>
+                </TableFooter>
+              </Table>
+            </div>
           </div>
         </CardContent>
       </Card>
     );
   };
 
-  // Calculate summary statistics
+  // Calculate summary statistics with null checks
   const totalMetrics = React.useMemo(() => {
-    return teachers.reduce((acc, teacher) => {
-      Object.values(monthlyData[teacher]).forEach(monthData => {
-        acc.totalVisits += monthData.visits || 0;
-        acc.totalNewMembers += monthData.newMembers || 0;
-        acc.totalConverted += monthData.converted || 0;
-        acc.totalRetained += monthData.retained || 0;
-        acc.totalRevenue += monthData.revenue || 0;
-        acc.totalClasses += monthData.classes || 0;
-      });
+    if (!data || !Array.isArray(data)) {
+      return {
+        totalVisits: 0,
+        totalNewMembers: 0,
+        totalConverted: 0,
+        totalRetained: 0,
+        totalRevenue: 0,
+        totalClasses: 0,
+      };
+    }
+
+    return data.reduce((acc, item) => {
+      if (!item) return acc;
+      
+      acc.totalVisits += item.totalVisits || 0;
+      acc.totalNewMembers += item.newClients || 0;
+      acc.totalConverted += item.convertedClients || 0;
+      acc.totalRetained += item.retainedClients || 0;
+      acc.totalRevenue += item.totalRevenue || 0;
+      acc.totalClasses += item.totalClasses || 0;
       return acc;
     }, {
       totalVisits: 0,
@@ -170,7 +212,20 @@ const MonthlyMetricsView: React.FC<MonthlyMetricsViewProps> = ({ data }) => {
       totalRevenue: 0,
       totalClasses: 0,
     });
-  }, [teachers, monthlyData]);
+  }, [data]);
+
+  // Early return if no data
+  if (!data || !Array.isArray(data) || data.length === 0) {
+    return (
+      <div className="space-y-6">
+        <Card className="animate-fade-in">
+          <CardContent className="p-6 text-center">
+            <p className="text-muted-foreground">No data available for monthly metrics view.</p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
