@@ -318,7 +318,7 @@ const ResultsTable: React.FC<ResultsTableProps> = ({
         </CardTitle>
       </CardHeader>
       <CardContent className="p-0">
-        <div className="max-h-[900px] overflow-auto">
+        <div className="max-h-[900px] overflow-scroll ">
           <Table>
             <TableHeader>
               <TableRow>
