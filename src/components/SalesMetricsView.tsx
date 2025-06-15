@@ -1,4 +1,3 @@
-
 import React, { useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from '@/components/ui/table';
@@ -308,6 +307,20 @@ const SalesMetricsView: React.FC<SalesMetricsViewProps> = ({ data, paymentsData 
         <Card>
           <CardContent className="p-6 text-center">
             <p className="text-muted-foreground">No payments data available for sales metrics analysis.</p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  const allMonths = Object.keys(salesByMonth).sort((a, b) => new Date(a).getTime() - new Date(b).getTime());
+
+  if (allMonths.length === 0) {
+    return (
+      <div className="space-y-6">
+        <Card>
+          <CardContent className="p-6 text-center">
+            <p className="text-muted-foreground">No sales data available for the selected period.</p>
           </CardContent>
         </Card>
       </div>
