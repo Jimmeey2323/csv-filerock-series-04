@@ -39,7 +39,7 @@ const TableFooter = React.forwardRef<HTMLTableSectionElement, React.HTMLAttribut
   isClickable = false,
   ...props
 }, ref) => (
-  <tfoot ref={ref} className={cn("sticky bottom-0 z-10 bg-gradient-to-r from-slate-800 via-slate-900 to-slate-800 backdrop-blur-sm border-t font-medium", "[&>tr]:last:border-b-0", isClickable && "cursor-pointer hover:bg-gradient-to-r hover:from-slate-700 hover:via-slate-800 hover:to-slate-700 transition-colors", className)} {...props} />
+  <tfoot ref={ref} className={cn("sticky bottom-0 z-10 bg-gradient-to-r from-slate-800 via-slate-900 to-slate-800 backdrop-blur-sm border-t font-medium", "[&>tr]:last:border-b-0", isClickable && "cursor-pointer", className)} {...props} />
 ));
 TableFooter.displayName = "TableFooter";
 
@@ -78,11 +78,11 @@ const TableHead = React.forwardRef<HTMLTableCellElement, TableHeadProps>(({
       {sortable && (
         <div className="flex items-center ml-2">
           {sortDirection === 'asc' ? (
-            <ChevronUp className="h-4 w-4 animate-pulse" />
+            <ChevronUp className="h-4 w-4 animate-pulse text-white" />
           ) : sortDirection === 'desc' ? (
-            <ChevronDown className="h-4 w-4 animate-pulse" />
+            <ChevronDown className="h-4 w-4 animate-pulse text-white" />
           ) : (
-            <ChevronsUpDown className="h-4 w-4 opacity-50 transition-opacity hover:opacity-100" />
+            <ChevronsUpDown className="h-4 w-4 opacity-50 transition-opacity hover:opacity-100 text-white" />
           )}
         </div>
       )}

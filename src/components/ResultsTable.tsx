@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Sparkles, User2, Users2, DollarSign, Percent, TrendingUp, TrendingDown, FileText, LayoutDashboard, MoreHorizontal, Calendar, BarChart, PieChart, ListFilter, Check } from 'lucide-react';
+import { Sparkles, User2, Users2, DollarSign, Percent, TrendingUp, TrendingDown, FileText, LayoutDashboard, MoreHorizontal, Calendar, BarChart, PieChart, ListFilter, Check, Target, Award } from 'lucide-react';
 import PerformanceMetricCard from '@/components/cards/PerformanceMetricCard';
 import RevenueChart from '@/components/charts/RevenueChart';
 import ClientDetailsModal from '@/components/ClientDetailsModal';
@@ -15,6 +15,7 @@ import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { ProcessedTeacherData } from '@/utils/dataProcessor';
 import { safeToFixed, safeFormatCurrency } from '@/lib/utils';
+
 interface ResultsTableProps {
   data: ProcessedTeacherData[];
   locations: string[];
@@ -28,6 +29,7 @@ interface ResultsTableProps {
     search?: string;
   }) => void;
 }
+
 const ResultsTable: React.FC<ResultsTableProps> = ({
   data,
   locations,
@@ -314,70 +316,76 @@ const ResultsTable: React.FC<ResultsTableProps> = ({
       <CardHeader className="bg-muted/20 pb-2">
         <CardTitle className="text-lg flex justify-between items-center">
           <span>Performance Data</span>
-          <AdvancedFilters locations={locations} teachers={displayData.filter(item => !(item as any).isGroupHeader).map(item => item.teacherName)} periods={Array.from(new Set(displayData.filter(item => !(item as any).isGroupHeader).map(item => item.period)))} onApplyFilters={handleApplyAdvancedFilters} activeFilters={advancedFilters} />
+          <AdvancedFilters 
+            locations={locations} 
+            teachers={displayData.filter(item => !(item as any).isGroupHeader).map(item => item.teacherName)} 
+            periods={Array.from(new Set(displayData.filter(item => !(item as any).isGroupHeader).map(item => item.period)))} 
+            onApplyFilters={handleApplyAdvancedFilters} 
+            activeFilters={advancedFilters} 
+          />
         </CardTitle>
       </CardHeader>
       <CardContent className="p-0">
         <div className="max-h-[800px] overflow-auto">
           <Table>
             <TableHeader>
-              <TableRow className="bg-zinc-900 rounded-xl border-red-800 border-b-8">
-                {visibleColumns.includes('teacherName') && <TableHead className="w-[200px]" sortable sortDirection={sortConfig.column === 'teacherName' ? sortConfig.direction : undefined} onSort={() => handleHeaderSort('teacherName')}>
+              <TableRow className="bg-gradient-to-r from-slate-800 via-slate-900 to-slate-800 border-0 hover:bg-gradient-to-r hover:from-slate-800 hover:via-slate-900 hover:to-slate-800">
+                {visibleColumns.includes('teacherName') && <TableHead className="w-[200px] text-white border-0" sortable sortDirection={sortConfig.column === 'teacherName' ? sortConfig.direction : undefined} onSort={() => handleHeaderSort('teacherName')}>
                     {dataMode === 'teacher' ? 'Teacher' : 'Studio'}
                   </TableHead>}
-                {visibleColumns.includes('location') && <TableHead sortable sortDirection={sortConfig.column === 'location' ? sortConfig.direction : undefined} onSort={() => handleHeaderSort('location')}>
+                {visibleColumns.includes('location') && <TableHead className="text-white border-0" sortable sortDirection={sortConfig.column === 'location' ? sortConfig.direction : undefined} onSort={() => handleHeaderSort('location')}>
                     Location
                   </TableHead>}
-                {visibleColumns.includes('period') && <TableHead sortable sortDirection={sortConfig.column === 'period' ? sortConfig.direction : undefined} onSort={() => handleHeaderSort('period')}>
+                {visibleColumns.includes('period') && <TableHead className="text-white border-0" sortable sortDirection={sortConfig.column === 'period' ? sortConfig.direction : undefined} onSort={() => handleHeaderSort('period')}>
                     Period
                   </TableHead>}
-                {visibleColumns.includes('newClients') && <TableHead className="text-center" sortable sortDirection={sortConfig.column === 'newClients' ? sortConfig.direction : undefined} onSort={() => handleHeaderSort('newClients')}>
+                {visibleColumns.includes('newClients') && <TableHead className="text-center text-white border-0" sortable sortDirection={sortConfig.column === 'newClients' ? sortConfig.direction : undefined} onSort={() => handleHeaderSort('newClients')}>
                     New Clients
                   </TableHead>}
-                {visibleColumns.includes('retainedClients') && <TableHead className="text-center" sortable sortDirection={sortConfig.column === 'retainedClients' ? sortConfig.direction : undefined} onSort={() => handleHeaderSort('retainedClients')}>
+                {visibleColumns.includes('retainedClients') && <TableHead className="text-center text-white border-0" sortable sortDirection={sortConfig.column === 'retainedClients' ? sortConfig.direction : undefined} onSort={() => handleHeaderSort('retainedClients')}>
                     Retained Clients
                   </TableHead>}
-                {visibleColumns.includes('retentionRate') && <TableHead className="text-center" sortable sortDirection={sortConfig.column === 'retentionRate' ? sortConfig.direction : undefined} onSort={() => handleHeaderSort('retentionRate')}>
+                {visibleColumns.includes('retentionRate') && <TableHead className="text-center text-white border-0" sortable sortDirection={sortConfig.column === 'retentionRate' ? sortConfig.direction : undefined} onSort={() => handleHeaderSort('retentionRate')}>
                     Retention Rate
                   </TableHead>}
-                {visibleColumns.includes('convertedClients') && <TableHead className="text-center" sortable sortDirection={sortConfig.column === 'convertedClients' ? sortConfig.direction : undefined} onSort={() => handleHeaderSort('convertedClients')}>
+                {visibleColumns.includes('convertedClients') && <TableHead className="text-center text-white border-0" sortable sortDirection={sortConfig.column === 'convertedClients' ? sortConfig.direction : undefined} onSort={() => handleHeaderSort('convertedClients')}>
                     Converted Clients
                   </TableHead>}
-                {visibleColumns.includes('conversionRate') && <TableHead className="text-center" sortable sortDirection={sortConfig.column === 'conversionRate' ? sortConfig.direction : undefined} onSort={() => handleHeaderSort('conversionRate')}>
+                {visibleColumns.includes('conversionRate') && <TableHead className="text-center text-white border-0" sortable sortDirection={sortConfig.column === 'conversionRate' ? sortConfig.direction : undefined} onSort={() => handleHeaderSort('conversionRate')}>
                     Conversion Rate
                   </TableHead>}
-                {visibleColumns.includes('totalRevenue') && <TableHead className="text-center" sortable sortDirection={sortConfig.column === 'totalRevenue' ? sortConfig.direction : undefined} onSort={() => handleHeaderSort('totalRevenue')}>
+                {visibleColumns.includes('totalRevenue') && <TableHead className="text-center text-white border-0" sortable sortDirection={sortConfig.column === 'totalRevenue' ? sortConfig.direction : undefined} onSort={() => handleHeaderSort('totalRevenue')}>
                     Total Revenue
                   </TableHead>}
-                {visibleColumns.includes('trials') && <TableHead className="text-center" sortable sortDirection={sortConfig.column === 'trials' ? sortConfig.direction : undefined} onSort={() => handleHeaderSort('trials')}>
+                {visibleColumns.includes('trials') && <TableHead className="text-center text-white border-0" sortable sortDirection={sortConfig.column === 'trials' ? sortConfig.direction : undefined} onSort={() => handleHeaderSort('trials')}>
                     Trials
                   </TableHead>}
-                {visibleColumns.includes('referrals') && <TableHead className="text-center" sortable sortDirection={sortConfig.column === 'referrals' ? sortConfig.direction : undefined} onSort={() => handleHeaderSort('referrals')}>
+                {visibleColumns.includes('referrals') && <TableHead className="text-center text-white border-0" sortable sortDirection={sortConfig.column === 'referrals' ? sortConfig.direction : undefined} onSort={() => handleHeaderSort('referrals')}>
                     Referrals
                   </TableHead>}
-                {visibleColumns.includes('hosted') && <TableHead className="text-center" sortable sortDirection={sortConfig.column === 'hosted' ? sortConfig.direction : undefined} onSort={() => handleHeaderSort('hosted')}>
+                {visibleColumns.includes('hosted') && <TableHead className="text-center text-white border-0" sortable sortDirection={sortConfig.column === 'hosted' ? sortConfig.direction : undefined} onSort={() => handleHeaderSort('hosted')}>
                     Hosted Events
                   </TableHead>}
-                {visibleColumns.includes('influencerSignups') && <TableHead className="text-center" sortable sortDirection={sortConfig.column === 'influencerSignups' ? sortConfig.direction : undefined} onSort={() => handleHeaderSort('influencerSignups')}>
+                {visibleColumns.includes('influencerSignups') && <TableHead className="text-center text-white border-0" sortable sortDirection={sortConfig.column === 'influencerSignups' ? sortConfig.direction : undefined} onSort={() => handleHeaderSort('influencerSignups')}>
                     Influencer Signups
                   </TableHead>}
-                {visibleColumns.includes('others') && <TableHead className="text-center" sortable sortDirection={sortConfig.column === 'others' ? sortConfig.direction : undefined} onSort={() => handleHeaderSort('others')}>
+                {visibleColumns.includes('others') && <TableHead className="text-center text-white border-0" sortable sortDirection={sortConfig.column === 'others' ? sortConfig.direction : undefined} onSort={() => handleHeaderSort('others')}>
                     Others
                   </TableHead>}
-                {visibleColumns.includes('averageRevenuePerClient') && <TableHead className="text-center" sortable sortDirection={sortConfig.column === 'averageRevenuePerClient' ? sortConfig.direction : undefined} onSort={() => handleHeaderSort('averageRevenuePerClient')}>
+                {visibleColumns.includes('averageRevenuePerClient') && <TableHead className="text-center text-white border-0" sortable sortDirection={sortConfig.column === 'averageRevenuePerClient' ? sortConfig.direction : undefined} onSort={() => handleHeaderSort('averageRevenuePerClient')}>
                     Avg. Revenue/Client
                   </TableHead>}
-                {visibleColumns.includes('noShowRate') && <TableHead className="text-center" sortable sortDirection={sortConfig.column === 'noShowRate' ? sortConfig.direction : undefined} onSort={() => handleHeaderSort('noShowRate')}>
+                {visibleColumns.includes('noShowRate') && <TableHead className="text-center text-white border-0" sortable sortDirection={sortConfig.column === 'noShowRate' ? sortConfig.direction : undefined} onSort={() => handleHeaderSort('noShowRate')}>
                     No Show Rate
                   </TableHead>}
-                {visibleColumns.includes('lateCancellationRate') && <TableHead className="text-center" sortable sortDirection={sortConfig.column === 'lateCancellationRate' ? sortConfig.direction : undefined} onSort={() => handleHeaderSort('lateCancellationRate')}>
+                {visibleColumns.includes('lateCancellationRate') && <TableHead className="text-center text-white border-0" sortable sortDirection={sortConfig.column === 'lateCancellationRate' ? sortConfig.direction : undefined} onSort={() => handleHeaderSort('lateCancellationRate')}>
                     Late Cancellation Rate
                   </TableHead>}
-                <TableHead className="w-[70px]"></TableHead>
+                <TableHead className="w-[70px] text-white border-0"></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {displayData.map((item, idx) => <TableRow key={`${item.teacherName}-${item.location}-${item.period}-${idx}`} isClickable={!(item as any).isGroupHeader} isGroupHeader={(item as any).isGroupHeader} onClick={!(item as any).isGroupHeader ? () => handleRowClick(item) : undefined} className="animate-fade-in" style={{
+              {displayData.map((item, idx) => <TableRow key={`${item.teacherName}-${item.location}-${item.period}-${idx}`} isClickable={!(item as any).isGroupHeader} isGroupHeader={(item as any).isGroupHeader} onClick={!(item as any).isGroupHeader ? () => handleRowClick(item) : undefined} className="animate-fade-in border-b border-border/50" style={{
               animationDelay: `${idx * 30}ms`
             }}>
                   {visibleColumns.includes('teacherName') && <TableCell className="font-medium min-w-36">{dataMode === 'teacher' ? item.teacherName : item.location}</TableCell>}
@@ -386,21 +394,21 @@ const ResultsTable: React.FC<ResultsTableProps> = ({
                   {visibleColumns.includes('newClients') && <TableCell className="text-center">{(item as any).isGroupHeader ? '' : item.newClients}</TableCell>}
                   {visibleColumns.includes('retainedClients') && <TableCell className="text-center">{(item as any).isGroupHeader ? '' : item.retainedClients}</TableCell>}
                   {visibleColumns.includes('retentionRate') && <TableCell className="text-center min-w-36">
-                      {!(item as any).isGroupHeader && <Badge variant={item.retentionRate > 50 ? "success" : "destructive"} className="cursor-pointer hover:bg-muted flex items-center gap-1 animate-scale-in" onClick={e => {
+                      {!(item as any).isGroupHeader && <Badge variant={item.retentionRate > 50 ? "retention" : "excluded"} className="cursor-pointer hover:opacity-80 transition-opacity flex items-center justify-center gap-1.5 min-w-[100px] h-8" onClick={e => {
                   e.stopPropagation();
                   handleMetricClick(item, 'retention');
                 }}>
-                          {item.retentionRate > 50 ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
+                          <Award className="h-3.5 w-3.5" />
                           {safeToFixed(item.retentionRate, 1)}%
                         </Badge>}
                     </TableCell>}
                   {visibleColumns.includes('convertedClients') && <TableCell className="text-center">{(item as any).isGroupHeader ? '' : item.convertedClients}</TableCell>}
                   {visibleColumns.includes('conversionRate') && <TableCell className="text-center">
-                      {!(item as any).isGroupHeader && <Badge variant={item.conversionRate > 10 ? "success" : "destructive"} className="cursor-pointer hover:bg-muted flex items-center gap-1 animate-scale-in" onClick={e => {
+                      {!(item as any).isGroupHeader && <Badge variant={item.conversionRate > 10 ? "conversion" : "excluded"} className="cursor-pointer hover:opacity-80 transition-opacity flex items-center justify-center gap-1.5 min-w-[100px] h-8" onClick={e => {
                   e.stopPropagation();
                   handleMetricClick(item, 'conversion');
                 }}>
-                          {item.conversionRate > 10 ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
+                          <Target className="h-3.5 w-3.5" />
                           {safeToFixed(item.conversionRate, 1)}%
                         </Badge>}
                     </TableCell>}
@@ -469,59 +477,59 @@ const ResultsTable: React.FC<ResultsTableProps> = ({
                   </TableCell>
                 </TableRow>)}
             </TableBody>
-            <TableFooter className="bg-primary text-primary-foreground hover:bg-primary-dark cursor-pointer animate-fade-in" onClick={handleTotalsRowClick} isClickable={true}>
-              <TableRow className="bg-zinc-900 border-emerald-800 border-t-8 text-center">
-                {visibleColumns.includes('teacherName') && <TableCell className="font-extrabold font-[small-caps] text-lg col-span-3 ">TOTALS</TableCell>}
+            <TableFooter className="bg-gradient-to-r from-slate-800 via-slate-900 to-slate-800 text-white hover:bg-gradient-to-r hover:from-slate-800 hover:via-slate-900 hover:to-slate-800 cursor-pointer animate-fade-in" onClick={handleTotalsRowClick} isClickable={true}>
+              <TableRow className="bg-gradient-to-r from-slate-800 via-slate-900 to-slate-800 border-0 text-center hover:bg-gradient-to-r hover:from-slate-800 hover:via-slate-900 hover:to-slate-800">
+                {visibleColumns.includes('teacherName') && <TableCell className="font-extrabold font-[small-caps] text-lg text-white">TOTALS</TableCell>}
                 {visibleColumns.includes('location') && <TableCell></TableCell>}
                 {visibleColumns.includes('period') && <TableCell></TableCell>}
-                {visibleColumns.includes('newClients') && <TableCell className="font-extrabold font-[small-caps] text-lg">{totals.newClients}</TableCell>}
-                {visibleColumns.includes('retainedClients') && <TableCell className="font-extrabold font-[small-caps] text-lg text-center">{totals.retainedClients}</TableCell>}
+                {visibleColumns.includes('newClients') && <TableCell className="font-extrabold font-[small-caps] text-lg text-white">{totals.newClients}</TableCell>}
+                {visibleColumns.includes('retainedClients') && <TableCell className="font-extrabold font-[small-caps] text-lg text-center text-white">{totals.retainedClients}</TableCell>}
                 {visibleColumns.includes('retentionRate') && <TableCell className="text-center font-bold">
-                    <span className="flex items-center justify-evenly  font-extrabold font-[small-caps] text-lg ">
-                      {avgRetentionRate > 50 ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
+                    <span className="flex items-center justify-center font-extrabold font-[small-caps] text-lg text-white">
+                      <Award className="h-4 w-4 mr-2" />
                       {safeToFixed(avgRetentionRate, 1)}%
                     </span>
                   </TableCell>}
-                {visibleColumns.includes('convertedClients') && <TableCell className="font-extrabold font-[small-caps] text-lg text-center">{totals.convertedClients}</TableCell>}
+                {visibleColumns.includes('convertedClients') && <TableCell className="font-extrabold font-[small-caps] text-lg text-center text-white">{totals.convertedClients}</TableCell>}
                 {visibleColumns.includes('conversionRate') && <TableCell className="text-center font-bold">
-                    <span className="flex items-center justify-evenly  font-extrabold font-[small-caps] text-lg text-center">
-                      {avgConversionRate > 10 ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
+                    <span className="flex items-center justify-center font-extrabold font-[small-caps] text-lg text-center text-white">
+                      <Target className="h-4 w-4 mr-2" />
                       {safeToFixed(avgConversionRate, 1)}%
                     </span>
                   </TableCell>}
-                {visibleColumns.includes('totalRevenue') && <TableCell className="font-extrabold font-[small-caps] text-lg text-center">{safeFormatCurrency(totals.totalRevenue)}</TableCell>}
-                {visibleColumns.includes('trials') && <TableCell className="font-extrabold font-[small-caps] text-lg text-center">
+                {visibleColumns.includes('totalRevenue') && <TableCell className="font-extrabold font-[small-caps] text-lg text-center text-white">{safeFormatCurrency(totals.totalRevenue)}</TableCell>}
+                {visibleColumns.includes('trials') && <TableCell className="font-extrabold font-[small-caps] text-lg text-center text-white">
                     {displayData.filter(item => !(item as any).isGroupHeader).reduce((sum, item) => sum + (item.trials || 0), 0)}
                   </TableCell>}
-                {visibleColumns.includes('referrals') && <TableCell className="font-extrabold font-[small-caps] text-lg text-center">
+                {visibleColumns.includes('referrals') && <TableCell className="font-extrabold font-[small-caps] text-lg text-center text-white">
                     {displayData.filter(item => !(item as any).isGroupHeader).reduce((sum, item) => sum + (item.referrals || 0), 0)}
                   </TableCell>}
-                {visibleColumns.includes('hosted') && <TableCell className="font-extrabold font-[small-caps] text-lg text-center">
+                {visibleColumns.includes('hosted') && <TableCell className="font-extrabold font-[small-caps] text-lg text-center text-white">
                     {displayData.filter(item => !(item as any).isGroupHeader).reduce((sum, item) => sum + (item.hosted || 0), 0)}
                   </TableCell>}
-                {visibleColumns.includes('influencerSignups') && <TableCell className="font-extrabold font-[small-caps] text-lg text-center">
+                {visibleColumns.includes('influencerSignups') && <TableCell className="font-extrabold font-[small-caps] text-lg text-center text-white">
                     {displayData.filter(item => !(item as any).isGroupHeader).reduce((sum, item) => sum + (item.influencerSignups || 0), 0)}
                   </TableCell>}
-                {visibleColumns.includes('others') && <TableCell className="font-extrabold font-[small-caps] text-lg text-center">
+                {visibleColumns.includes('others') && <TableCell className="font-extrabold font-[small-caps] text-lg text-center text-white">
                     {displayData.filter(item => !(item as any).isGroupHeader).reduce((sum, item) => sum + (item.others || 0), 0)}
                   </TableCell>}
-                {visibleColumns.includes('averageRevenuePerClient') && <TableCell className="font-extrabold font-[small-caps] text-lg text-center">
+                {visibleColumns.includes('averageRevenuePerClient') && <TableCell className="font-extrabold font-[small-caps] text-lg text-center text-white">
                     {safeFormatCurrency(totals.newClients > 0 ? totals.totalRevenue / totals.newClients : 0)}
                   </TableCell>}
                 {visibleColumns.includes('noShowRate') && <TableCell className="text-center font-bold">
-                    <span className="flex items-center justify-evenly  font-extrabold font-[small-caps] text-lg text-center">
-                      {avgNoShowRate < 10 ? <TrendingDown className="h-3 w-3" /> : <TrendingUp className="h-3 w-3" />}
+                    <span className="flex items-center justify-center font-extrabold font-[small-caps] text-lg text-center text-white">
+                      {avgNoShowRate < 10 ? <TrendingDown className="h-3 w-3 mr-2" /> : <TrendingUp className="h-3 w-3 mr-2" />}
                       {safeToFixed(avgNoShowRate, 1)}%
                     </span>
                   </TableCell>}
                 {visibleColumns.includes('lateCancellationRate') && <TableCell className="text-center font-bold">
-                    <span className="flex items-center justify-evenly  font-extrabold font-[small-caps] text-lg text-center">
-                      {avgLateCancellationRate < 10 ? <TrendingDown className="h-3 w-3" /> : <TrendingUp className="h-3 w-3" />}
+                    <span className="flex items-center justify-center font-extrabold font-[small-caps] text-lg text-center text-white">
+                      {avgLateCancellationRate < 10 ? <TrendingDown className="h-3 w-3 mr-2" /> : <TrendingUp className="h-3 w-3 mr-2" />}
                       {safeToFixed(avgLateCancellationRate, 1)}%
                     </span>
                   </TableCell>}
                 <TableCell className="text-right pr-4">
-                  <Button variant="ghost" size="sm" className="text-primary-foreground hover:text-white" onClick={e => {
+                  <Button variant="ghost" size="sm" className="text-white hover:text-white/80" onClick={e => {
                   e.stopPropagation();
                   handleTotalsRowClick();
                 }}>
@@ -898,10 +906,17 @@ const ResultsTable: React.FC<ResultsTableProps> = ({
     </Card>;
   return <div className="space-y-6">
       {/* Table options and view mode selector */}
-      <TableViewOptions activeView={viewMode} onViewChange={setViewMode} onGroupByChange={handleGroupByChange} onVisibilityChange={setVisibleColumns} onSortChange={(column, direction) => setSortConfig({
-      column,
-      direction
-    })} availableColumns={allAvailableColumns} visibleColumns={visibleColumns} activeGroupBy={activeGroupBy} activeSort={sortConfig} />
+      <TableViewOptions 
+        activeView={viewMode} 
+        onViewChange={setViewMode} 
+        onGroupByChange={handleGroupByChange} 
+        onVisibilityChange={setVisibleColumns} 
+        onSortChange={(column, direction) => setSortConfig({ column, direction })} 
+        availableColumns={allAvailableColumns} 
+        visibleColumns={visibleColumns} 
+        activeGroupBy={activeGroupBy} 
+        activeSort={sortConfig} 
+      />
       
       {/* Render the appropriate view based on viewMode */}
       {viewMode === 'table' && renderTableView()}
@@ -912,9 +927,23 @@ const ResultsTable: React.FC<ResultsTableProps> = ({
       {viewMode === 'trends' && renderTrendsView()}
       
       {/* Modals */}
-      <ClientDetailsModal isOpen={isClientModalOpen} onClose={handleCloseClientModal} title={`${selectedTeacher ? selectedTeacher : 'Clients'} - ${clientType.charAt(0).toUpperCase() + clientType.slice(1)}`} description={`Details of ${clientType} clients for ${selectedTeacher}`} clients={getClientsForType(clientType)} type={clientType} />
+      <ClientDetailsModal 
+        isOpen={isClientModalOpen} 
+        onClose={handleCloseClientModal} 
+        title={`${selectedTeacher ? selectedTeacher : 'Clients'} - ${clientType.charAt(0).toUpperCase() + clientType.slice(1)}`} 
+        description={`Details of ${clientType} clients for ${selectedTeacher}`} 
+        clients={getClientsForType(clientType)} 
+        type={clientType} 
+      />
       
-      <DrillDownAnalytics isOpen={isDrillDownOpen} onClose={handleCloseDrillDown} data={drillDownData} type={drillDownType} metricType={drillDownMetricType} />
+      <DrillDownAnalytics 
+        isOpen={isDrillDownOpen} 
+        onClose={handleCloseDrillDown} 
+        data={drillDownData} 
+        type={drillDownType} 
+        metricType={drillDownMetricType} 
+      />
     </div>;
 };
+
 export default ResultsTable;

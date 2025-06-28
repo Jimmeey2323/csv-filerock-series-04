@@ -109,7 +109,7 @@ const Index = () => {
     search: ''
   });
 
-  // Add state for filter collapse
+  // Add state for filter collapse - set to true by default (collapsed)
   const [isFiltersCollapsed, setIsFiltersCollapsed] = useState(true);
 
   // Load saved data from localStorage on component mount
