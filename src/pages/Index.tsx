@@ -9,6 +9,7 @@ import RawDataView from '@/components/RawDataView';
 import MonthlyMetricsView from '@/components/MonthlyMetricsView';
 import SalesMetricsView from '@/components/SalesMetricsView';
 import PerformanceInsightsView from '@/components/PerformanceInsightsView';
+import KanbanView from '@/components/KanbanView';
 import { parseCSV, categorizeFiles, getFileTypes } from '@/utils/csvParser';
 import { processData, ProcessedTeacherData, ProcessingProgress } from '@/utils/dataProcessor';
 import { deduplicateClientsByEmail } from '@/utils/deduplication';
@@ -16,7 +17,7 @@ import Logo from '@/components/Logo';
 import AIInsights from '@/components/AIInsights';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { ChevronDown, ChevronUp, FileText, Table, BarChart, TrendingUp, Target, DollarSign } from 'lucide-react';
+import { ChevronDown, ChevronUp, FileText, Table, BarChart, TrendingUp, Target, DollarSign, Filter } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 // Local storage keys
@@ -107,6 +108,9 @@ const Index = () => {
     period: '',
     search: ''
   });
+
+  // Add state for filter collapse
+  const [isFiltersCollapsed, setIsFiltersCollapsed] = useState(true);
 
   // Load saved data from localStorage on component mount
   useEffect(() => {
@@ -390,7 +394,8 @@ const Index = () => {
     });
     toast.success('Application reset. You can upload new files');
   }, []);
-  return <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
+  return (
+    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
       <header className="border-b bg-white/80 backdrop-blur-sm sticky top-0 z-50">
         <div className="container flex justify-between items-center py-3 bg-neutral-50">
           <Logo size="md" />
@@ -399,25 +404,26 @@ const Index = () => {
       </header>
       
       <main id="container" className="container py-8 transition-opacity duration-500 opacity-0">
-        {!resultsVisible ? <>
-            <div className="space-y-6 mb-10">
-              <div className="flex flex-col items-center text-center space-y-4 animate-fade-in">
-                <div className="inline-flex items-center justify-center h-16 w-16 rounded-full bg-primary/10 text-primary mb-2">
-                  <div className="h-8 w-8 rounded-full bg-primary animate-pulse-soft" />
-                </div>
-                <h1 className="text-4xl font-bold tracking-tight">Studio Stats</h1>
-                <p className="text-lg text-muted-foreground max-w-2xl">
-                  Upload, process, and analyze your CSV files to gain insights into studio performance, teacher effectiveness, and client trends.
-                </p>
+        {!resultsVisible ? (
+          <div className="space-y-6 mb-10">
+            <div className="flex flex-col items-center text-center space-y-4 animate-fade-in">
+              <div className="inline-flex items-center justify-center h-16 w-16 rounded-full bg-primary/10 text-primary mb-2">
+                <div className="h-8 w-8 rounded-full bg-primary animate-pulse-soft" />
               </div>
+              <h1 className="text-4xl font-bold tracking-tight">Studio Stats</h1>
+              <p className="text-lg text-muted-foreground max-w-2xl">
+                Upload, process, and analyze your CSV files to gain insights into studio performance, teacher effectiveness, and client trends.
+              </p>
             </div>
+          </div>
 
-            <div className="grid grid-cols-1 gap-8 max-w-3xl mx-auto">
-              <FileUploader onFilesAdded={handleFilesAdded} accept=".csv" maxFiles={10} />
-              
-              {files.length > 0 && <FileList files={files} onRemove={handleRemoveFile} onProcessFiles={handleProcessFiles} fileTypes={getFileTypes()} />}
-            </div>
-          </> : <div className="space-y-6 animate-fade-in">
+          <div className="grid grid-cols-1 gap-8 max-w-3xl mx-auto">
+            <FileUploader onFilesAdded={handleFilesAdded} accept=".csv" maxFiles={10} />
+            
+            {files.length > 0 && <FileList files={files} onRemove={handleRemoveFile} onProcessFiles={handleProcessFiles} fileTypes={getFileTypes()} />}
+          </div>
+        ) : (
+          <div className="space-y-6 animate-fade-in">
             <div className="flex justify-between items-center mb-6">
               
               <div className="flex space-x-4">
@@ -425,8 +431,8 @@ const Index = () => {
                   Reset data
                 </button>
                 <button onClick={() => {
-              setResultsVisible(false);
-            }} className="text-sm text-primary hover:underline">
+                  setResultsVisible(false);
+                }} className="text-sm text-primary hover:underline">
                   Process new files
                 </button>
               </div>
@@ -465,6 +471,15 @@ const Index = () => {
                   <Target className="h-4 w-4" />
                   <span>Performance Insights</span>
                 </TabsTrigger>
+                <TabsTrigger value="kanban" className="flex items-center gap-2">
+                  <div className="h-4 w-4 grid grid-cols-2 gap-0.5">
+                    <div className="bg-current rounded-sm"></div>
+                    <div className="bg-current rounded-sm"></div>
+                    <div className="bg-current rounded-sm"></div>
+                    <div className="bg-current rounded-sm"></div>
+                  </div>
+                  <span>Kanban View</span>
+                </TabsTrigger>
                 <TabsTrigger value="raw-data" className="flex items-center gap-2">
                   <FileText className="h-4 w-4" />
                   <span>Raw Data & Processing</span>
@@ -473,9 +488,54 @@ const Index = () => {
               
               <TabsContent value="analytics" className="mt-0">
                 <div className="space-y-6">
-                  <FilterBar data={processedData} onFilterChange={handleFilteredDataChange} selectedFilters={selectedFilters} onFilterUpdate={handleFilterUpdate} />
+                  {/* Quick filter buttons - always visible */}
+                  <div className="flex flex-wrap gap-2">
+                    <Button 
+                      variant={activeFilters.location === '' ? 'default' : 'outline'} 
+                      size="sm"
+                      onClick={() => handleFilterChange({ location: '' })}
+                    >
+                      All Locations
+                    </Button>
+                    {locations.slice(0, 5).map(location => (
+                      <Button 
+                        key={location}
+                        variant={activeFilters.location === location ? 'default' : 'outline'} 
+                        size="sm"
+                        onClick={() => handleFilterChange({ location })}
+                      >
+                        {location}
+                      </Button>
+                    ))}
+                    <Button 
+                      variant="ghost" 
+                      size="sm"
+                      onClick={() => setIsFiltersCollapsed(!isFiltersCollapsed)}
+                      className="ml-auto"
+                    >
+                      <Filter className="h-4 w-4 mr-2" />
+                      {isFiltersCollapsed ? 'Show Filters' : 'Hide Filters'}
+                    </Button>
+                  </div>
+
+                  {/* Collapsible advanced filters */}
+                  {!isFiltersCollapsed && (
+                    <FilterBar 
+                      data={processedData} 
+                      onFilterChange={handleFilteredDataChange} 
+                      selectedFilters={selectedFilters} 
+                      onFilterUpdate={handleFilterUpdate} 
+                    />
+                  )}
                   
-                  <ResultsTable data={filteredData} locations={locations} isLoading={false} viewMode={viewMode} dataMode={dataMode} onFilterChange={handleFilterChange} />
+                  <ResultsTable 
+                    data={filteredData} 
+                    locations={locations} 
+                    isLoading={false} 
+                    viewMode={viewMode} 
+                    dataMode={dataMode} 
+                    onFilterChange={handleFilterChange} 
+                  />
                 </div>
               </TabsContent>
 
@@ -491,6 +551,10 @@ const Index = () => {
                 <PerformanceInsightsView data={filteredData} />
               </TabsContent>
               
+              <TabsContent value="kanban" className="mt-0">
+                <KanbanView data={filteredData} />
+              </TabsContent>
+              
               <TabsContent value="raw-data" className="mt-0">
                 <RawDataView newClientData={rawData.newClientData || []} bookingsData={rawData.bookingsData || []} paymentsData={rawData.paymentsData || []} processingResults={rawData.processingResults || {
               included: [],
@@ -501,7 +565,8 @@ const Index = () => {
             }} />
               </TabsContent>
             </Tabs>
-          </div>}
+          </div>
+        )}
       </main>
 
       {/* Processing Loader */}
@@ -512,6 +577,8 @@ const Index = () => {
           Studio Stats Analytics Dashboard • {new Date().getFullYear()}
         </div>
       </footer>
-    </div>;
+    </div>
+  );
 };
+
 export default Index;
