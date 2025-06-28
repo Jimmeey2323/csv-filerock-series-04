@@ -17,8 +17,9 @@ import Logo from '@/components/Logo';
 import AIInsights from '@/components/AIInsights';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { ChevronDown, ChevronUp, FileText, Table, BarChart, TrendingUp, Target, DollarSign, Filter } from 'lucide-react';
+import { ChevronDown, ChevronUp, FileText, Table, BarChart, TrendingUp, Target, DollarSign, Filter, Building2, Users, Calendar } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 
 // Local storage keys
 const STORAGE_KEYS = {
@@ -482,25 +483,118 @@ const Index = () => {
               
               <TabsContent value="analytics" className="mt-0">
                 <div className="space-y-6">
-                  {/* Quick filter buttons - always visible */}
-                  <div className="flex flex-wrap gap-2">
-                    <Button variant={activeFilters.location === '' ? 'default' : 'outline'} size="sm" onClick={() => handleFilterChange({
-                  location: ''
-                })}>
-                      All Locations
-                    </Button>
-                    {locations.slice(0, 5).map(location => <Button key={location} variant={activeFilters.location === location ? 'default' : 'outline'} size="sm" onClick={() => handleFilterChange({
-                  location
-                })}>
-                        {location}
-                      </Button>)}
-                    
+                  {/* Enhanced Quick filter buttons - always visible */}
+                  <div className="space-y-4">
+                    {/* Location Filters */}
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2">
+                        <Building2 className="h-4 w-4 text-muted-foreground" />
+                        <span className="text-sm font-medium text-muted-foreground">Locations</span>
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        <Button 
+                          variant={activeFilters.location === '' ? 'default' : 'outline'} 
+                          size="sm" 
+                          onClick={() => handleFilterChange({ location: '' })}
+                        >
+                          All Locations
+                        </Button>
+                        {locations.slice(0, 6).map(location => (
+                          <Button
+                            key={location}
+                            variant={activeFilters.location === location ? 'default' : 'outline'}
+                            size="sm"
+                            onClick={() => handleFilterChange({ location })}
+                          >
+                            {location}
+                          </Button>
+                        ))}
+                        {locations.length > 6 && (
+                          <Badge variant="secondary" className="h-8 flex items-center">
+                            +{locations.length - 6} more
+                          </Badge>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Teacher Filters */}
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2">
+                        <Users className="h-4 w-4 text-muted-foreground" />
+                        <span className="text-sm font-medium text-muted-foreground">Teachers</span>
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        <Button 
+                          variant={activeFilters.teacher === '' ? 'default' : 'outline'} 
+                          size="sm" 
+                          onClick={() => handleFilterChange({ teacher: '' })}
+                        >
+                          All Teachers
+                        </Button>
+                        {teachers.slice(0, 8).map(teacher => (
+                          <Button
+                            key={teacher}
+                            variant={activeFilters.teacher === teacher ? 'default' : 'outline'}
+                            size="sm"
+                            onClick={() => handleFilterChange({ teacher })}
+                          >
+                            {teacher}
+                          </Button>
+                        ))}
+                        {teachers.length > 8 && (
+                          <Badge variant="secondary" className="h-8 flex items-center">
+                            +{teachers.length - 8} more
+                          </Badge>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Period Filters */}
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2">
+                        <Calendar className="h-4 w-4 text-muted-foreground" />
+                        <span className="text-sm font-medium text-muted-foreground">Periods</span>
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        <Button 
+                          variant={activeFilters.period === '' ? 'default' : 'outline'} 
+                          size="sm" 
+                          onClick={() => handleFilterChange({ period: '' })}
+                        >
+                          All Periods
+                        </Button>
+                        {periods.map(period => (
+                          <Button
+                            key={period}
+                            variant={activeFilters.period === period ? 'default' : 'outline'}
+                            size="sm"
+                            onClick={() => handleFilterChange({ period })}
+                          >
+                            {period}
+                          </Button>
+                        ))}
+                      </div>
+                    </div>
                   </div>
 
                   {/* Collapsible advanced filters */}
-                  {!isFiltersCollapsed && <FilterBar data={processedData} onFilterChange={handleFilteredDataChange} selectedFilters={selectedFilters} onFilterUpdate={handleFilterUpdate} />}
+                  {!isFiltersCollapsed && (
+                    <FilterBar 
+                      data={processedData} 
+                      onFilterChange={handleFilteredDataChange} 
+                      selectedFilters={selectedFilters} 
+                      onFilterUpdate={handleFilterUpdate} 
+                    />
+                  )}
                   
-                  <ResultsTable data={filteredData} locations={locations} isLoading={false} viewMode={viewMode} dataMode={dataMode} onFilterChange={handleFilterChange} />
+                  <ResultsTable 
+                    data={filteredData} 
+                    locations={locations} 
+                    isLoading={false} 
+                    viewMode={viewMode} 
+                    dataMode={dataMode} 
+                    onFilterChange={handleFilterChange} 
+                  />
                 </div>
               </TabsContent>
 

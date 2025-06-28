@@ -1,4 +1,3 @@
-
 import * as React from "react";
 import { ChevronDown, ChevronUp, ChevronsUpDown } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -7,11 +6,13 @@ const Table = React.forwardRef<HTMLTableElement, React.HTMLAttributes<HTMLTableE
   maxHeight?: string;
 }>(({
   className,
-  maxHeight = "600px",
+  maxHeight = "calc(100vh - 300px)",
   ...props
 }, ref) => (
-  <div className="relative w-full overflow-auto border border-border rounded-lg bg-card shadow-sm" style={{ maxHeight }}>
-    <table ref={ref} className={cn("w-full caption-bottom text-sm", className)} {...props} />
+  <div className="relative w-full border border-border rounded-lg bg-card shadow-sm" style={{ height: maxHeight }}>
+    <div className="h-full overflow-auto">
+      <table ref={ref} className={cn("w-full caption-bottom text-sm", className)} {...props} />
+    </div>
   </div>
 ));
 Table.displayName = "Table";
