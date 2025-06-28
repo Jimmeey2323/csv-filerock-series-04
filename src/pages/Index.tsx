@@ -394,8 +394,7 @@ const Index = () => {
     });
     toast.success('Application reset. You can upload new files');
   }, []);
-  return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
+  return <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
       <header className="border-b bg-white/80 backdrop-blur-sm sticky top-0 z-50">
         <div className="container flex justify-between items-center py-3 bg-neutral-50">
           <Logo size="md" />
@@ -403,8 +402,7 @@ const Index = () => {
       </header>
       
       <main id="container" className="container py-8 transition-opacity duration-500 opacity-0">
-        {!resultsVisible ? (
-          <div className="space-y-6 mb-10">
+        {!resultsVisible ? <div className="space-y-6 mb-10">
             <div className="flex flex-col items-center text-center space-y-4 animate-fade-in">
               <div className="inline-flex items-center justify-center h-16 w-16 rounded-full bg-primary/10 text-primary mb-2">
                 <div className="h-8 w-8 rounded-full bg-primary animate-pulse-soft" />
@@ -420,17 +418,15 @@ const Index = () => {
               
               {files.length > 0 && <FileList files={files} onRemove={handleRemoveFile} onProcessFiles={handleProcessFiles} fileTypes={getFileTypes()} />}
             </div>
-          </div>
-        ) : (
-          <div className="space-y-6 animate-fade-in">
+          </div> : <div className="space-y-6 animate-fade-in">
             <div className="flex justify-between items-center mb-6">
               <div className="flex space-x-4">
                 <button onClick={handleResetApp} className="text-sm text-destructive hover:underline">
                   Reset data
                 </button>
                 <button onClick={() => {
-                  setResultsVisible(false);
-                }} className="text-sm text-primary hover:underline">
+              setResultsVisible(false);
+            }} className="text-sm text-primary hover:underline">
                   Process new files
                 </button>
               </div>
@@ -488,52 +484,23 @@ const Index = () => {
                 <div className="space-y-6">
                   {/* Quick filter buttons - always visible */}
                   <div className="flex flex-wrap gap-2">
-                    <Button 
-                      variant={activeFilters.location === '' ? 'default' : 'outline'} 
-                      size="sm"
-                      onClick={() => handleFilterChange({ location: '' })}
-                    >
+                    <Button variant={activeFilters.location === '' ? 'default' : 'outline'} size="sm" onClick={() => handleFilterChange({
+                  location: ''
+                })}>
                       All Locations
                     </Button>
-                    {locations.slice(0, 5).map(location => (
-                      <Button 
-                        key={location}
-                        variant={activeFilters.location === location ? 'default' : 'outline'} 
-                        size="sm"
-                        onClick={() => handleFilterChange({ location })}
-                      >
+                    {locations.slice(0, 5).map(location => <Button key={location} variant={activeFilters.location === location ? 'default' : 'outline'} size="sm" onClick={() => handleFilterChange({
+                  location
+                })}>
                         {location}
-                      </Button>
-                    ))}
-                    <Button 
-                      variant="ghost" 
-                      size="sm"
-                      onClick={() => setIsFiltersCollapsed(!isFiltersCollapsed)}
-                      className="ml-auto"
-                    >
-                      <Filter className="h-4 w-4 mr-2" />
-                      {isFiltersCollapsed ? 'Show Filters' : 'Hide Filters'}
-                    </Button>
+                      </Button>)}
+                    
                   </div>
 
                   {/* Collapsible advanced filters */}
-                  {!isFiltersCollapsed && (
-                    <FilterBar 
-                      data={processedData} 
-                      onFilterChange={handleFilteredDataChange} 
-                      selectedFilters={selectedFilters} 
-                      onFilterUpdate={handleFilterUpdate} 
-                    />
-                  )}
+                  {!isFiltersCollapsed && <FilterBar data={processedData} onFilterChange={handleFilteredDataChange} selectedFilters={selectedFilters} onFilterUpdate={handleFilterUpdate} />}
                   
-                  <ResultsTable 
-                    data={filteredData} 
-                    locations={locations} 
-                    isLoading={false} 
-                    viewMode={viewMode} 
-                    dataMode={dataMode} 
-                    onFilterChange={handleFilterChange} 
-                  />
+                  <ResultsTable data={filteredData} locations={locations} isLoading={false} viewMode={viewMode} dataMode={dataMode} onFilterChange={handleFilterChange} />
                 </div>
               </TabsContent>
 
@@ -554,22 +521,16 @@ const Index = () => {
               </TabsContent>
               
               <TabsContent value="raw-data" className="mt-0">
-                <RawDataView 
-                  newClientData={rawData.newClientData || []} 
-                  bookingsData={rawData.bookingsData || []} 
-                  paymentsData={rawData.paymentsData || []} 
-                  processingResults={rawData.processingResults || {
-                    included: [],
-                    excluded: [],
-                    newClients: [],
-                    convertedClients: [],
-                    retainedClients: []
-                  }} 
-                />
+                <RawDataView newClientData={rawData.newClientData || []} bookingsData={rawData.bookingsData || []} paymentsData={rawData.paymentsData || []} processingResults={rawData.processingResults || {
+              included: [],
+              excluded: [],
+              newClients: [],
+              convertedClients: [],
+              retainedClients: []
+            }} />
               </TabsContent>
             </Tabs>
-          </div>
-        )}
+          </div>}
       </main>
 
       {/* Processing Loader */}
@@ -580,8 +541,6 @@ const Index = () => {
           Studio Stats Analytics Dashboard • {new Date().getFullYear()}
         </div>
       </footer>
-    </div>
-  );
+    </div>;
 };
-
 export default Index;
