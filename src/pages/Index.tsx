@@ -97,7 +97,7 @@ const Index = () => {
     }
   });
 
-  // Add state for managing filters
+  // Update selectedFilters to use arrays for combination filtering
   const [selectedFilters, setSelectedFilters] = useState({
     period: [] as string[],
     teacher: [] as string[],
@@ -313,6 +313,65 @@ const Index = () => {
     setSelectedFilters(filters);
   }, []);
 
+  // Updated filter change handler to support combinations
+  const handleCombinationFilterChange = useCallback((filterType: 'location' | 'teacher' | 'period', value: string) => {
+    setSelectedFilters(prev => {
+      const currentArray = prev[filterType];
+      const isSelected = currentArray.includes(value);
+      
+      let newArray;
+      if (isSelected) {
+        // Remove from selection
+        newArray = currentArray.filter(item => item !== value);
+      } else {
+        // Add to selection
+        newArray = [...currentArray, value];
+      }
+      
+      return {
+        ...prev,
+        [filterType]: newArray
+      };
+    });
+  }, []);
+
+  // Clear all filters
+  const handleClearAllFilters = useCallback(() => {
+    setSelectedFilters({
+      period: [],
+      teacher: [],
+      location: []
+    });
+  }, []);
+
+  // Apply combination filters to data
+  const applyFiltersToData = useCallback((data: ProcessedTeacherData[]) => {
+    let filtered = [...data];
+
+    // Apply location filters
+    if (selectedFilters.location.length > 0) {
+      filtered = filtered.filter(item => selectedFilters.location.includes(item.location));
+    }
+
+    // Apply teacher filters
+    if (selectedFilters.teacher.length > 0) {
+      filtered = filtered.filter(item => selectedFilters.teacher.includes(item.teacherName));
+    }
+
+    // Apply period filters
+    if (selectedFilters.period.length > 0) {
+      filtered = filtered.filter(item => selectedFilters.period.includes(item.period));
+    }
+
+    return filtered;
+  }, [selectedFilters]);
+
+  // Update filtered data when filters change
+  useEffect(() => {
+    const filtered = applyFiltersToData(processedData);
+    setFilteredData(filtered);
+  }, [processedData, selectedFilters, applyFiltersToData]);
+
   // Handle filter changes (for old components that still use this interface)
   const handleFilterChange = useCallback((filters: {
     location?: string;
@@ -360,8 +419,9 @@ const Index = () => {
     return () => clearTimeout(timer);
   }, []);
 
-  // Check if any filters are active
-  const hasActiveFilters = Object.values(activeFilters).some(Boolean);
+  const hasActiveFilters = selectedFilters.location.length > 0 || 
+                          selectedFilters.teacher.length > 0 || 
+                          selectedFilters.period.length > 0;
 
   // Clear saved data and reset to upload screen
   const handleResetApp = useCallback(() => {
@@ -395,7 +455,8 @@ const Index = () => {
     });
     toast.success('Application reset. You can upload new files');
   }, []);
-  return <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
+  return (
+    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
       <header className="border-b bg-white/80 backdrop-blur-sm sticky top-0 z-50">
         <div className="container flex justify-between items-center py-3 bg-neutral-50">
           <Logo size="md" />
@@ -403,7 +464,8 @@ const Index = () => {
       </header>
       
       <main id="container" className="container py-8 transition-opacity duration-500 opacity-0">
-        {!resultsVisible ? <div className="space-y-6 mb-10">
+        {!resultsVisible ? (
+          <div className="space-y-6 mb-10">
             <div className="flex flex-col items-center text-center space-y-4 animate-fade-in">
               <div className="inline-flex items-center justify-center h-16 w-16 rounded-full bg-primary/10 text-primary mb-2">
                 <div className="h-8 w-8 rounded-full bg-primary animate-pulse-soft" />
@@ -419,7 +481,9 @@ const Index = () => {
               
               {files.length > 0 && <FileList files={files} onRemove={handleRemoveFile} onProcessFiles={handleProcessFiles} fileTypes={getFileTypes()} />}
             </div>
-          </div> : <div className="space-y-6 animate-fade-in">
+          </div>
+        ) : (
+          <div className="space-y-6 animate-fade-in">
             <div className="flex justify-between items-center mb-6">
               <div className="flex space-x-4">
                 <button onClick={handleResetApp} className="text-sm text-destructive hover:underline">
@@ -483,28 +547,40 @@ const Index = () => {
               
               <TabsContent value="analytics" className="mt-0">
                 <div className="space-y-6">
-                  {/* Enhanced Quick filter buttons - always visible */}
+                  {/* Enhanced Quick filter buttons with combination support */}
                   <div className="space-y-4">
+                    {/* Clear all filters button */}
+                    {hasActiveFilters && (
+                      <div className="flex justify-end">
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          onClick={handleClearAllFilters}
+                          className="text-muted-foreground hover:text-foreground"
+                        >
+                          Clear all filters ({selectedFilters.location.length + selectedFilters.teacher.length + selectedFilters.period.length})
+                        </Button>
+                      </div>
+                    )}
+
                     {/* Location Filters */}
                     <div className="space-y-2">
                       <div className="flex items-center gap-2">
                         <Building2 className="h-4 w-4 text-muted-foreground" />
                         <span className="text-sm font-medium text-muted-foreground">Locations</span>
+                        {selectedFilters.location.length > 0 && (
+                          <Badge variant="secondary" className="ml-2">
+                            {selectedFilters.location.length} selected
+                          </Badge>
+                        )}
                       </div>
                       <div className="flex flex-wrap gap-2">
-                        <Button 
-                          variant={activeFilters.location === '' ? 'default' : 'outline'} 
-                          size="sm" 
-                          onClick={() => handleFilterChange({ location: '' })}
-                        >
-                          All Locations
-                        </Button>
                         {locations.slice(0, 6).map(location => (
                           <Button
                             key={location}
-                            variant={activeFilters.location === location ? 'default' : 'outline'}
+                            variant={selectedFilters.location.includes(location) ? 'default' : 'outline'}
                             size="sm"
-                            onClick={() => handleFilterChange({ location })}
+                            onClick={() => handleCombinationFilterChange('location', location)}
                           >
                             {location}
                           </Button>
@@ -522,21 +598,19 @@ const Index = () => {
                       <div className="flex items-center gap-2">
                         <Users className="h-4 w-4 text-muted-foreground" />
                         <span className="text-sm font-medium text-muted-foreground">Teachers</span>
+                        {selectedFilters.teacher.length > 0 && (
+                          <Badge variant="secondary" className="ml-2">
+                            {selectedFilters.teacher.length} selected
+                          </Badge>
+                        )}
                       </div>
                       <div className="flex flex-wrap gap-2">
-                        <Button 
-                          variant={activeFilters.teacher === '' ? 'default' : 'outline'} 
-                          size="sm" 
-                          onClick={() => handleFilterChange({ teacher: '' })}
-                        >
-                          All Teachers
-                        </Button>
                         {teachers.slice(0, 8).map(teacher => (
                           <Button
                             key={teacher}
-                            variant={activeFilters.teacher === teacher ? 'default' : 'outline'}
+                            variant={selectedFilters.teacher.includes(teacher) ? 'default' : 'outline'}
                             size="sm"
-                            onClick={() => handleFilterChange({ teacher })}
+                            onClick={() => handleCombinationFilterChange('teacher', teacher)}
                           >
                             {teacher}
                           </Button>
@@ -554,21 +628,19 @@ const Index = () => {
                       <div className="flex items-center gap-2">
                         <Calendar className="h-4 w-4 text-muted-foreground" />
                         <span className="text-sm font-medium text-muted-foreground">Periods</span>
+                        {selectedFilters.period.length > 0 && (
+                          <Badge variant="secondary" className="ml-2">
+                            {selectedFilters.period.length} selected
+                          </Badge>
+                        )}
                       </div>
                       <div className="flex flex-wrap gap-2">
-                        <Button 
-                          variant={activeFilters.period === '' ? 'default' : 'outline'} 
-                          size="sm" 
-                          onClick={() => handleFilterChange({ period: '' })}
-                        >
-                          All Periods
-                        </Button>
                         {periods.map(period => (
                           <Button
                             key={period}
-                            variant={activeFilters.period === period ? 'default' : 'outline'}
+                            variant={selectedFilters.period.includes(period) ? 'default' : 'outline'}
                             size="sm"
-                            onClick={() => handleFilterChange({ period })}
+                            onClick={() => handleCombinationFilterChange('period', period)}
                           >
                             {period}
                           </Button>
@@ -576,16 +648,6 @@ const Index = () => {
                       </div>
                     </div>
                   </div>
-
-                  {/* Collapsible advanced filters */}
-                  {!isFiltersCollapsed && (
-                    <FilterBar 
-                      data={processedData} 
-                      onFilterChange={handleFilteredDataChange} 
-                      selectedFilters={selectedFilters} 
-                      onFilterUpdate={handleFilterUpdate} 
-                    />
-                  )}
                   
                   <ResultsTable 
                     data={filteredData} 
@@ -624,7 +686,8 @@ const Index = () => {
             }} />
               </TabsContent>
             </Tabs>
-          </div>}
+          </div>
+        )}
       </main>
 
       {/* Processing Loader */}
@@ -635,6 +698,8 @@ const Index = () => {
           Studio Stats Analytics Dashboard • {new Date().getFullYear()}
         </div>
       </footer>
-    </div>;
+    </div>
+  );
 };
+
 export default Index;
