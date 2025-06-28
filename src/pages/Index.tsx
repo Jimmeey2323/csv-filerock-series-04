@@ -17,9 +17,8 @@ import Logo from '@/components/Logo';
 import AIInsights from '@/components/AIInsights';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { ChevronDown, ChevronUp, FileText, Table, BarChart, TrendingUp, Target, DollarSign, Filter, Building2, Users, Calendar } from 'lucide-react';
+import { ChevronDown, ChevronUp, FileText, Table, BarChart, TrendingUp, Target, DollarSign, Filter } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 
 // Local storage keys
 const STORAGE_KEYS = {
@@ -97,7 +96,7 @@ const Index = () => {
     }
   });
 
-  // Update selectedFilters to use arrays for combination filtering
+  // Add state for managing filters
   const [selectedFilters, setSelectedFilters] = useState({
     period: [] as string[],
     teacher: [] as string[],
@@ -110,7 +109,7 @@ const Index = () => {
     search: ''
   });
 
-  // Add state for filter collapse - set to true by default (collapsed)
+  // Add state for filter collapse
   const [isFiltersCollapsed, setIsFiltersCollapsed] = useState(true);
 
   // Load saved data from localStorage on component mount
@@ -313,65 +312,6 @@ const Index = () => {
     setSelectedFilters(filters);
   }, []);
 
-  // Updated filter change handler to support combinations
-  const handleCombinationFilterChange = useCallback((filterType: 'location' | 'teacher' | 'period', value: string) => {
-    setSelectedFilters(prev => {
-      const currentArray = prev[filterType];
-      const isSelected = currentArray.includes(value);
-      
-      let newArray;
-      if (isSelected) {
-        // Remove from selection
-        newArray = currentArray.filter(item => item !== value);
-      } else {
-        // Add to selection
-        newArray = [...currentArray, value];
-      }
-      
-      return {
-        ...prev,
-        [filterType]: newArray
-      };
-    });
-  }, []);
-
-  // Clear all filters
-  const handleClearAllFilters = useCallback(() => {
-    setSelectedFilters({
-      period: [],
-      teacher: [],
-      location: []
-    });
-  }, []);
-
-  // Apply combination filters to data
-  const applyFiltersToData = useCallback((data: ProcessedTeacherData[]) => {
-    let filtered = [...data];
-
-    // Apply location filters
-    if (selectedFilters.location.length > 0) {
-      filtered = filtered.filter(item => selectedFilters.location.includes(item.location));
-    }
-
-    // Apply teacher filters
-    if (selectedFilters.teacher.length > 0) {
-      filtered = filtered.filter(item => selectedFilters.teacher.includes(item.teacherName));
-    }
-
-    // Apply period filters
-    if (selectedFilters.period.length > 0) {
-      filtered = filtered.filter(item => selectedFilters.period.includes(item.period));
-    }
-
-    return filtered;
-  }, [selectedFilters]);
-
-  // Update filtered data when filters change
-  useEffect(() => {
-    const filtered = applyFiltersToData(processedData);
-    setFilteredData(filtered);
-  }, [processedData, selectedFilters, applyFiltersToData]);
-
   // Handle filter changes (for old components that still use this interface)
   const handleFilterChange = useCallback((filters: {
     location?: string;
@@ -419,9 +359,8 @@ const Index = () => {
     return () => clearTimeout(timer);
   }, []);
 
-  const hasActiveFilters = selectedFilters.location.length > 0 || 
-                          selectedFilters.teacher.length > 0 || 
-                          selectedFilters.period.length > 0;
+  // Check if any filters are active
+  const hasActiveFilters = Object.values(activeFilters).some(Boolean);
 
   // Clear saved data and reset to upload screen
   const handleResetApp = useCallback(() => {
@@ -490,8 +429,8 @@ const Index = () => {
                   Reset data
                 </button>
                 <button onClick={() => {
-              setResultsVisible(false);
-            }} className="text-sm text-primary hover:underline">
+                  setResultsVisible(false);
+                }} className="text-sm text-primary hover:underline">
                   Process new files
                 </button>
               </div>
@@ -547,107 +486,45 @@ const Index = () => {
               
               <TabsContent value="analytics" className="mt-0">
                 <div className="space-y-6">
-                  {/* Enhanced Quick filter buttons with combination support */}
-                  <div className="space-y-4">
-                    {/* Clear all filters button */}
-                    {hasActiveFilters && (
-                      <div className="flex justify-end">
-                        <Button 
-                          variant="outline" 
-                          size="sm" 
-                          onClick={handleClearAllFilters}
-                          className="text-muted-foreground hover:text-foreground"
-                        >
-                          Clear all filters ({selectedFilters.location.length + selectedFilters.teacher.length + selectedFilters.period.length})
-                        </Button>
-                      </div>
-                    )}
-
-                    {/* Location Filters */}
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-2">
-                        <Building2 className="h-4 w-4 text-muted-foreground" />
-                        <span className="text-sm font-medium text-muted-foreground">Locations</span>
-                        {selectedFilters.location.length > 0 && (
-                          <Badge variant="secondary" className="ml-2">
-                            {selectedFilters.location.length} selected
-                          </Badge>
-                        )}
-                      </div>
-                      <div className="flex flex-wrap gap-2">
-                        {locations.slice(0, 6).map(location => (
-                          <Button
-                            key={location}
-                            variant={selectedFilters.location.includes(location) ? 'default' : 'outline'}
-                            size="sm"
-                            onClick={() => handleCombinationFilterChange('location', location)}
-                          >
-                            {location}
-                          </Button>
-                        ))}
-                        {locations.length > 6 && (
-                          <Badge variant="secondary" className="h-8 flex items-center">
-                            +{locations.length - 6} more
-                          </Badge>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Teacher Filters */}
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-2">
-                        <Users className="h-4 w-4 text-muted-foreground" />
-                        <span className="text-sm font-medium text-muted-foreground">Teachers</span>
-                        {selectedFilters.teacher.length > 0 && (
-                          <Badge variant="secondary" className="ml-2">
-                            {selectedFilters.teacher.length} selected
-                          </Badge>
-                        )}
-                      </div>
-                      <div className="flex flex-wrap gap-2">
-                        {teachers.slice(0, 8).map(teacher => (
-                          <Button
-                            key={teacher}
-                            variant={selectedFilters.teacher.includes(teacher) ? 'default' : 'outline'}
-                            size="sm"
-                            onClick={() => handleCombinationFilterChange('teacher', teacher)}
-                          >
-                            {teacher}
-                          </Button>
-                        ))}
-                        {teachers.length > 8 && (
-                          <Badge variant="secondary" className="h-8 flex items-center">
-                            +{teachers.length - 8} more
-                          </Badge>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Period Filters */}
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-2">
-                        <Calendar className="h-4 w-4 text-muted-foreground" />
-                        <span className="text-sm font-medium text-muted-foreground">Periods</span>
-                        {selectedFilters.period.length > 0 && (
-                          <Badge variant="secondary" className="ml-2">
-                            {selectedFilters.period.length} selected
-                          </Badge>
-                        )}
-                      </div>
-                      <div className="flex flex-wrap gap-2">
-                        {periods.map(period => (
-                          <Button
-                            key={period}
-                            variant={selectedFilters.period.includes(period) ? 'default' : 'outline'}
-                            size="sm"
-                            onClick={() => handleCombinationFilterChange('period', period)}
-                          >
-                            {period}
-                          </Button>
-                        ))}
-                      </div>
-                    </div>
+                  {/* Quick filter buttons - always visible */}
+                  <div className="flex flex-wrap gap-2">
+                    <Button 
+                      variant={activeFilters.location === '' ? 'default' : 'outline'} 
+                      size="sm"
+                      onClick={() => handleFilterChange({ location: '' })}
+                    >
+                      All Locations
+                    </Button>
+                    {locations.slice(0, 5).map(location => (
+                      <Button 
+                        key={location}
+                        variant={activeFilters.location === location ? 'default' : 'outline'} 
+                        size="sm"
+                        onClick={() => handleFilterChange({ location })}
+                      >
+                        {location}
+                      </Button>
+                    ))}
+                    <Button 
+                      variant="ghost" 
+                      size="sm"
+                      onClick={() => setIsFiltersCollapsed(!isFiltersCollapsed)}
+                      className="ml-auto"
+                    >
+                      <Filter className="h-4 w-4 mr-2" />
+                      {isFiltersCollapsed ? 'Show Filters' : 'Hide Filters'}
+                    </Button>
                   </div>
+
+                  {/* Collapsible advanced filters */}
+                  {!isFiltersCollapsed && (
+                    <FilterBar 
+                      data={processedData} 
+                      onFilterChange={handleFilteredDataChange} 
+                      selectedFilters={selectedFilters} 
+                      onFilterUpdate={handleFilterUpdate} 
+                    />
+                  )}
                   
                   <ResultsTable 
                     data={filteredData} 
@@ -677,13 +554,18 @@ const Index = () => {
               </TabsContent>
               
               <TabsContent value="raw-data" className="mt-0">
-                <RawDataView newClientData={rawData.newClientData || []} bookingsData={rawData.bookingsData || []} paymentsData={rawData.paymentsData || []} processingResults={rawData.processingResults || {
-              included: [],
-              excluded: [],
-              newClients: [],
-              convertedClients: [],
-              retainedClients: []
-            }} />
+                <RawDataView 
+                  newClientData={rawData.newClientData || []} 
+                  bookingsData={rawData.bookingsData || []} 
+                  paymentsData={rawData.paymentsData || []} 
+                  processingResults={rawData.processingResults || {
+                    included: [],
+                    excluded: [],
+                    newClients: [],
+                    convertedClients: [],
+                    retainedClients: []
+                  }} 
+                />
               </TabsContent>
             </Tabs>
           </div>

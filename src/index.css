@@ -1,3 +1,4 @@
+
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@100;200;300;400;500;600;700;800;900&display=swap');
 
 @tailwind base;
@@ -422,38 +423,4 @@
 
 .badge-excluded {
   @apply inline-flex items-center gap-1.5 px-3 py-1 rounded-md font-medium text-xs bg-gradient-to-br from-rose-500 to-red-600 text-white shadow-md;
-}
-
-/* Moving rainbow animation for header border */
-@keyframes moving-rainbow {
-  0% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
-  100% { background-position: 0% 50%; }
-}
-
-.animate-moving-rainbow {
-  background: linear-gradient(
-    90deg,
-    #3b82f6,
-    #8b5cf6,
-    #ec4899,
-    #ef4444,
-    #f97316,
-    #eab308,
-    #22c55e,
-    #06b6d4,
-    #3b82f6
-  );
-  background-size: 400% 400%;
-  animation: moving-rainbow 3s ease infinite;
-}
-
-/* Enhanced fade-in animation */
-@keyframes fade-in {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-.animate-fade-in {
-  animation: fade-in 0.5s ease-out forwards;
 }

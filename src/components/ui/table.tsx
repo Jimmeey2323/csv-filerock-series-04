@@ -1,3 +1,4 @@
+
 import * as React from "react";
 import { ChevronDown, ChevronUp, ChevronsUpDown } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -6,13 +7,11 @@ const Table = React.forwardRef<HTMLTableElement, React.HTMLAttributes<HTMLTableE
   maxHeight?: string;
 }>(({
   className,
-  maxHeight = "calc(100vh - 300px)",
+  maxHeight = "600px",
   ...props
 }, ref) => (
-  <div className="relative w-full border border-border rounded-lg bg-card shadow-sm" style={{ height: maxHeight }}>
-    <div className="h-full overflow-auto">
-      <table ref={ref} className={cn("w-full caption-bottom text-sm", className)} {...props} />
-    </div>
+  <div className="relative w-full overflow-auto border border-border rounded-lg bg-card shadow-sm" style={{ maxHeight }}>
+    <table ref={ref} className={cn("w-full caption-bottom text-sm", className)} {...props} />
   </div>
 ));
 Table.displayName = "Table";
@@ -40,7 +39,7 @@ const TableFooter = React.forwardRef<HTMLTableSectionElement, React.HTMLAttribut
   isClickable = false,
   ...props
 }, ref) => (
-  <tfoot ref={ref} className={cn("sticky bottom-0 z-10 bg-gradient-to-r from-slate-800 via-slate-900 to-slate-800 backdrop-blur-sm border-t font-medium", "[&>tr]:last:border-b-0", isClickable && "cursor-pointer", className)} {...props} />
+  <tfoot ref={ref} className={cn("sticky bottom-0 z-10 bg-gradient-to-r from-slate-800 via-slate-900 to-slate-800 backdrop-blur-sm border-t font-medium", "[&>tr]:last:border-b-0", isClickable && "cursor-pointer hover:bg-gradient-to-r hover:from-slate-700 hover:via-slate-800 hover:to-slate-700 transition-colors", className)} {...props} />
 ));
 TableFooter.displayName = "TableFooter";
 
@@ -79,11 +78,11 @@ const TableHead = React.forwardRef<HTMLTableCellElement, TableHeadProps>(({
       {sortable && (
         <div className="flex items-center ml-2">
           {sortDirection === 'asc' ? (
-            <ChevronUp className="h-4 w-4 animate-pulse text-white" />
+            <ChevronUp className="h-4 w-4 animate-pulse" />
           ) : sortDirection === 'desc' ? (
-            <ChevronDown className="h-4 w-4 animate-pulse text-white" />
+            <ChevronDown className="h-4 w-4 animate-pulse" />
           ) : (
-            <ChevronsUpDown className="h-4 w-4 opacity-50 transition-opacity hover:opacity-100 text-white" />
+            <ChevronsUpDown className="h-4 w-4 opacity-50 transition-opacity hover:opacity-100" />
           )}
         </div>
       )}
