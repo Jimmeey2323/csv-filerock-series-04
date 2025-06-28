@@ -1,3 +1,4 @@
+
 import React, { useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from '@/components/ui/table';
@@ -215,7 +216,7 @@ const SalesMetricsView: React.FC<SalesMetricsViewProps> = ({ data, paymentsData 
     return monthlyData;
   }, [paymentsData]);
 
-  // Get all months sorted
+  // Get all months sorted (using useMemo to avoid redeclaration)
   const allMonths = useMemo(() => {
     return Object.keys(salesByMonth).sort((a, b) => new Date(a).getTime() - new Date(b).getTime());
   }, [salesByMonth]);
@@ -312,8 +313,6 @@ const SalesMetricsView: React.FC<SalesMetricsViewProps> = ({ data, paymentsData 
       </div>
     );
   }
-
-  const allMonths = Object.keys(salesByMonth).sort((a, b) => new Date(a).getTime() - new Date(b).getTime());
 
   if (allMonths.length === 0) {
     return (
