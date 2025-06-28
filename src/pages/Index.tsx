@@ -399,7 +399,6 @@ const Index = () => {
       <header className="border-b bg-white/80 backdrop-blur-sm sticky top-0 z-50">
         <div className="container flex justify-between items-center py-3 bg-neutral-50">
           <Logo size="md" />
-          
         </div>
       </header>
       
@@ -415,17 +414,16 @@ const Index = () => {
                 Upload, process, and analyze your CSV files to gain insights into studio performance, teacher effectiveness, and client trends.
               </p>
             </div>
-          </div>
 
-          <div className="grid grid-cols-1 gap-8 max-w-3xl mx-auto">
-            <FileUploader onFilesAdded={handleFilesAdded} accept=".csv" maxFiles={10} />
-            
-            {files.length > 0 && <FileList files={files} onRemove={handleRemoveFile} onProcessFiles={handleProcessFiles} fileTypes={getFileTypes()} />}
+            <div className="grid grid-cols-1 gap-8 max-w-3xl mx-auto">
+              <FileUploader onFilesAdded={handleFilesAdded} accept=".csv" maxFiles={10} />
+              
+              {files.length > 0 && <FileList files={files} onRemove={handleRemoveFile} onProcessFiles={handleProcessFiles} fileTypes={getFileTypes()} />}
+            </div>
           </div>
         ) : (
           <div className="space-y-6 animate-fade-in">
             <div className="flex justify-between items-center mb-6">
-              
               <div className="flex space-x-4">
                 <button onClick={handleResetApp} className="text-sm text-destructive hover:underline">
                   Reset data
@@ -556,13 +554,18 @@ const Index = () => {
               </TabsContent>
               
               <TabsContent value="raw-data" className="mt-0">
-                <RawDataView newClientData={rawData.newClientData || []} bookingsData={rawData.bookingsData || []} paymentsData={rawData.paymentsData || []} processingResults={rawData.processingResults || {
-              included: [],
-              excluded: [],
-              newClients: [],
-              convertedClients: [],
-              retainedClients: []
-            }} />
+                <RawDataView 
+                  newClientData={rawData.newClientData || []} 
+                  bookingsData={rawData.bookingsData || []} 
+                  paymentsData={rawData.paymentsData || []} 
+                  processingResults={rawData.processingResults || {
+                    included: [],
+                    excluded: [],
+                    newClients: [],
+                    convertedClients: [],
+                    retainedClients: []
+                  }} 
+                />
               </TabsContent>
             </Tabs>
           </div>
